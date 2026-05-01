@@ -20,6 +20,16 @@
 - Codex skills への symlink 定義
 - 公開可能な package list と環境別分岐 template
 
+## ツール管理方針
+
+詳細: `docs/tooling-strategy.md`
+
+- ローカルに直接入れて、同じ設定で常用するもの: `fish`, `tmux`, `nvim`
+- bootstrap に必要な基礎ツール: `git`, `curl`, `ca-certificates`, `build-essential`, `chezmoi`, `mise`, `prek`
+- よく使う CLI だが言語・プロジェクトに強く依存しないもの: 原則 `mise` で管理し、必要に応じて `apt` または `nix profile` を検討する
+- 言語ランタイム、LSP、formatter、project-specific toolchain: project 側の Docker, devcontainer, `nix develop`, `mise.toml` に寄せる
+- Windows GUI tool: Windows 側 bootstrap に分離する。`wezterm` は WSL 内ではなく Windows 側管理を基本にする
+
 ## 公開しないもの
 
 - API token, SSH private key, GPG private key, password manager vault data
@@ -35,11 +45,13 @@
 - [x] Codex 用に `spec-workflow` skill を作る。
 - [x] Codex から共通 skill を個別 symlink できる chezmoi source を作る。
 - [x] `prek`/`pre-commit` 互換の hook と `secretlint` を追加する。
-- [ ] 現在の `~/.codex/skills` に `spec-workflow` をインストールする。
+- [x] 現在の `~/.codex/skills` に `spec-workflow` をインストールする。
 
 ### Phase 2: 現行 dotfiles の棚卸し
 
 - [ ] 既存の dotfiles と tool config を一覧化する。
+- [ ] `~/.config/fish`, `~/.config/nvim`, `~/.tmux`, `~/.tmux.conf` から公開可能な設定だけを取り込む。
+- [ ] 古い `../dotfiles` は丸ごと移植せず、`fish`, `tmux`, `nvim` の必要部分だけ参照する。
 - [ ] 公開可能、template 化、private 化、破棄に分類する。
 - [ ] secret scanning 前提で git 履歴に入れる前の検査手順を作る。
 
@@ -48,6 +60,9 @@
 - [ ] Windows 側手順を `docs/windows-wsl.md` にまとめる。
 - [ ] Ubuntu 初回 bootstrap script を作る。
 - [ ] `apt` package list と third-party repository 設定を idempotent にする。
+- [ ] `fish`, `tmux`, `nvim` のインストールと default shell 設定を idempotent にする。
+- [ ] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
+- [ ] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
 - [ ] `chezmoi init --apply` までの最短経路を確認する。
 
 ### Phase 4: chezmoi template 化
