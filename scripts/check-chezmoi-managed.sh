@@ -24,6 +24,7 @@ require_managed=(
 require_ignored=(
   "AGENTS.md"
   "docs"
+  "tasks"
   "scripts"
 )
 
@@ -32,6 +33,7 @@ forbidden_managed=(
   ".secretlintrc.json"
   "AGENTS.md"
   "docs/plan.md"
+  "tasks/doing/TASK-001-core-tools-import.md"
   "scripts/check-chezmoi-managed.sh"
 )
 

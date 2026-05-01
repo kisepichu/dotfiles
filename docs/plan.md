@@ -49,7 +49,7 @@
 
 ### Phase 2: 現行 dotfiles の棚卸し
 
-- [ ] 既存の dotfiles と tool config を一覧化する。
+- [x] 既存の dotfiles と tool config を一覧化する。
 - [ ] `~/.config/fish`, `~/.config/nvim`, `~/.tmux`, `~/.tmux.conf` から公開可能な設定だけを取り込む。
 - [ ] 古い `../dotfiles` は丸ごと移植せず、`fish`, `tmux`, `nvim` の必要部分だけ参照する。
 - [ ] 公開可能、template 化、private 化、破棄に分類する。
