@@ -1,0 +1,63 @@
+# Dotfiles 整理計画
+
+## 目的
+
+- 新 Windows PC + WSL Ubuntu を再現可能にセットアップする。
+- 公開してよい dotfiles と agent workflow を GitHub に集約する。
+- 秘密情報と環境固有値は公開 repo から分離する。
+
+## 参考方針
+
+- `mizchi/chezmoi-dotfiles` のように、Claude/Codex 用の agent assets も chezmoi で管理する。
+- ただし Codex は `~/.codex/skills/.system` を持つため、`~/.codex/skills` 全体を symlink せず、共通 skill を個別 symlink する。
+- Claude Code の slash command は `dot_claude/commands/` に置き、Codex では同じ手順を `spec-workflow` skill として使う。
+
+## 公開するもの
+
+- shell/editor/git などの設定ファイル
+- WSL Ubuntu 用 bootstrap と idempotent install scripts
+- Claude Code commands/skills
+- Codex skills への symlink 定義
+- 公開可能な package list と環境別分岐 template
+
+## 公開しないもの
+
+- API token, SSH private key, GPG private key, password manager vault data
+- 会社名、社内 URL、private repository URL
+- machine-local username/email/signing key/path の生値
+
+## フェーズ
+
+### Phase 1: Agent workflow の移植
+
+- [x] `docs/plan.md` を作成する。
+- [x] Claude Code の `spec-do`, `spec-review`, `spec-update` を汎用 command として整理する。
+- [x] Codex 用に `spec-workflow` skill を作る。
+- [x] Codex から共通 skill を個別 symlink できる chezmoi source を作る。
+- [x] `prek`/`pre-commit` 互換の hook と `secretlint` を追加する。
+- [ ] 現在の `~/.codex/skills` に `spec-workflow` をインストールする。
+
+### Phase 2: 現行 dotfiles の棚卸し
+
+- [ ] 既存の dotfiles と tool config を一覧化する。
+- [ ] 公開可能、template 化、private 化、破棄に分類する。
+- [ ] secret scanning 前提で git 履歴に入れる前の検査手順を作る。
+
+### Phase 3: WSL Ubuntu bootstrap
+
+- [ ] Windows 側手順を `docs/windows-wsl.md` にまとめる。
+- [ ] Ubuntu 初回 bootstrap script を作る。
+- [ ] `apt` package list と third-party repository 設定を idempotent にする。
+- [ ] `chezmoi init --apply` までの最短経路を確認する。
+
+### Phase 4: chezmoi template 化
+
+- [ ] `chezmoi.toml.tmpl` で profile, email, WSL 判定などを入力する。
+- [ ] Git identity や host 固有設定を template/private config に逃がす。
+- [ ] OS/profile ごとに `.chezmoiignore` または template 条件分岐を整える。
+
+### Phase 5: 検証
+
+- [ ] fresh WSL Ubuntu で bootstrap を dry-run する。
+- [ ] `chezmoi diff` と `chezmoi apply` を確認する。
+- [ ] `gitleaks` か同等の secret scan を通す。

@@ -1,0 +1,36 @@
+repos:
+  - repo: local
+    hooks:
+      - id: chezmoi-managed
+        name: chezmoi managed paths are intentional
+        entry: scripts/check-chezmoi-managed.sh
+        language: system
+        pass_filenames: false
+      - id: codex-skills
+        name: validate Codex/Claude skill metadata
+        entry: scripts/validate-skills.sh
+        language: system
+        pass_filenames: false
+      - id: public-safety
+        name: public dotfiles safety scan
+        entry: scripts/check-public-safety.sh
+        language: system
+        pass_filenames: false
+      - id: secretlint
+        name: secretlint
+        entry: secretlint
+        language: node
+        types_or: [text]
+        additional_dependencies:
+          - secretlint@11.4.1
+          - "@secretlint/secretlint-rule-preset-recommend@11.4.1"
+      - id: newline-eof
+        name: require newline at EOF
+        entry: scripts/check-newline-eof.sh
+        language: system
+        pass_filenames: false
+      - id: git-diff-check
+        name: reject whitespace errors in staged diff
+        entry: scripts/check-git-diff.sh
+        language: system
+        pass_filenames: false
