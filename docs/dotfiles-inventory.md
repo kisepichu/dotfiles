@@ -170,4 +170,4 @@
 1. shell startup: `~/.bashrc`, `~/.bash_profile`, `~/.profile` を分解し、fish config に統合する方針を確定する。
 2. `tmux`: ファイル数が少なく、公開リスクが低い。TPM install script を先に作る。取り込み済み。
 3. `fish`: private daemon 起動と hard-coded path を外してから取り込む。取り込み済み。
-4. `nvim`: ファイル数が多いため、`example.lua` など不要物を削って取り込む。
+4. `nvim`: ファイル数が多いため、`example.lua` など不要物を削って取り込む。取り込み済み。
