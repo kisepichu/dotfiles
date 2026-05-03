@@ -16,7 +16,7 @@
 - [x] TPM install を idempotent な script にする。
 - [x] `fish` 設定を private/machine-local 部分を除いて取り込む。
 - [x] `nvim` 設定を不要 sample と local state を除いて取り込む。
-- [ ] bootstrap package list に `fish`, `tmux`, `neovim` と必要な補助 tool を反映する。
+- [x] bootstrap package list に `fish`, `tmux`, `neovim` と必要な補助 tool を反映する。
 - [ ] `chezmoi --source . diff` と `prek run --all-files` を通す。
 
 ## 完了条件
@@ -32,3 +32,4 @@
 - 2026-05-02: `tmux` 設定を chezmoi source に取り込み。TPM は repo に vendor せず `run_once` script で clone する方針にした。
 - 2026-05-02: `fish` 設定を `~/.bashrc` 由来の常用 alias/env と合わせて整理。private daemon 起動、project 固有 alias、debug env は除外。
 - 2026-05-02: `nvim` 設定を chezmoi source に取り込み。LazyVim sample の `example.lua` と local state は除外。
+- 2026-05-02: Ubuntu apt bootstrap, mise install, mise tool install scripts を追加。`fish`/`tmux` は apt、`neovim` は mise 管理にした。

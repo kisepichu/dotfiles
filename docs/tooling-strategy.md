@@ -16,7 +16,6 @@
 - `build-essential`
 - `fish`
 - `tmux`
-- `neovim`
 - `chezmoi`
 
 理由:
@@ -24,12 +23,14 @@
 - shell/editor/multiplexer はログイン直後から使うため、project dev shell に依存させない。
 - `fish`, `tmux`, `nvim` は設定ファイルもこの repo で管理する。
 - `apt` は Ubuntu/WSL の土台として最も壊れにくい。
+- `neovim` は Ubuntu LTS の apt 版が古くなりやすいため、binary は `mise` 管理にする。
 
 ### User-level common tools
 
 プロジェクトをまたいで常用する CLI は `mise` を第一候補にする。
 
 - `node`, `pnpm`, `go`, `rust`, `python`, `ruby` などの runtime
+- `neovim`
 - `prek`
 - `chezmoi` の pinned version
 - その他、mise backend で自然に扱える CLI

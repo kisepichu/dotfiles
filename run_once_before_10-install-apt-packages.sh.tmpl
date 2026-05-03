@@ -1,0 +1,43 @@
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "ubuntu") -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+packages=(
+  build-essential
+  ca-certificates
+  curl
+  fd-find
+  fish
+  git
+  jq
+  pkg-config
+  python3
+  python3-pip
+  ripgrep
+  tmux
+  unzip
+  wslu
+  xz-utils
+)
+
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+
+fish_path="$(command -v fish || true)"
+if [ -n "$fish_path" ] && ! grep -Fxq "$fish_path" /etc/shells; then
+  echo "$fish_path" | sudo tee -a /etc/shells >/dev/null
+fi
+
+current_shell="$(getent passwd "$USER" | cut -d: -f7)"
+if [ -n "$fish_path" ] && [ "$current_shell" != "$fish_path" ]; then
+  if [ -t 0 ]; then
+    chsh -s "$fish_path" || echo "warning: failed to change default shell to fish" >&2
+  else
+    echo "warning: default shell is not fish; run 'chsh -s $fish_path' manually" >&2
+  fi
+fi
+{{- else -}}
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+{{- end }}

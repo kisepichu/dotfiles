@@ -44,6 +44,10 @@ if __is_wsl
 
     __path_prepend /mnt/c/Windows /mnt/c/Windows/system32
 
+    if command -q wslview
+        set -gx BROWSER wslview
+    end
+
     if test -d /mnt/c/Windows/Fonts
         set -gx TYPST_FONT_PATHS "/mnt/c/fonts:/mnt/c/Windows/Fonts"
     end
@@ -116,8 +120,8 @@ function browse
     end
 
     set -l target (realpath "$argv[1]")
-    if __is_wsl; and command -q wslview
-        wslview "$target"
+    if __is_wsl; and set -q BROWSER
+        "$BROWSER" "$target"
     else if set -q BROWSER
         "$BROWSER" "$target"
     else
