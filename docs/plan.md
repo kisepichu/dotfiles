@@ -50,19 +50,19 @@
 ### Phase 2: 現行 dotfiles の棚卸し
 
 - [x] 既存の dotfiles と tool config を一覧化する。
-- [ ] `~/.config/fish`, `~/.config/nvim`, `~/.tmux`, `~/.tmux.conf` から公開可能な設定だけを取り込む。
-- [ ] 古い `../dotfiles` は丸ごと移植せず、`fish`, `tmux`, `nvim` の必要部分だけ参照する。
-- [ ] 公開可能、template 化、private 化、破棄に分類する。
-- [ ] secret scanning 前提で git 履歴に入れる前の検査手順を作る。
+- [x] `~/.config/fish`, `~/.config/nvim`, `~/.tmux`, `~/.tmux.conf` から公開可能な設定だけを取り込む。
+- [x] 古い `../dotfiles` は丸ごと移植せず、`fish`, `tmux`, `nvim` の必要部分だけ参照する。
+- [x] 公開可能、template 化、private 化、破棄に分類する。
+- [x] secret scanning 前提で git 履歴に入れる前の検査手順を作る。
 
 ### Phase 3: WSL Ubuntu bootstrap
 
 - [ ] Windows 側手順を `docs/windows-wsl.md` にまとめる。
-- [ ] Ubuntu 初回 bootstrap script を作る。
-- [ ] `apt` package list と third-party repository 設定を idempotent にする。
-- [ ] `fish`, `tmux`, `nvim` のインストールと default shell 設定を idempotent にする。
-- [ ] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
-- [ ] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
+- [x] Ubuntu 初回 bootstrap script を作る。
+- [x] `apt` package list と third-party repository 設定を idempotent にする。
+- [x] `fish`, `tmux`, `nvim` のインストールと default shell 設定を idempotent にする。
+- [x] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
+- [x] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
 - [ ] `chezmoi init --apply` までの最短経路を確認する。
 
 ### Phase 4: chezmoi template 化
@@ -76,3 +76,12 @@
 - [ ] fresh WSL Ubuntu で bootstrap を dry-run する。
 - [ ] `chezmoi diff` と `chezmoi apply` を確認する。
 - [ ] `gitleaks` か同等の secret scan を通す。
+
+## 現在の状態
+
+詳細: `docs/current-state.md`
+
+- `fish`, `tmux`, `nvim`, `mise`, agent workflow は chezmoi source に取り込み済み。
+- 現在の作業マシンには、core dotfiles 取り込み後の `chezmoi --source . apply` はまだ実行していない。
+- そのため `chezmoi --source . status` は `.config/fish`, `.config/nvim`, `.tmux.conf`, run scripts の差分を表示する。
+- 次の大きな作業は、現マシンまたは fresh WSL で apply/dry-run して bootstrap を検証すること。

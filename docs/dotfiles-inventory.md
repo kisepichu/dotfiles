@@ -39,13 +39,12 @@
 - `~/.config/fish/conf.d/rustup.fish`
 - `~/.config/fish/fish_variables`
 
-取り込み候補:
+取り込み結果:
 
-- `config.fish`: 要整理。`bass`, `mise`, `zoxide`, `starship`, VS Code shell integration は残す。
-- `fish_plugins`: `jorgebucaran/fisher`, `edc/bass`
-- `functions/bass.fish`, `functions/__bass.py`: `~/.bashrc` 互換が必要なら残す。
-- `conf.d/nix.fish`: Nix を optional にするため、存在チェック付きにする。
-- `conf.d/rustup.fish`: rustup を直接必須にしないなら optional 化する。
+- `config.fish`: `~/.bashrc` source を廃止し、fish native config に整理済み。
+- `fish_plugins`: `jorgebucaran/fisher` のみ管理。`bass` は不要化したため除外。
+- `conf.d/nix.fish`: Nix が存在する場合だけ source。
+- `conf.d/rustup.fish`: cargo env が存在する場合だけ source。
 
 除外:
 
@@ -54,12 +53,9 @@
 
 要修正:
 
-- `~/.bashrc` は大量の PATH, alias, language runtime 設定を持っているため、fish 側に直接移植するものと project/mise/Docker/Nix に逃がすものを分ける。
 - `~/.bash_profile` の `exec fish` は、default shell を `chsh` する方針なら不要。bash から fish に逃がす暫定設定として扱う。
 - `.profile` に fish 構文の `set PATH ...` が混ざっているため、新 repo では再利用しない。
-- `/opt/nvim-linux-x86_64/bin` は hard-coded path なので、`apt`/`mise`/manual install 方針に合わせて削る。
-- Windows clipboard / Windows path は WSL 判定付きにする。
-- `TRASH`, `SAVE`, `BROWSER` 依存 alias は変数未定義時に壊れないようにする。
+- `fish_variables` は引き続き取り込まない。
 
 `~/.bashrc` から fish へ移す候補:
 
@@ -95,10 +91,10 @@
 - `../dotfiles/ubuntu/.tmux/new-session-isucon`
 - `../dotfiles/ubuntu/.tmux/plugins/tpm/...`
 
-取り込み候補:
+取り込み結果:
 
-- `.tmux.conf`: keybind, layout, mouse, copy-mode, popup, WSL clipboard integration
-- `.tmux/new-session`: 初期 pane layout
+- `.tmux.conf`: keybind, layout, mouse, copy-mode, popup, WSL clipboard integration を取り込み済み。
+- `.tmux/new-session`: 初期 pane layout を取り込み済み。
 
 除外:
 
@@ -108,10 +104,10 @@
 
 要修正:
 
-- TPM は install script で clone する。repo に vendor しない。
-- `wifi`, `battery` command は WSL では不要または未導入になりやすいので optional 化する。
-- `clip.exe` copy は WSL 判定付きで残す。
-- CRLF が混ざっている箇所があるため、取り込み時に LF に正規化する。
+- TPM は `run_once_before_20-install-tmux-plugin-manager.sh` で clone する。repo に vendor しない。
+- `wifi`, `battery` command は削除済み。
+- `clip.exe` copy は WSL 判定付きで残した。
+- CRLF は LF に正規化済み。
 
 ## nvim
 
@@ -128,12 +124,13 @@
 - `~/.config/nvim/README.md`
 - `~/.config/nvim/LICENSE`
 
-取り込み候補:
+取り込み結果:
 
 - `init.lua`
 - `lazyvim.json`
 - `lazy-lock.json`
 - `stylua.toml`
+- `.neoconf.json`
 - `lua/config/`
 - `lua/plugins/`
 
@@ -146,7 +143,7 @@
 
 要修正:
 
-- `lua/plugins/example.lua` は LazyVim sample なので削除候補。
+- `lua/plugins/example.lua` は LazyVim sample なので除外済み。
 - SKK dictionary path は package install とセットで扱う。
 - Firenvim は Windows/browser 側依存があるため optional plugin として残す。
 - Quarto/Jupyter 系 plugin は project-specific 寄り。常用なら残し、依存は project 側に寄せる。

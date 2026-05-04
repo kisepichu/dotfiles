@@ -19,6 +19,21 @@ require_managed=(
   ".codex/skills/commit"
   ".codex/skills/pr-review"
   ".codex/skills/spec-workflow"
+  ".config/fish/config.fish"
+  ".config/fish/fish_plugins"
+  ".config/fish/conf.d/nix.fish"
+  ".config/fish/conf.d/rustup.fish"
+  ".config/mise/config.toml"
+  ".config/nvim/init.lua"
+  ".config/nvim/lazy-lock.json"
+  ".config/nvim/lazyvim.json"
+  ".config/nvim/stylua.toml"
+  ".tmux.conf"
+  ".tmux/new-session"
+  "10-install-apt-packages.sh"
+  "15-install-mise.sh"
+  "20-install-tmux-plugin-manager.sh"
+  "40-mise-install.sh"
 )
 
 require_ignored=(
@@ -33,7 +48,7 @@ forbidden_managed=(
   ".secretlintrc.json"
   "AGENTS.md"
   "docs/plan.md"
-  "tasks/doing/TASK-001-core-tools-import.md"
+  "tasks/done/TASK-001-core-tools-import.md"
   "scripts/check-chezmoi-managed.sh"
 )
 

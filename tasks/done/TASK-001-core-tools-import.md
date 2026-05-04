@@ -17,13 +17,13 @@
 - [x] `fish` 設定を private/machine-local 部分を除いて取り込む。
 - [x] `nvim` 設定を不要 sample と local state を除いて取り込む。
 - [x] bootstrap package list に `fish`, `tmux`, `neovim` と必要な補助 tool を反映する。
-- [ ] `chezmoi --source . diff` と `prek run --all-files` を通す。
+- [x] `chezmoi --source . diff` と `prek run --all-files` を通す。
 
 ## 完了条件
 
-- [ ] 新規 WSL Ubuntu で `fish`, `tmux`, `nvim` がインストール可能な bootstrap 方針がある。
-- [ ] public repo に secret, token, private key, machine-local state が入っていない。
-- [ ] 常用設定が chezmoi source として管理されている。
+- [x] 新規 WSL Ubuntu で `fish`, `tmux`, `nvim` がインストール可能な bootstrap 方針がある。
+- [x] public repo に secret, token, private key, machine-local state が入っていない。
+- [x] 常用設定が chezmoi source として管理されている。
 
 ## 作業ログ
 
@@ -33,3 +33,4 @@
 - 2026-05-02: `fish` 設定を `~/.bashrc` 由来の常用 alias/env と合わせて整理。private daemon 起動、project 固有 alias、debug env は除外。
 - 2026-05-02: `nvim` 設定を chezmoi source に取り込み。LazyVim sample の `example.lua` と local state は除外。
 - 2026-05-02: Ubuntu apt bootstrap, mise install, mise tool install scripts を追加。`fish`/`tmux` は apt、`neovim` は mise 管理にした。
+- 2026-05-04: `docs/plan.md` と実装状態のズレを確認。Phase 2 は完了、Phase 3 は fresh WSL 検証と `chezmoi init --apply` 導線が未完了。現マシンには core dotfiles 取り込み後の `chezmoi apply` は未実施。
