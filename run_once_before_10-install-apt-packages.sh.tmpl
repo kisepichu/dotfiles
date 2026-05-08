@@ -28,7 +28,8 @@ if [ -n "$fish_path" ] && ! grep -Fxq "$fish_path" /etc/shells; then
   echo "$fish_path" | sudo tee -a /etc/shells >/dev/null
 fi
 
-current_shell="$(getent passwd "$USER" | cut -d: -f7)"
+current_user="${USER:-$(id -un)}"
+current_shell="$(getent passwd "$current_user" | cut -d: -f7)"
 if [ -n "$fish_path" ] && [ "$current_shell" != "$fish_path" ]; then
   if [ -t 0 ]; then
     chsh -s "$fish_path" || echo "warning: failed to change default shell to fish" >&2

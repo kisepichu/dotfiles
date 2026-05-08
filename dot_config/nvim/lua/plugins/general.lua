@@ -83,23 +83,6 @@ return {
   "nvim-tree/nvim-web-devicons",
   "nvim-lua/plenary.nvim",
   {
-    "hrsh7th/nvim-cmp",
-    event = "InsertEnter",
-    dependencies = {
-      { "hrsh7th/cmp-path" },
-      { "hrsh7th/cmp-buffer" },
-      { "hrsh7th/cmp-nvim-lsp" },
-    },
-    config = function()
-      local cmp = require("cmp")
-      cmp.setup({
-        sources = {
-          { name = "path" },
-        },
-      })
-    end,
-  },
-  {
     "ysmb-wtsg/in-and-out.nvim",
     keys = {
       {
