@@ -12,7 +12,7 @@ if ! command -v chezmoi >/dev/null 2>&1; then
   if command -v mise >/dev/null 2>&1; then
     mise install chezmoi@2.69.1
   else
-    curl https://mise.run | sh
+    curl -fsSL https://mise.run | sh
     export PATH="$HOME/.local/bin:$PATH"
     mise install chezmoi@2.69.1
   fi

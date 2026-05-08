@@ -24,7 +24,7 @@ return {
     },
   },
 
-  { -- directly open ipynb files as quarto docuements
+  { -- directly open ipynb files as quarto documents
     -- and convert back behind the scenes
     "GCBallesteros/jupytext.nvim",
     opts = {
@@ -43,7 +43,7 @@ return {
     },
   },
 
-  { -- send code from python/r/qmd documets to a terminal or REPL
+  { -- send code from python/r/qmd documents to a terminal or REPL
     -- like ipython, R, bash
     "jpalardy/vim-slime",
     dev = false,

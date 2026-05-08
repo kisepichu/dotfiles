@@ -24,6 +24,7 @@ require_managed=(
   ".config/fish/conf.d/nix.fish"
   ".config/fish/conf.d/rustup.fish"
   ".config/mise/config.toml"
+  ".config/starship.toml"
   ".config/nvim/init.lua"
   ".config/nvim/lazy-lock.json"
   ".config/nvim/lazyvim.json"

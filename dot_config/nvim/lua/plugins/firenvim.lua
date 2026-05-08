@@ -1,4 +1,4 @@
--- lua/plugins/firenvim-disable.lua
+-- lua/plugins/firenvim.lua
 if not vim.g.started_by_firenvim then
   return {}
 end

@@ -6,7 +6,7 @@ if command -v mise >/dev/null 2>&1; then
   exit 0
 fi
 
-curl https://mise.run | sh
+curl -fsSL https://mise.run | sh
 {{- else -}}
 #!/usr/bin/env bash
 set -euo pipefail
