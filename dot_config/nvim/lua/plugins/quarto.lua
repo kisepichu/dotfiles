@@ -50,7 +50,7 @@ return {
     init = function()
       vim.b["quarto_is_python_chunk"] = false
       Quarto_is_in_python_chunk = function()
-        require("otter.tools.functions").is_otter_language_context("python")
+        vim.b.quarto_is_python_chunk = require("otter.tools.functions").is_otter_language_context("python")
       end
 
       vim.cmd([[

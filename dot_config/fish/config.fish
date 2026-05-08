@@ -94,13 +94,31 @@ if status is-interactive
     alias tmux-reset-layout="tmux select-layout \"\$(tmux show-options -gv @layout_pc)\""
 end
 
+function __unique_destination
+    set -l directory "$argv[1]"
+    set -l name "$argv[2]"
+    set -l destination "$directory/$name"
+    if not test -e "$destination"
+        echo "$destination"
+        return 0
+    end
+
+    set -l stamp (date +%Y%m%d%H%M%S)
+    set -l index 1
+    while test -e "$directory/$name.$stamp.$index"
+        set index (math $index + 1)
+    end
+    echo "$directory/$name.$stamp.$index"
+end
+
 function del
     if test (count $argv) -eq 0
         return 1
     end
     mkdir -p "$TRASH"
     for target in $argv
-        command mv -- "$target" "$TRASH"/(basename "$target")
+        set -l destination (__unique_destination "$TRASH" (basename "$target"))
+        command mv -- "$target" "$destination"
     end
 end
 
@@ -110,7 +128,8 @@ function save
     end
     mkdir -p "$SAVE"
     for target in $argv
-        command cp -R -- "$target" "$SAVE"/(basename "$target")
+        set -l destination (__unique_destination "$SAVE" (basename "$target"))
+        command cp -R -- "$target" "$destination"
     end
 end
 
