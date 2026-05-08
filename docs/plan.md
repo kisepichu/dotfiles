@@ -25,7 +25,7 @@
 詳細: `docs/tooling-strategy.md`
 
 - ローカルに直接入れて、同じ設定で常用するもの: `fish`, `tmux`, `nvim`, `starship`, `zoxide`
-- bootstrap に必要な基礎ツール: `git`, `curl`, `ca-certificates`, `build-essential`, `chezmoi`, `mise`, `prek`
+- bootstrap に必要な基礎ツール: apt で入れる `git`, `curl`, `ca-certificates`, `build-essential` と、bootstrap 中に user-local へ入れる `mise`, `chezmoi`, `prek`
 - よく使う CLI だが言語・プロジェクトに強く依存しないもの: 原則 `mise` で管理し、必要に応じて `apt` または `nix profile` を検討する
 - 言語ランタイム、LSP、formatter、project-specific toolchain: project 側の Docker, devcontainer, `nix develop`, `mise.toml` に寄せる
 - Windows GUI tool: Windows 側 bootstrap に分離する。`wezterm` は WSL 内ではなく Windows 側管理を基本にする

@@ -16,7 +16,6 @@
 - `build-essential`
 - `fish`
 - `tmux`
-- `chezmoi`
 
 理由:
 
@@ -24,6 +23,7 @@
 - `fish`, `tmux`, `nvim` は設定ファイルもこの repo で管理する。
 - `apt` は Ubuntu/WSL の土台として最も壊れにくい。
 - `neovim` は Ubuntu LTS の apt 版が古くなりやすいため、binary は `mise` 管理にする。
+- `mise` と `chezmoi` は apt ではなく bootstrap script で user-local に入れる。
 
 ### User-level common tools
 

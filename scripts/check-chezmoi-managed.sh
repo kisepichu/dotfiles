@@ -9,6 +9,7 @@ fi
 managed="$(chezmoi --source . managed)"
 ignored="$(chezmoi --source . ignored)"
 
+# These are chezmoi target paths, not repository source filenames.
 require_managed=(
   ".claude/commands/spec-do.md"
   ".claude/commands/spec-review.md"
