@@ -81,6 +81,10 @@ return {
 
       local function mark_terminal()
         local job_id = vim.b.terminal_job_id
+        if not job_id then
+          vim.notify("No terminal job id for current buffer", vim.log.levels.WARN)
+          return
+        end
         vim.print("job_id: " .. job_id)
       end
 

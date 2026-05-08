@@ -13,6 +13,6 @@ while IFS= read -r file; do
     echo "missing newline at EOF: $file" >&2
     status=1
   fi
-done < <(git ls-files --others --cached --exclude-standard)
+done < <(git ls-files)
 
 exit "$status"
