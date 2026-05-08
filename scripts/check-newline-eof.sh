@@ -9,7 +9,7 @@ while IFS= read -r file; do
   if git check-attr binary -- "$file" | grep -q ': binary: set'; then
     continue
   fi
-  if [ -s "$file" ] && [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
+  if [ -s "$file" ] && [ "$(tail -c 1 -- "$file" | wc -l)" -eq 0 ]; then
     echo "missing newline at EOF: $file" >&2
     status=1
   fi
