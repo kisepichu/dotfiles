@@ -6,6 +6,7 @@ if ! grep -qi microsoft /proc/version 2>/dev/null; then
 fi
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+chezmoi_cmd=(chezmoi)
 
 if ! command -v chezmoi >/dev/null 2>&1; then
   if command -v mise >/dev/null 2>&1; then
@@ -15,6 +16,8 @@ if ! command -v chezmoi >/dev/null 2>&1; then
     export PATH="$HOME/.local/bin:$PATH"
     mise install chezmoi@2.69.1
   fi
+
+  chezmoi_cmd=(mise exec chezmoi -- chezmoi)
 fi
 
-chezmoi --source "$repo_dir" apply
+"${chezmoi_cmd[@]}" --source "$repo_dir" apply
