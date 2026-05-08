@@ -20,6 +20,7 @@ require_managed=(
   ".codex/skills/commit"
   ".codex/skills/pr-review"
   ".codex/skills/spec-workflow"
+  ".config/chezmoi/chezmoi.toml"
   ".config/fish/config.fish"
   ".config/fish/fish_plugins"
   ".config/fish/conf.d/nix.fish"

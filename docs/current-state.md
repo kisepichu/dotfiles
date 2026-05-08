@@ -74,6 +74,7 @@ Agent workflow:
 - `~/.codex/skills/commit`
 - `~/.codex/skills/pr-review`
 - `~/.codex/skills/spec-workflow`
+- `~/.config/chezmoi/chezmoi.toml`
 
 Core tools:
 

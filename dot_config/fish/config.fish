@@ -66,6 +66,10 @@ if command -q mise
     mise activate fish | source
 end
 
+if not set -q STARSHIP_CONFIG; and test -f "$HOME/.config/starship.toml"
+    set -gx STARSHIP_CONFIG "$HOME/.config/starship.toml"
+end
+
 if status is-interactive
     alias reb="exec fish -l"
     alias python=python3
