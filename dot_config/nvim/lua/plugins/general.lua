@@ -28,10 +28,15 @@ if vim.g.started_by_firenvim then
       "vim-skk/skkeleton",
       dependencies = { "vim-denops/denops.vim", "Shougo/ddc.vim" },
       config = function()
-        vim.fn["skkeleton#config"]({
-          globalDictionaries = {
+        local global_dictionaries = {}
+        if vim.fn.filereadable("/usr/share/skk/SKK-JISYO.L") == 1 then
+          global_dictionaries = {
             { "/usr/share/skk/SKK-JISYO.L", "euc-jp" },
-          },
+          }
+        end
+
+        vim.fn["skkeleton#config"]({
+          globalDictionaries = global_dictionaries,
           userDictionary = vim.fn.stdpath("data") .. "/.skkeleton/user.dict",
           eggLikeNewline = true,
           registerConvertResult = true,
@@ -111,10 +116,15 @@ return {
     "vim-skk/skkeleton",
     dependencies = { "vim-denops/denops.vim", "Shougo/ddc.vim" },
     config = function()
-      vim.fn["skkeleton#config"]({
-        globalDictionaries = {
+      local global_dictionaries = {}
+      if vim.fn.filereadable("/usr/share/skk/SKK-JISYO.L") == 1 then
+        global_dictionaries = {
           { "/usr/share/skk/SKK-JISYO.L", "euc-jp" },
-        },
+        }
+      end
+
+      vim.fn["skkeleton#config"]({
+        globalDictionaries = global_dictionaries,
         userDictionary = vim.fn.stdpath("data") .. "/.skkeleton/user.dict",
         eggLikeNewline = true,
         registerConvertResult = true,

@@ -26,27 +26,16 @@ vim.keymap.set("x", "P", '"_dP', { noremap = true, silent = true, desc = "Paste 
 vim.keymap.set("x", "y", "mzy`z", { silent = true })
 
 -- q prefix
-local function not_recording()
-  return vim.fn.reg_recording() == ""
-end
-
-vim.keymap.set("n", "q", function()
-  if not_recording() then
-    return "<Plug>(q-prefix)"
-  end
-  return "q"
-end, { expr = true, silent = true })
-
-vim.keymap.set("n", "<Plug>(q-prefix)q", "qq", { silent = true })
+vim.keymap.set("n", "<leader>qq", "qq", { silent = true })
 
 vim.keymap.set("n", "Q", function()
-  if not_recording() then
+  if vim.fn.reg_recording() == "" then
     return "@q"
   end
   return "q@q"
 end, { expr = true, silent = true })
 
-vim.keymap.set("n", "<Plug>(q-prefix)g", ":<C-u>global/^/normal ", { silent = true })
+vim.keymap.set("n", "<leader>qg", ":<C-u>global/^/normal ", { silent = true })
 
 vim.keymap.set("x", "qg", ":global/^/normal ", { silent = true })
 vim.keymap.set("n", "qu", ":lua require'quarto'.quartoPreview()<cr>", { silent = true, desc = "quarto preview" })
