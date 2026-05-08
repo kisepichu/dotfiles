@@ -53,7 +53,7 @@ vim.keymap.set("n", "qu", ":lua require'quarto'.quartoPreview()<cr>", { silent =
 
 -- plugins
 
-vim.keymap.set({ "i", "n" }, "[j", "<Plug>(jumpcursor-jump)")
+vim.keymap.set({ "i", "n" }, "[j", "<Plug>(jumpcursor-jump)", { remap = true })
 
 vim.keymap.set("i", "<C-j>", "<Plug>(skkeleton-toggle)", { remap = true })
 vim.keymap.set("n", "<C-j>", "<Plug>(skkeleton-toggle)", { remap = true })

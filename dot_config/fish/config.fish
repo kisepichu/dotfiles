@@ -62,6 +62,10 @@ if test -d "$HOME/gems"
     set -gx GEM_HOME "$HOME/gems"
 end
 
+if command -q mise
+    mise activate fish | source
+end
+
 if status is-interactive
     alias reb="exec fish -l"
     alias python=python3
@@ -150,10 +154,6 @@ end
 
 if command -q starship
     starship init fish | source
-end
-
-if command -q mise
-    mise activate fish | source
 end
 
 if command -q zoxide
