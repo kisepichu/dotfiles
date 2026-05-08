@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-04
+Last updated: 2026-05-08
 
 ## Summary
 
@@ -16,6 +16,7 @@ Implemented and committed:
 - Managed `tmux` config
 - Managed LazyVim-based `nvim` config
 - Managed `mise` config
+- Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
 
 Recent implementation commits before this handoff update:
@@ -32,7 +33,7 @@ Recent implementation commits before this handoff update:
 
 The source tree is ahead of the current home directory.
 
-`tasks/done/TASK-001-core-tools-import.md` is complete. The next task should start from Phase 3 verification and Windows/WSL documentation.
+`tasks/done/TASK-001-core-tools-import.md` is complete. Phase 3 verification is in progress on a fresh WSL Ubuntu instance.
 
 `chezmoi --source . apply` has not been run on this machine after importing `fish`, `tmux`, `nvim`, and `mise`.
 
@@ -43,6 +44,7 @@ Expected `chezmoi --source . status` differences:
 - `~/.config/fish/*`
 - `~/.config/mise/config.toml`
 - `~/.config/nvim/*`
+- `~/.config/starship.toml`
 - `~/.tmux.conf`
 
 This is not a repo inconsistency. It means the source has been prepared but not applied to the current machine.
@@ -53,6 +55,8 @@ Applying on the current machine will:
 - update `~/.config/fish/config.fish` so it no longer sources `~/.bashrc`
 - set `BROWSER=wslview` on WSL when `wslview` exists
 - update `~/.config/mise/config.toml`
+- install user-level `starship` and `zoxide` through `mise install`
+- install `~/.config/starship.toml` and enable the `z` command through fish `zoxide init`
 - run chezmoi run scripts, including apt package install and `mise install`
 
 Do not run `chezmoi --source . apply` casually if you do not want apt/mise changes on the current machine.
@@ -87,6 +91,7 @@ Core tools:
 - `~/.config/nvim/lua/config/*.lua`
 - `~/.config/nvim/lua/plugins/*.lua`
 - `~/.config/mise/config.toml`
+- `~/.config/starship.toml`
 
 Run scripts:
 
@@ -113,6 +118,7 @@ Previously passed:
 - `prek run --all-files`
 - `fish -n dot_config/fish/config.fish`
 - `fish_indent --check dot_config/fish/config.fish`
+- `mise exec chezmoi -- chezmoi --version`
 - `tmux -f dot_tmux.conf start-server ; source-file -n dot_tmux.conf`
 - `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/chezmoi-dotfiles-nvim-state XDG_CACHE_HOME=/tmp/chezmoi-dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
 - rendered shell syntax checks for chezmoi scripts with `chezmoi --source . execute-template ... | bash -n`
@@ -124,9 +130,12 @@ Previously passed:
 3. Run `chezmoi --source . apply` only when apt/mise side effects are acceptable.
 4. After apply, verify:
    - `fish -n ~/.config/fish/config.fish`
+   - `fish -lic 'type starship; type zoxide; type z'`
+   - `starship print-config >/dev/null`
    - `tmux source-file ~/.tmux.conf`
    - `nvim --headless '+lua require("config.lazy")' '+quitall'`
    - `mise ls --current`
 5. Write `docs/windows-wsl.md` for Windows-side setup.
 6. Confirm the remote GitHub repo URL and document `chezmoi init --apply` flow.
-7. Consider adding `gitleaks` in addition to `secretlint`.
+7. Decide Docker Desktop / Docker Engine setup in a separate task.
+8. Consider adding `gitleaks` in addition to `secretlint`.

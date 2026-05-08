@@ -33,6 +33,8 @@
 - `neovim`
 - `prek`
 - `chezmoi` の pinned version
+- `starship`
+- `zoxide`
 - その他、mise backend で自然に扱える CLI
 
 理由:
@@ -55,6 +57,8 @@
 - 特定プロジェクト用の DB, Redis, browser automation dependencies
 - project 固有の LSP, formatter, compiler version
 - 一時的な検証用 toolchain
+
+Docker 自体の導入は Windows/WSL integration の判断が必要なため、core dotfiles bootstrap には含めない。Windows 側 Docker Desktop を使うか、WSL 内 Docker Engine を使うかは別タスクで決める。
 
 ### Windows-side tools
 

@@ -24,11 +24,12 @@
 
 詳細: `docs/tooling-strategy.md`
 
-- ローカルに直接入れて、同じ設定で常用するもの: `fish`, `tmux`, `nvim`
+- ローカルに直接入れて、同じ設定で常用するもの: `fish`, `tmux`, `nvim`, `starship`, `zoxide`
 - bootstrap に必要な基礎ツール: `git`, `curl`, `ca-certificates`, `build-essential`, `chezmoi`, `mise`, `prek`
 - よく使う CLI だが言語・プロジェクトに強く依存しないもの: 原則 `mise` で管理し、必要に応じて `apt` または `nix profile` を検討する
 - 言語ランタイム、LSP、formatter、project-specific toolchain: project 側の Docker, devcontainer, `nix develop`, `mise.toml` に寄せる
 - Windows GUI tool: Windows 側 bootstrap に分離する。`wezterm` は WSL 内ではなく Windows 側管理を基本にする
+- Docker Desktop / Docker Engine は初回 core dotfiles PR には含めず、Windows/WSL bootstrap documentation の次タスクで扱う。
 
 ## 公開しないもの
 
@@ -61,9 +62,11 @@
 - [x] Ubuntu 初回 bootstrap script を作る。
 - [x] `apt` package list と third-party repository 設定を idempotent にする。
 - [x] `fish`, `tmux`, `nvim` のインストールと default shell 設定を idempotent にする。
+- [x] `starship` prompt と `zoxide` の `z` command を user-level tool として有効化する。
 - [x] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
 - [x] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
 - [ ] `chezmoi init --apply` までの最短経路を確認する。
+- [ ] Docker Desktop / Docker Engine の採用方針と Windows/WSL 手順を別タスクで決める。
 
 ### Phase 4: chezmoi template 化
 
@@ -73,15 +76,15 @@
 
 ### Phase 5: 検証
 
-- [ ] fresh WSL Ubuntu で bootstrap を dry-run する。
-- [ ] `chezmoi diff` と `chezmoi apply` を確認する。
+- [ ] fresh WSL Ubuntu で bootstrap を dry-run する。2026-05-08 時点で install/apply 経路を検証中。
+- [ ] `chezmoi diff` と `chezmoi apply` を確認する。2026-05-08 時点で bootstrap 中の `chezmoi` 呼び出し問題を修正済み。
 - [ ] `gitleaks` か同等の secret scan を通す。
 
 ## 現在の状態
 
 詳細: `docs/current-state.md`
 
-- `fish`, `tmux`, `nvim`, `mise`, agent workflow は chezmoi source に取り込み済み。
+- `fish`, `tmux`, `nvim`, `mise`, `starship`, `zoxide`, agent workflow は chezmoi source に取り込み済み。
 - 現在の作業マシンには、core dotfiles 取り込み後の `chezmoi --source . apply` はまだ実行していない。
 - そのため `chezmoi --source . status` は `.config/fish`, `.config/nvim`, `.tmux.conf`, run scripts の差分を表示する。
-- 次の大きな作業は、現マシンまたは fresh WSL で apply/dry-run して bootstrap を検証すること。
+- 次の大きな作業は、fresh WSL で apply 後の shell/editor 動作を確認し、Windows/WSL 手順と Docker 方針を別タスク化すること。
