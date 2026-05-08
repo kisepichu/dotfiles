@@ -99,7 +99,9 @@ if status is-interactive
         alias tm="tmux -2 attach || tmux -2 new-session \\; source-file ~/.tmux/new-session"
     end
 
-    alias tmux-reset-layout="tmux select-layout \"\$(tmux show-options -gv @layout_pc)\""
+    function tmux-reset-layout
+        tmux select-layout (tmux show-options -gv @layout_pc)
+    end
 end
 
 function __unique_destination
