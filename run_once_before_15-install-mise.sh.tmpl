@@ -6,7 +6,7 @@ if command -v mise >/dev/null 2>&1; then
   exit 0
 fi
 
-mise_version="v2026.4.28"
+mise_version="{{ .miseBootstrap.version }}"
 installer="$(mktemp)"
 trap 'rm -f "$installer"' EXIT
 curl -fsSL https://mise.run -o "$installer"

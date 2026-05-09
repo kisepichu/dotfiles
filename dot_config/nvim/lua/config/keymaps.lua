@@ -38,7 +38,7 @@ end, { expr = true, silent = true })
 vim.keymap.set("n", "<leader>qg", ":<C-u>global/^/normal ", { silent = true })
 
 vim.keymap.set("x", "qg", ":global/^/normal ", { silent = true })
-vim.keymap.set("n", "qu", ":lua require'quarto'.quartoPreview()<cr>", { silent = true, desc = "quarto preview" })
+vim.keymap.set("n", "<leader>qu", ":lua require'quarto'.quartoPreview()<cr>", { silent = true, desc = "quarto preview" })
 
 -- plugins
 

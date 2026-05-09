@@ -7,7 +7,10 @@ fi
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 chezmoi_cmd=(chezmoi)
-mise_version="v2026.4.28"
+mise_version="$(
+  sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$repo_dir/.chezmoidata.toml" | head -n 1
+)"
+: "${mise_version:=v2026.4.28}"
 
 install_mise() {
   installer="$(mktemp)"
