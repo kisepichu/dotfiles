@@ -149,9 +149,7 @@ function browse
     end
 
     set -l target (realpath "$argv[1]")
-    if __is_wsl; and set -q BROWSER
-        "$BROWSER" "$target"
-    else if set -q BROWSER
+    if set -q BROWSER
         "$BROWSER" "$target"
     else
         xdg-open "$target"
@@ -166,7 +164,7 @@ if command -q zoxide
     zoxide init fish | source
 end
 
-if set -q TERM_PROGRAM; and string match -q "$TERM_PROGRAM" vscode; and command -q code
+if set -q TERM_PROGRAM; and test "$TERM_PROGRAM" = vscode; and command -q code
     set -l integration_path (code --locate-shell-integration-path fish 2>/dev/null)
     if test -n "$integration_path"; and test -f "$integration_path"
         source "$integration_path"
