@@ -12,7 +12,6 @@ vim.keymap.set("n", "Y", "y$")
 vim.keymap.set("n", "x", '"_d')
 vim.keymap.set("n", "X", '"_D')
 vim.keymap.set("x", "x", '"_x')
-vim.keymap.set("o", "x", "d")
 
 vim.keymap.set("o", "i<space>", "iW")
 vim.keymap.set("x", "i<space>", "iW")
