@@ -9,8 +9,8 @@ vim.keymap.set("n", "$", "g$", { silent = true })
 
 vim.keymap.set("n", "Y", "y$")
 
-vim.keymap.set("n", "x", '"_d')
-vim.keymap.set("n", "X", '"_D')
+vim.keymap.set("n", "x", '"_x')
+vim.keymap.set("n", "X", '"_X')
 vim.keymap.set("x", "x", '"_x')
 
 vim.keymap.set("o", "i<space>", "iW")

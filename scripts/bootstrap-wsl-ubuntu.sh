@@ -14,9 +14,9 @@ mise_version="$(
 : "${mise_version:=v2026.4.28}"
 
 if [ "$repo_dir" != "$expected_repo_dir" ]; then
-  if [ ! -e "$expected_repo_dir" ]; then
+  if [ ! -e "$expected_repo_dir" ] || [ -L "$expected_repo_dir" ]; then
     mkdir -p "$(dirname "$expected_repo_dir")"
-    ln -s "$repo_dir" "$expected_repo_dir"
+    ln -sfn "$repo_dir" "$expected_repo_dir"
   elif [ "$(cd "$expected_repo_dir" && pwd -P)" != "$(cd "$repo_dir" && pwd -P)" ]; then
     echo "warning: chezmoi default source is $expected_repo_dir, but bootstrap is running from $repo_dir" >&2
   fi
