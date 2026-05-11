@@ -28,7 +28,7 @@ while IFS= read -r file; do
     status=1
   fi
 
-  assignment_matches="$(grep -niIE "$assignment_regex" -- "$file" || true)"
+  assignment_matches="$(grep -niIE -I "$assignment_regex" -- "$file" || true)"
   if [ -n "$assignment_matches" ]; then
     while IFS=: read -r line _; do
       echo "potential credential assignment in $file:$line" >&2

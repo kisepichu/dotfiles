@@ -5,6 +5,19 @@ if ! grep -qi microsoft /proc/version 2>/dev/null; then
   echo "warning: this script is intended for Ubuntu on WSL" >&2
 fi
 
+missing_commands=()
+for required_command in curl grep head ln mkdir mktemp sed sh; do
+  if ! command -v "$required_command" >/dev/null 2>&1; then
+    missing_commands+=("$required_command")
+  fi
+done
+
+if [ "${#missing_commands[@]}" -gt 0 ]; then
+  echo "error: missing required command(s): ${missing_commands[*]}" >&2
+  echo "hint: install Ubuntu base utilities, for example: sudo apt update && sudo apt install -y curl coreutils grep sed" >&2
+  exit 1
+fi
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 expected_repo_dir="$HOME/repos/chezmoi-dotfiles"
 chezmoi_cmd=(mise exec chezmoi@2.69.1 -- chezmoi)
