@@ -7,7 +7,7 @@ fi
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 expected_repo_dir="$HOME/repos/chezmoi-dotfiles"
-chezmoi_cmd=(chezmoi)
+chezmoi_cmd=(mise exec chezmoi@2.69.1 -- chezmoi)
 mise_version="$(
   sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$repo_dir/.chezmoidata.toml" | head -n 1
 )"
@@ -17,6 +17,9 @@ if [ "$repo_dir" != "$expected_repo_dir" ]; then
   if [ ! -e "$expected_repo_dir" ] || [ -L "$expected_repo_dir" ]; then
     mkdir -p "$(dirname "$expected_repo_dir")"
     ln -sfn "$repo_dir" "$expected_repo_dir"
+  elif [ ! -d "$expected_repo_dir" ]; then
+    echo "error: chezmoi default source path exists but is not a directory: $expected_repo_dir" >&2
+    exit 1
   elif [ "$(cd "$expected_repo_dir" && pwd -P)" != "$(cd "$repo_dir" && pwd -P)" ]; then
     echo "warning: chezmoi default source is $expected_repo_dir, but bootstrap is running from $repo_dir" >&2
   fi
@@ -29,16 +32,10 @@ install_mise() {
   MISE_VERSION="$mise_version" sh "$installer"
 }
 
-if ! command -v chezmoi >/dev/null 2>&1; then
-  if command -v mise >/dev/null 2>&1; then
-    mise install chezmoi@2.69.1
-  else
-    install_mise
-    export PATH="$HOME/.local/bin:$PATH"
-    mise install chezmoi@2.69.1
-  fi
-
-  chezmoi_cmd=(mise exec chezmoi@2.69.1 -- chezmoi)
+if ! command -v mise >/dev/null 2>&1; then
+  install_mise
+  export PATH="$HOME/.local/bin:$PATH"
 fi
 
+mise install chezmoi@2.69.1
 "${chezmoi_cmd[@]}" --source "$repo_dir" apply
