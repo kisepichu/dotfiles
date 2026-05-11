@@ -40,7 +40,7 @@ The source tree is ahead of the current home directory.
 Expected `chezmoi --source . status` differences:
 
 - `~/.claude/skills/commit/SKILL.md` if the local installed skill has not been reapplied after source updates
-- run scripts: `10-install-apt-packages.sh`, `15-install-mise.sh`, `20-install-tmux-plugin-manager.sh`, `40-mise-install.sh`
+- run script sources: `run_once_before_10-install-apt-packages.sh.tmpl`, `run_once_before_15-install-mise.sh.tmpl`, `run_once_before_20-install-tmux-plugin-manager.sh`, `run_onchange_after_40-mise-install.sh.tmpl`
 - `~/.config/fish/*`
 - `~/.config/mise/config.toml`
 - `~/.config/nvim/*`

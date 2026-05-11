@@ -34,10 +34,13 @@ require_managed=(
   ".config/nvim/stylua.toml"
   ".tmux.conf"
   ".tmux/new-session"
-  "10-install-apt-packages.sh"
-  "15-install-mise.sh"
-  "20-install-tmux-plugin-manager.sh"
-  "40-mise-install.sh"
+)
+
+require_source=(
+  "run_once_before_10-install-apt-packages.sh.tmpl"
+  "run_once_before_15-install-mise.sh.tmpl"
+  "run_once_before_20-install-tmux-plugin-manager.sh"
+  "run_onchange_after_40-mise-install.sh.tmpl"
 )
 
 require_ignored=(
@@ -59,6 +62,13 @@ forbidden_managed=(
 for path in "${require_managed[@]}"; do
   if ! grep -Fxq "$path" <<<"$managed"; then
     echo "expected chezmoi managed path missing: $path" >&2
+    exit 1
+  fi
+done
+
+for path in "${require_source[@]}"; do
+  if [ ! -f "$path" ]; then
+    echo "expected chezmoi source script missing: $path" >&2
     exit 1
   fi
 done
