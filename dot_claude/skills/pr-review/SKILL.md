@@ -1,82 +1,86 @@
 ---
 name: pr-review
-description: PR についたレビューコメントを取得し、修正・返信・Resolve するまでを行う。「PR コメント対応して」「レビュー対応」などのリクエストで使用。
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(gh api:*), Bash(gh pr:*), Bash(cargo:*), Bash(pnpm:*)
+description: PR についたレビューコメントを取得し、修正・返信・Resolve し、必要なら Copilot に再レビュー依頼して完了までループする。「PR コメント対応して」「レビュー対応」などのリクエストで使用。
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log *), Bash(git diff *), Bash(git rev-parse HEAD), Bash(git rev-parse --short HEAD), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(gh --version), Bash(gh pr view *), Bash(gh pr edit *), Bash(python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py *), Bash(cargo *), Bash(pnpm *)
 ---
 
 # PR コメント対応スキル
 
-PR レビューコメント取得、対応、返信、Resolve まで行う。
+PR レビューコメント取得、対応、返信、Resolve まで行う。修正を push した場合は Copilot に再レビュー依頼し、Copilot が `generated no comments` / `generated no new comments` の review を返すまで繰り返す。
 
 ## 手順
 
-### 1. コメント全件取得
+### 1. PR と環境を確認
+
+PR 番号と repo はカレントブランチから取得する。指定があればそれを使う。
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/{num}/comments --jq '[.[] | {id, in_reply_to_id, created_at, path, line, body}]'
-gh api repos/{owner}/{repo}/pulls/{num}/reviews
+gh pr view --json number,url,headRefOid,reviewRequests,latestReviews
 ```
 
-### 2. 未返信コメントを特定する
+```bash
+gh --version
+```
 
-`in_reply_to_id` が null のコメントがスレッドの起点。
-起点コメントのうち、自分の返信 (`in_reply_to_id == そのコメントの id`) が存在しないものを未対応とする。
+Copilot 再レビュー依頼には `gh >= 2.88.0` が必要。
 
-### 3. 未対応コメントを分類・対応
+### 2. Copilot review を待つ
+
+PR 作成直後など、Copilot の初回 review がまだ無い場合がある。コメント取得前に必ず次を実行する。既存の Copilot review があればその結果を使い、まだ無ければ Copilot に review 依頼して待つ。
+
+```bash
+python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num}
+```
+
+exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に進む。
+
+### 3. コメント全件取得
+
+```bash
+python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py {owner} {repo} {num}
+gh pr view {num} -R {owner}/{repo} --json reviews --jq '.reviews'
+```
+
+### 4. 未返信コメントを特定する
+
+`in_reply_to_id == null` がスレッド起点。起点コメントのうち、自分の返信 (`in_reply_to_id == 起点コメント id`) がないものを未対応とする。
+
+### 5. 未対応コメントを分類・対応
 
 - 妥当: コードまたは仕様を修正し、チェック系コマンドを実行する。通ったら具体的なファイルだけ `git add` し、`git commit --no-gpg-sign -m "..."`、必要なら `git push` する。
 - 今対応不要: 設計意図、スコープ外、既知制限など、今対応するべきでない理由を必ず返信する。
 - 質問・確認: ユーザーに判断を仰ぐ。
 
-### 4. 返信
+### 6. 返信
 
-`-X POST` 必須。省略すると GET になり 404 になる。
-
-```bash
-gh api -X POST repos/{owner}/{repo}/pulls/{num}/comments/{comment_id}/replies \
-  -f body="Fixed in <commit_sha>." --jq '.id'
-
-gh api -X POST repos/{owner}/{repo}/pulls/{num}/comments/{comment_id}/replies \
-  -f body="<対応不要の理由>" --jq '.id'
-```
-
-### 5. 返信済みスレッドのみ Resolve
-
-全未解決を一括 Resolve しない。push 後に新しいコメントが追加されることがあるため、返信していないスレッドを巻き込む危険がある。
+返信本文を `/tmp/pr-review-reply.md` に `Write` してから送る。`$SHA=$(...)` のような代入や command substitution は使わず、必要なら `git rev-parse HEAD` を単独実行して、その結果を本文に文字列として書く。
 
 ```bash
-gh api graphql -f query='
-{
-  repository(owner: "{owner}", name: "{repo}") {
-    pullRequest(number: {num}) {
-      reviewThreads(first: 50) {
-        nodes { id isResolved comments(first:1){ nodes{ databaseId } } }
-      }
-    }
-  }
-}' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | {threadId: .id, commentId: .comments.nodes[0].databaseId}'
-
-gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "{thread_id}"}) { thread { isResolved } } }'
+python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py {owner} {repo} {num} {comment_id} /tmp/pr-review-reply.md
 ```
 
-### 6. 未返信コメントの再確認
+### 7. 返信済みスレッドのみ Resolve
+
+全未解決を一括 Resolve せず、返信済みスレッドだけ Resolve する。
 
 ```bash
-gh api "repos/{owner}/{repo}/pulls/{num}/comments?per_page=100" --jq '[.[] | {id, in_reply_to_id}]' | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-roots = {c['id'] for c in data if c['in_reply_to_id'] is None}
-replied = {c['in_reply_to_id'] for c in data if c['in_reply_to_id'] is not None}
-unanswered = roots - replied
-print('未返信:', len(unanswered), sorted(unanswered))
-"
+python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py {owner} {repo} {num} {comment_id}...
 ```
 
-未返信 0 件を確認したら完了。
+### 8. push 後に Copilot 再レビュー依頼して待つ
+
+修正を commit / push したら、Copilot に再レビュー依頼して完了まで待つ。
+
+```bash
+python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num} --request
+```
+
+exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に戻る。新規コメントを修正、返信、resolve、push し、再度手順 8 を実行する。
 
 ## 注意
 
-- Resolve 後に必ず再取得して未返信 0 件を確認する。
+- 修正を push した場合は `generated no comments` / `generated no new comments` が返るまで続ける。
+- review comment 一覧、review comment への返信、review thread resolve はスキル配下 script を使う。
 - Resolve 不可ならユーザーに手動依頼する。
 - 「対応不要」判断が難しい場合はユーザーに確認する。
-- 複数コメントはまとめて 1 コミットでよい。
+- コミットは適宜分ける。
