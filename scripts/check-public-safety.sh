@@ -20,7 +20,12 @@ while IFS= read -r file; do
   if [[ "$file" =~ $exclude_regex ]]; then
     continue
   fi
-  secret_matches="$(grep -nIE "$secret_regex" -- "$file" || true)"
+  if ! git cat-file -e ":$file" 2>/dev/null; then
+    continue
+  fi
+
+  # Scan the index content so pre-commit checks what will actually be committed.
+  secret_matches="$(git show ":$file" | grep -nIE -I "$secret_regex" || true)"
   if [ -n "$secret_matches" ]; then
     while IFS=: read -r line _; do
       echo "potential secret pattern in $file:$line" >&2
@@ -28,7 +33,7 @@ while IFS= read -r file; do
     status=1
   fi
 
-  assignment_matches="$(grep -niIE -I "$assignment_regex" -- "$file" || true)"
+  assignment_matches="$(git show ":$file" | grep -niIE -I "$assignment_regex" || true)"
   if [ -n "$assignment_matches" ]; then
     while IFS=: read -r line _; do
       echo "potential credential assignment in $file:$line" >&2

@@ -50,5 +50,5 @@ if ! command -v mise >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-mise install chezmoi@2.69.1
+mise install --yes chezmoi@2.69.1
 "${chezmoi_cmd[@]}" --source "$repo_dir" apply
