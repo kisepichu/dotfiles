@@ -1,0 +1,31 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v mise >/dev/null 2>&1; then
+  exit 0
+fi
+
+missing_commands=()
+for required_command in curl mktemp sh; do
+  if ! command -v "$required_command" >/dev/null 2>&1; then
+    missing_commands+=("$required_command")
+  fi
+done
+
+if [ "${#missing_commands[@]}" -gt 0 ]; then
+  echo "error: missing required command(s) for mise install: ${missing_commands[*]}" >&2
+  echo "hint: install base utilities first, for example: sudo apt update && sudo apt install -y curl coreutils" >&2
+  exit 1
+fi
+
+mise_version="{{ .miseBootstrap.version }}"
+installer="$(mktemp)"
+trap 'rm -f "$installer"' EXIT
+curl -fsSL https://mise.run -o "$installer"
+MISE_VERSION="$mise_version" sh "$installer"
+{{- else -}}
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+{{- end }}

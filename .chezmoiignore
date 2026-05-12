@@ -1,0 +1,6 @@
+/AGENTS.md
+/scripts/
+/docs/
+/tasks/
+/.pre-commit-config.yaml
+/.secretlintrc.json
