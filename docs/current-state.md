@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-08
+Last updated: 2026-05-12
 
 ## Summary
 
@@ -19,15 +19,13 @@ Implemented and committed:
 - Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
 
-Recent implementation commits before this handoff update:
+Recent implementation commits before this handoff update include:
 
-- `943e676 Add WSL bootstrap scripts`
-- `d4e7464 Import Neovim configuration`
-- `e84224e Import fish configuration`
-- `f6dc442 Import tmux configuration`
-- `569e8ca Inventory core dotfiles`
-- `7ee046d Document local tooling strategy`
-- `41ff496 Set up chezmoi agent workflows`
+- WSL bootstrap hardening for fresh Ubuntu and repo path handling
+- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
+- `mise` install rerun trigger when `dot_config/mise/config.toml` changes
+- Fish startup ordering so `mise` activation happens before `starship`/`zoxide` initialization
+- Public safety scan fixes from PR review
 
 ## Important State
 
@@ -35,7 +33,14 @@ The source tree is ahead of the current home directory.
 
 `tasks/done/TASK-001-core-tools-import.md` is complete. Phase 3 verification is in progress on a fresh WSL Ubuntu instance.
 
-`chezmoi --source . apply` has not been run on this machine after importing `fish`, `tmux`, `nvim`, and `mise`.
+The bootstrap/apply path has been updated after fresh WSL testing found two issues:
+
+- standalone `chezmoi apply` used the upstream default `~/.local/share/chezmoi` source before this repo installed a managed chezmoi config
+- `starship` and `zoxide` could remain missing if they were added to `dot_config/mise/config.toml` after the previous `run_onchange` script had already run
+
+Both are fixed in the current PR. Final manual confirmation should rerun bootstrap on fresh WSL after pulling the latest `develop`.
+
+`chezmoi --source . apply` may not have been run on the primary work machine after importing `fish`, `tmux`, `nvim`, and `mise`.
 
 Expected `chezmoi --source . status` differences:
 
@@ -135,7 +140,7 @@ Previously passed:
    - `starship print-config >/dev/null`
    - `tmux source-file ~/.tmux.conf`
    - `nvim --headless '+lua require("config.lazy")' '+quitall'`
-   - `mise ls --current`
+   - `mise ls starship zoxide`
 5. Write `docs/windows-wsl.md` for Windows-side setup.
 6. Confirm the remote GitHub repo URL and document `chezmoi init --apply` flow.
 7. Decide Docker Desktop / Docker Engine setup in a separate task.

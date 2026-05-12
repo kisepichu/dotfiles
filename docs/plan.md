@@ -65,7 +65,7 @@
 - [x] `starship` prompt と `zoxide` の `z` command を user-level tool として有効化する。
 - [x] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
 - [x] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
-- [ ] `chezmoi init --apply` までの最短経路を確認する。
+- [ ] `chezmoi init --apply` までの最短経路を確認する。通常の `chezmoi apply` は managed `chezmoi.toml` で `~/repos/chezmoi-dotfiles` を default source にする方針まで反映済み。
 - [ ] Docker Desktop / Docker Engine の採用方針と Windows/WSL 手順を別タスクで決める。
 
 ### Phase 4: chezmoi template 化
@@ -76,8 +76,8 @@
 
 ### Phase 5: 検証
 
-- [ ] fresh WSL Ubuntu で bootstrap を dry-run する。2026-05-08 時点で install/apply 経路を検証中。
-- [ ] `chezmoi diff` と `chezmoi apply` を確認する。2026-05-08 時点で bootstrap 中の `chezmoi` 呼び出し問題を修正済み。
+- [ ] fresh WSL Ubuntu で bootstrap を dry-run する。2026-05-12 時点で bootstrap/apply 経路の修正は PR に反映済み。最終確認として fresh WSL で再実行する。
+- [ ] `chezmoi diff` と `chezmoi apply` を確認する。bootstrap 中の `chezmoi` 呼び出し、default source、`mise` config 変更後の `starship`/`zoxide` install 再実行は修正済み。
 - [ ] `gitleaks` か同等の secret scan を通す。
 
 ## 現在の状態
@@ -85,6 +85,6 @@
 詳細: `docs/current-state.md`
 
 - `fish`, `tmux`, `nvim`, `mise`, `starship`, `zoxide`, agent workflow は chezmoi source に取り込み済み。
-- 現在の作業マシンには、core dotfiles 取り込み後の `chezmoi --source . apply` はまだ実行していない。
-- そのため `chezmoi --source . status` は `.config/fish`, `.config/nvim`, `.tmux.conf`, run scripts の差分を表示する。
-- 次の大きな作業は、fresh WSL で apply 後の shell/editor 動作を確認し、Windows/WSL 手順と Docker 方針を別タスク化すること。
+- `scripts/bootstrap-wsl-ubuntu.sh` は repo 外の作業場所から実行しても `~/repos/chezmoi-dotfiles` を default source として使えるようにする。
+- `run_onchange_after_40-mise-install.sh.tmpl` は `dot_config/mise/config.toml` の変更で再実行されるため、後から追加した `starship`/`zoxide` も `chezmoi apply` で install 対象になる。
+- 次の大きな作業は、fresh WSL で bootstrap 再実行後の shell/editor 動作を確認し、Windows/WSL 手順と Docker 方針を別タスク化すること。
