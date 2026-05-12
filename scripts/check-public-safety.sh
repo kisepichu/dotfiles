@@ -16,7 +16,6 @@ status=0
 
 while IFS= read -r file; do
   [ -n "$file" ] || continue
-  [ -f "$file" ] || continue
   if [[ "$file" =~ $exclude_regex ]]; then
     continue
   fi

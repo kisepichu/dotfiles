@@ -5,10 +5,15 @@ status=0
 
 while IFS= read -r file; do
   [ -n "$file" ] || continue
-  [ -f "$file" ] || continue
   if git check-attr binary -- "$file" | grep -q ': binary: set'; then
     continue
   fi
+  index_entry="$(git ls-files -s -- "$file")"
+  index_mode="${index_entry%% *}"
+  case "$index_mode" in
+    100*) ;;
+    *) continue ;;
+  esac
   if ! git cat-file -e ":$file" 2>/dev/null; then
     continue
   fi
