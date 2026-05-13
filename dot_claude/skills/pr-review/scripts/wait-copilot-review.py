@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import argparse
 import json
 import re
 import subprocess
 import sys
 import time
+from typing import Optional
 
 
 COPILOT_LOGIN = "copilot-pull-request-reviewer"
@@ -20,7 +23,7 @@ def run(args: list[str]) -> None:
     subprocess.run(args, check=True)
 
 
-def latest_copilot_review(owner: str, repo: str, pr: int) -> dict | None:
+def latest_copilot_review(owner: str, repo: str, pr: int) -> Optional[dict]:
     data = run_json([
         "gh",
         "pr",

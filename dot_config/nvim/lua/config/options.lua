@@ -2,8 +2,9 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+local should_use_osc52 = vim.env.NVIM_USE_OSC52 == "1" or vim.env.SSH_TTY ~= nil or vim.env.SSH_CONNECTION ~= nil
 local ok, osc52 = pcall(require, "vim.ui.clipboard.osc52")
-if ok then
+if should_use_osc52 and ok then
   local function paste_from_unnamed()
     return { vim.split(vim.fn.getreg('"'), "\n"), vim.fn.getregtype('"') }
   end

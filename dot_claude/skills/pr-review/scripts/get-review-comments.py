@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import argparse
 import json
 import re
@@ -21,14 +23,15 @@ def main() -> int:
         print("invalid owner, repo, or pr", file=sys.stderr)
         return 2
 
-    endpoint = f"repos/{args.owner}/{args.repo}/pulls/{args.pr}/comments"
+    endpoint = f"repos/{args.owner}/{args.repo}/pulls/{args.pr}/comments?per_page=100"
     proc = subprocess.run(
-        ["gh", "api", endpoint],
+        ["gh", "api", "--paginate", "--slurp", endpoint],
         check=True,
         text=True,
         stdout=subprocess.PIPE,
     )
-    comments = json.loads(proc.stdout)
+    pages = json.loads(proc.stdout)
+    comments = [comment for page in pages for comment in page]
     result = [
         {
             "id": comment.get("id"),

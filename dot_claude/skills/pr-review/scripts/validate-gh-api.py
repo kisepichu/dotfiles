@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import json
 import re
 import shlex
@@ -36,10 +38,22 @@ def parse_gh_api(tokens: list[str]) -> dict:
     jq_filters: list[str] = []
     unknown_flags: list[str] = []
     extras: list[str] = []
+    paginate = False
+    slurp = False
 
     i = 0
     while i < len(args):
         arg = args[i]
+
+        if arg == "--paginate":
+            paginate = True
+            i += 1
+            continue
+
+        if arg == "--slurp":
+            slurp = True
+            i += 1
+            continue
 
         if arg in {"-X", "--method"}:
             if i + 1 >= len(args):
@@ -93,6 +107,8 @@ def parse_gh_api(tokens: list[str]) -> dict:
         "jq_filters": jq_filters,
         "unknown_flags": unknown_flags,
         "extras": extras,
+        "paginate": paginate,
+        "slurp": slurp,
     }
 
 
@@ -117,6 +133,7 @@ def is_review_comments_get(parsed: dict) -> bool:
         re.fullmatch(r"repos/[^/\s]+/[^/\s]+/pulls/[0-9]+/comments(?:\?per_page=[0-9]+)?", endpoint)
         and parsed["method"] in {None, "GET"}
         and not parsed["fields"]
+        and (not parsed["slurp"] or parsed["paginate"])
     )
 
 
@@ -158,7 +175,7 @@ def is_graphql_review_threads(parsed: dict) -> bool:
     if parsed["method"] not in {None, "POST"}:
         return False
 
-    allowed_keys = {"query", "owner", "repo", "name", "num", "number"}
+    allowed_keys = {"query", "owner", "repo", "name", "num", "number", "after"}
     keys = {field_key(value) for _flag, value in parsed["fields"]}
     if not keys <= allowed_keys:
         block("graphql reviewThreads query contains unexpected fields: " + ", ".join(sorted(keys - allowed_keys)))

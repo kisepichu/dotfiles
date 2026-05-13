@@ -1,7 +1,7 @@
 ---
 name: pr-review
 description: PR についたレビューコメントを取得し、修正・返信・Resolve し、必要なら Copilot に再レビュー依頼して完了までループする。「PR コメント対応して」「レビュー対応」などのリクエストで使用。
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log *), Bash(git diff *), Bash(git rev-parse HEAD), Bash(git rev-parse --short HEAD), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(gh --version), Bash(gh pr view *), Bash(gh pr edit *), Bash(python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py *), Bash(python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py *), Bash(cargo *), Bash(pnpm *)
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log:*), Bash(git diff:*), Bash(git rev-parse HEAD:*), Bash(git rev-parse --short HEAD:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(gh --version:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py:*), Bash(cargo:*), Bash(pnpm:*)
 ---
 
 # PR コメント対応スキル

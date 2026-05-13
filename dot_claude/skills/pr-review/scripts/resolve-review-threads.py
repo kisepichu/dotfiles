@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import argparse
 import json
 import re
@@ -7,10 +9,10 @@ import sys
 
 
 THREADS_QUERY = """
-query($owner: String!, $repo: String!, $number: Int!) {
+query($owner: String!, $repo: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $after) {
         nodes {
           id
           isResolved
@@ -19,6 +21,10 @@ query($owner: String!, $repo: String!, $number: Int!) {
               databaseId
             }
           }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
     }
@@ -46,6 +52,37 @@ def run_json(args: list[str]) -> dict:
     return json.loads(proc.stdout)
 
 
+def fetch_review_threads(owner: str, repo: str, pr: int) -> list[dict]:
+    threads = []
+    after = None
+
+    while True:
+        command = [
+            "gh",
+            "api",
+            "graphql",
+            "-F",
+            f"owner={owner}",
+            "-F",
+            f"repo={repo}",
+            "-F",
+            f"number={pr}",
+            "-f",
+            f"query={THREADS_QUERY}",
+        ]
+        if after:
+            command.extend(["-F", f"after={after}"])
+
+        data = run_json(command)
+        review_threads = data["data"]["repository"]["pullRequest"]["reviewThreads"]
+        threads.extend(review_threads["nodes"])
+
+        page_info = review_threads["pageInfo"]
+        if not page_info.get("hasNextPage"):
+            return threads
+        after = page_info.get("endCursor")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Resolve PR review threads by root comment id.")
     parser.add_argument("owner")
@@ -61,21 +98,7 @@ def main() -> int:
         print("invalid comment id", file=sys.stderr)
         return 2
 
-    data = run_json([
-        "gh",
-        "api",
-        "graphql",
-        "-F",
-        f"owner={args.owner}",
-        "-F",
-        f"repo={args.repo}",
-        "-F",
-        f"number={args.pr}",
-        "-f",
-        f"query={THREADS_QUERY}",
-    ])
-
-    threads = data["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+    threads = fetch_review_threads(args.owner, args.repo, args.pr)
     by_comment_id = {}
     for thread in threads:
         comments = thread.get("comments", {}).get("nodes", [])
