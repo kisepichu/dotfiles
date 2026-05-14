@@ -22,6 +22,7 @@ Claude Code の slash command として運用していた `spec-do`, `spec-revie
 - 仕様候補は `docs/features/{name}.md`, `docs/commands/{name}.md`, `docs/{name}.md`, `docs/spec.md` の順で探す。
 - タスクは `tasks/todo/`, `tasks/doing/`, `tasks/done/` で管理する。
 - `TASK-NNN-{name}.md` の NNN は todo/doing/done の最大番号 + 1。
+- この repo では、タスク開始時に `develop` から `task-NNN-{name}` 形式のブランチを切る。
 - Codex の subagent は、ユーザーが明示的に delegation/parallel agent work を求めた場合だけ使う。通常はローカルに実行する。
 - 作業中にチェックリストを作ったら、完了のたびに `[x]` へ更新する。
 
