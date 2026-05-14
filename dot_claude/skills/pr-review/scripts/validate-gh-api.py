@@ -18,7 +18,10 @@ def block(reason: str) -> None:
 
 def tokenize(command: str) -> List[str]:
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        try:
+            lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        except TypeError:
+            lexer = shlex.shlex(command, posix=True)
         lexer.whitespace_split = True
         return list(lexer)
     except ValueError as exc:
