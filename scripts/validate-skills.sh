@@ -28,6 +28,6 @@ for key in required:
         print(f"{path}: missing {key} in frontmatter", file=sys.stderr)
         raise SystemExit(1)
 PY
-done < <(find dot_claude/skills -name SKILL.md -type f | sort)
+done < <(find dot_claude/skills dot_codex/skills -path '*/SKILL.md' -type f | sort)
 
 exit "$status"

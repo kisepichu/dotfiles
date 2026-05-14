@@ -10,7 +10,7 @@
 
 - `mizchi/chezmoi-dotfiles` のように、Claude/Codex 用の agent assets も chezmoi で管理する。
 - ただし Codex は `~/.codex/skills/.system` を持つため、`~/.codex/skills` 全体を symlink せず、共通 skill を個別 symlink する。
-- Claude Code の slash command は `dot_claude/commands/` に置き、Codex では同じ手順を `spec-workflow` skill として使う。
+- Claude Code の slash command は `dot_claude/commands/` に置き、spec command の導入手順は `spec-setup` skill に分離する。
 
 ## 公開するもの
 
@@ -43,10 +43,10 @@
 
 - [x] `docs/plan.md` を作成する。
 - [x] Claude Code の `spec-do`, `spec-review`, `spec-update` を汎用 command として整理する。
-- [x] Codex 用に `spec-workflow` skill を作る。
+- [x] spec command setup 用に `spec-setup` skill を作る。
 - [x] Codex から共通 skill を個別 symlink できる chezmoi source を作る。
 - [x] `prek`/`pre-commit` 互換の hook と `secretlint` を追加する。
-- [x] 現在の `~/.codex/skills` に `spec-workflow` をインストールする。
+- [x] 現在の `~/.codex/skills` に `spec-setup` をインストールする。
 
 ### Phase 2: 現行 dotfiles の棚卸し
 
