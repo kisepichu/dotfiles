@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-12
+Last updated: 2026-05-14
 
 ## Summary
 
@@ -75,10 +75,18 @@ Agent workflow:
 - `~/.claude/commands/spec-update.md`
 - `~/.claude/skills/commit/SKILL.md`
 - `~/.claude/skills/pr-review/SKILL.md`
-- `~/.claude/skills/spec-workflow/SKILL.md`
+- `~/.claude/skills/pr/SKILL.md`
+- `~/.claude/skills/review/SKILL.md`
+- `~/.claude/skills/spec-setup/SKILL.md`
+- `~/.claude/skills/spec-setup/templates/spec-do.md`
+- `~/.claude/skills/spec-setup/templates/spec-review.md`
+- `~/.claude/skills/spec-setup/templates/spec-update.md`
 - `~/.codex/skills/commit`
+- `~/.codex/skills/pr`
 - `~/.codex/skills/pr-review`
-- `~/.codex/skills/spec-workflow`
+- `~/.codex/skills/review`
+- `~/.codex/skills/spec-setup`
+- `~/.codex/skills/skill-improvement`
 - `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
 
 Core tools:
