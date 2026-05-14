@@ -6,6 +6,7 @@ import json
 import re
 import subprocess
 import sys
+from typing import Any, Dict, List
 
 
 THREADS_QUERY = """
@@ -47,13 +48,13 @@ def valid_name(value: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-z0-9_.-]+", value))
 
 
-def run_json(args: list[str]) -> dict:
+def run_json(args: List[str]) -> Dict[str, Any]:
     proc = subprocess.run(args, check=True, text=True, stdout=subprocess.PIPE)
     return json.loads(proc.stdout)
 
 
-def fetch_review_threads(owner: str, repo: str, pr: int) -> list[dict]:
-    threads = []
+def fetch_review_threads(owner: str, repo: str, pr: int) -> List[Dict[str, Any]]:
+    threads: List[Dict[str, Any]] = []
     after = None
 
     while True:

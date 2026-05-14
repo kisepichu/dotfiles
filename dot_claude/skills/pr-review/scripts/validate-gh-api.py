@@ -5,6 +5,7 @@ import json
 import re
 import shlex
 import sys
+from typing import Any, Dict, List, Tuple
 
 
 CONTROL_TOKENS = {"|", "|&", "&&", "||", ";", "&"}
@@ -15,7 +16,7 @@ def block(reason: str) -> None:
     sys.exit(2)
 
 
-def tokenize(command: str) -> list[str]:
+def tokenize(command: str) -> List[str]:
     try:
         lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
@@ -24,7 +25,7 @@ def tokenize(command: str) -> list[str]:
         block(f"could not parse shell command: {exc}")
 
 
-def parse_gh_api(tokens: list[str]) -> dict:
+def parse_gh_api(tokens: List[str]) -> Dict[str, Any]:
     if len(tokens) < 3 or tokens[0:2] != ["gh", "api"]:
         sys.exit(0)
 
@@ -34,10 +35,10 @@ def parse_gh_api(tokens: list[str]) -> dict:
     args = tokens[2:]
     method = None
     endpoint = None
-    fields: list[tuple[str, str]] = []
-    jq_filters: list[str] = []
-    unknown_flags: list[str] = []
-    extras: list[str] = []
+    fields: List[Tuple[str, str]] = []
+    jq_filters: List[str] = []
+    unknown_flags: List[str] = []
+    extras: List[str] = []
     paginate = False
     slurp = False
 
@@ -112,7 +113,7 @@ def parse_gh_api(tokens: list[str]) -> dict:
     }
 
 
-def require_no_unknown(parsed: dict) -> None:
+def require_no_unknown(parsed: Dict[str, Any]) -> None:
     if parsed["unknown_flags"]:
         block("unknown flags are not allowed: " + " ".join(parsed["unknown_flags"]))
     if parsed["extras"]:
@@ -127,7 +128,7 @@ def field_value(field: str) -> str:
     return field.split("=", 1)[1] if "=" in field else ""
 
 
-def is_review_comments_get(parsed: dict) -> bool:
+def is_review_comments_get(parsed: Dict[str, Any]) -> bool:
     endpoint = parsed["endpoint"]
     return bool(
         re.fullmatch(r"repos/[^/\s]+/[^/\s]+/pulls/[0-9]+/comments(?:\?per_page=[0-9]+)?", endpoint)
@@ -137,7 +138,7 @@ def is_review_comments_get(parsed: dict) -> bool:
     )
 
 
-def is_review_comment_reply(parsed: dict) -> bool:
+def is_review_comment_reply(parsed: Dict[str, Any]) -> bool:
     endpoint = parsed["endpoint"]
     if not re.fullmatch(r"repos/[^/\s]+/[^/\s]+/pulls/[0-9]+/comments/[0-9]+/replies", endpoint):
         return False
@@ -162,14 +163,14 @@ def is_review_comment_reply(parsed: dict) -> bool:
     return False
 
 
-def graphql_query(parsed: dict) -> str:
+def graphql_query(parsed: Dict[str, Any]) -> str:
     query_fields = [field_value(value) for _flag, value in parsed["fields"] if field_key(value) == "query"]
     if len(query_fields) != 1:
         block("graphql command must include exactly one query field")
     return query_fields[0]
 
 
-def is_graphql_review_threads(parsed: dict) -> bool:
+def is_graphql_review_threads(parsed: Dict[str, Any]) -> bool:
     if parsed["endpoint"] != "graphql":
         return False
     if parsed["method"] not in {None, "POST"}:
@@ -187,7 +188,7 @@ def is_graphql_review_threads(parsed: dict) -> bool:
     return all(term in query for term in ("repository", "pullRequest", "reviewThreads"))
 
 
-def is_graphql_resolve_review_thread(parsed: dict) -> bool:
+def is_graphql_resolve_review_thread(parsed: Dict[str, Any]) -> bool:
     if parsed["endpoint"] != "graphql":
         return False
     if parsed["method"] not in {None, "POST"}:

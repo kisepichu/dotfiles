@@ -7,23 +7,23 @@ import re
 import subprocess
 import sys
 import time
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 
 COPILOT_LOGIN = "copilot-pull-request-reviewer"
 NO_COMMENTS_RE = re.compile(r"generated no( new)? comments", re.IGNORECASE)
 
 
-def run_json(args: list[str]) -> dict:
+def run_json(args: List[str]) -> Dict[str, Any]:
     proc = subprocess.run(args, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return json.loads(proc.stdout)
 
 
-def run(args: list[str]) -> None:
+def run(args: List[str]) -> None:
     subprocess.run(args, check=True)
 
 
-def latest_copilot_review(owner: str, repo: str, pr: int) -> Optional[dict]:
+def latest_copilot_review(owner: str, repo: str, pr: int) -> Optional[Dict[str, Any]]:
     data = run_json([
         "gh",
         "pr",
