@@ -81,6 +81,13 @@ docker run --rm hello-world
 docker compose version
 ```
 
+If you declined the group change, use `sudo` for daemon access:
+
+```bash
+sudo docker run --rm hello-world
+docker compose version
+```
+
 The script follows Docker's official Ubuntu apt repository flow and installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`.
 
 ## Validation

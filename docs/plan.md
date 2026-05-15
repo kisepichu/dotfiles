@@ -88,4 +88,4 @@
 - `fish`, `tmux`, `nvim`, `mise`, `starship`, `zoxide`, agent workflow は chezmoi source に取り込み済み。
 - `scripts/bootstrap-wsl-ubuntu.sh` は repo 外の作業場所から実行しても `~/repos/chezmoi-dotfiles` を default source として使えるようにする。
 - `run_onchange_after_40-mise-install.sh.tmpl` は `dot_config/mise/config.toml` の変更で再実行されるため、後から追加した `starship`/`zoxide` も `chezmoi apply` で install 対象になる。
-- 次の大きな作業は、README の初回手順と Docker Engine 任意導入 script を fresh WSL で確認し、必要なら Docker を bootstrap に含めるかを判断すること。
+- 次の大きな作業は、`chezmoi init --apply` 導線の確認、Docker Engine を bootstrap に含めるかの判断、追加の secret scan 導入検討を進めること。
