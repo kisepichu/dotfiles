@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Improvement"
+  short_description: "既存 skill を点検し、役割と手順を整理する"
+  default_prompt: "Use $skill-improvement to review and improve an existing SKILL.md."

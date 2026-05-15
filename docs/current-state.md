@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-12
+Last updated: 2026-05-15
 
 ## Summary
 
@@ -18,11 +18,12 @@ Implemented and committed:
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
+- Optional WSL Ubuntu Docker Engine install script
 
 Recent implementation commits before this handoff update include:
 
 - WSL bootstrap hardening for fresh Ubuntu and repo path handling
-- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
+- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 - `mise` install rerun trigger when `dot_config/mise/config.toml` changes
 - Fish startup ordering so `mise` activation happens before `starship`/`zoxide` initialization
 - Public safety scan fixes from PR review
@@ -31,14 +32,14 @@ Recent implementation commits before this handoff update include:
 
 The source tree is ahead of the current home directory.
 
-`tasks/done/TASK-001-core-tools-import.md` is complete. Phase 3 verification is in progress on a fresh WSL Ubuntu instance.
+`tasks/done/TASK-001-core-tools-import.md` is complete. Phase 3 bootstrap verification has passed on a fresh WSL Ubuntu instance.
 
 The bootstrap/apply path has been updated after fresh WSL testing found two issues:
 
 - standalone `chezmoi apply` used the upstream default `~/.local/share/chezmoi` source before this repo installed a managed chezmoi config
 - `starship` and `zoxide` could remain missing if they were added to `dot_config/mise/config.toml` after the previous `run_onchange` script had already run
 
-Both are fixed in the current PR. Final manual confirmation should rerun bootstrap on fresh WSL after pulling the latest `develop`.
+Both were fixed before the fresh WSL confirmation.
 
 `chezmoi --source . apply` may not have been run on the primary work machine after importing `fish`, `tmux`, `nvim`, and `mise`.
 
@@ -75,11 +76,19 @@ Agent workflow:
 - `~/.claude/commands/spec-update.md`
 - `~/.claude/skills/commit/SKILL.md`
 - `~/.claude/skills/pr-review/SKILL.md`
-- `~/.claude/skills/spec-workflow/SKILL.md`
+- `~/.claude/skills/pr/SKILL.md`
+- `~/.claude/skills/review/SKILL.md`
+- `~/.claude/skills/spec-setup/SKILL.md`
+- `~/.claude/skills/spec-setup/templates/spec-do.md`
+- `~/.claude/skills/spec-setup/templates/spec-review.md`
+- `~/.claude/skills/spec-setup/templates/spec-update.md`
 - `~/.codex/skills/commit`
+- `~/.codex/skills/pr`
 - `~/.codex/skills/pr-review`
-- `~/.codex/skills/spec-workflow`
-- `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
+- `~/.codex/skills/review`
+- `~/.codex/skills/spec-setup`
+- `~/.codex/skills/skill-improvement`
+- `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 
 Core tools:
 
@@ -106,11 +115,21 @@ Run scripts:
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_40-mise-install.sh.tmpl`
 
+Optional scripts:
+
+- `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
+
+## Decisions
+
+- The README bootstrap flow is the supported fresh WSL setup path. `chezmoi init --apply` is not being pursued as an additional shortcut because the bootstrap script already installs the required user-local tools and applies this source tree.
+- Docker Engine remains optional and outside the core bootstrap. Use `scripts/install-docker-engine-wsl.sh` when container-based project work is needed.
+
 ## Repo-Only Files
 
 These are intentionally excluded by `.chezmoiignore`:
 
 - `AGENTS.md`
+- `README.md`
 - `docs/`
 - `tasks/`
 - `scripts/`
@@ -126,14 +145,17 @@ Previously passed:
 - `fish_indent --check dot_config/fish/config.fish`
 - `mise exec chezmoi -- chezmoi --version`
 - `tmux -f dot_tmux.conf start-server ; source-file -n dot_tmux.conf`
-- `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/chezmoi-dotfiles-nvim-state XDG_CACHE_HOME=/tmp/chezmoi-dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
+- `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/dotfiles-nvim-state XDG_CACHE_HOME=/tmp/dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
 - rendered shell syntax checks for chezmoi scripts with `chezmoi --source . execute-template ... | bash -n`
+- `scripts/install-docker-engine-wsl.sh` on a test WSL distro after enabling systemd
+- rerun of `scripts/install-docker-engine-wsl.sh` on the test WSL distro with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
+- `docker run --rm hello-world` and `docker compose version` as the normal user on the test WSL distro
 
 ## Next Steps
 
-1. Decide whether to apply on the current machine or test only on fresh WSL first.
-2. If applying locally, run `chezmoi --source . diff` and inspect carefully.
-3. Run `chezmoi --source . apply` only when apt/mise side effects are acceptable.
+1. If applying locally, run `chezmoi --source . diff` and inspect carefully.
+2. Run `chezmoi --source . apply` only when apt/mise side effects are acceptable.
+3. For Docker work, run `scripts/install-docker-engine-wsl.sh` inside WSL Ubuntu and restart WSL before using `docker` without `sudo`.
 4. After apply, verify:
    - `fish -n ~/.config/fish/config.fish`
    - `fish -lic 'type starship; type zoxide; type z'`
@@ -141,7 +163,5 @@ Previously passed:
    - `tmux source-file ~/.tmux.conf`
    - `nvim --headless '+lua require("config.lazy")' '+quitall'`
    - `mise ls starship zoxide`
-5. Write `docs/windows-wsl.md` for Windows-side setup.
-6. Confirm the remote GitHub repo URL and document `chezmoi init --apply` flow.
-7. Decide Docker Desktop / Docker Engine setup in a separate task.
-8. Consider adding `gitleaks` in addition to `secretlint`.
+5. Consider adding `gitleaks` in addition to `secretlint`.
+6. Continue Phase 4 template/private config cleanup.
