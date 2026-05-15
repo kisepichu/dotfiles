@@ -19,7 +19,7 @@ if [ "${#missing_commands[@]}" -gt 0 ]; then
 fi
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-expected_repo_dir="$HOME/repos/chezmoi-dotfiles"
+expected_repo_dir="$HOME/repos/dotfiles"
 chezmoi_cmd=(mise exec chezmoi@2.69.1 -- chezmoi)
 mise_version="$(
   sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$repo_dir/.chezmoidata.toml" | head -n 1
