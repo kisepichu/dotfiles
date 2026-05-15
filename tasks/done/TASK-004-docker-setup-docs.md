@@ -26,3 +26,4 @@
 - 2026-05-15: 作業開始。fresh WSL bootstrap 確認済みの前提で Docker setup/docs を更新する。
 - 2026-05-15: README と Docker Engine install script を追加。`bash -n scripts/install-docker-engine-wsl.sh` と `prek run --all-files` が通過。
 - 2026-05-15: `chezmoi-dotfiles-test` WSL distro で Docker Engine install script を実行。systemd 有効化後、通常ユーザーで `docker run --rm hello-world` と `docker compose version` が通過。
+- 2026-05-15: PR review 対応で README の WSL/systemd 手順と Docker verify command を修正。script は conflict package 検出削除と docker group opt-in を追加し、`chezmoi-dotfiles-test` で再実行確認。

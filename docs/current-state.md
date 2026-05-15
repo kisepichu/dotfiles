@@ -143,6 +143,7 @@ Previously passed:
 - `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/chezmoi-dotfiles-nvim-state XDG_CACHE_HOME=/tmp/chezmoi-dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
 - rendered shell syntax checks for chezmoi scripts with `chezmoi --source . execute-template ... | bash -n`
 - `scripts/install-docker-engine-wsl.sh` on the `chezmoi-dotfiles-test` WSL distro after enabling systemd
+- rerun of `scripts/install-docker-engine-wsl.sh` on `chezmoi-dotfiles-test` with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
 - `docker run --rm hello-world` and `docker compose version` as the normal user on `chezmoi-dotfiles-test`
 
 ## Next Steps

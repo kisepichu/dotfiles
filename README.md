@@ -4,17 +4,16 @@ Public chezmoi source for Windows + WSL Ubuntu dotfiles and agent workflows.
 
 ## Fresh WSL Ubuntu
 
-1. Install or update WSL from Windows.
-
-   ```powershell
-   wsl --install
-   wsl --update
-   ```
-
-2. Install Ubuntu from WSL, then open the Ubuntu shell.
+1. Install WSL and Ubuntu from Windows.
 
    ```powershell
    wsl --install -d Ubuntu
+   ```
+
+2. Update WSL, then open the Ubuntu shell.
+
+   ```powershell
+   wsl --update
    ```
 
 3. Clone this repository in WSL.
@@ -52,7 +51,14 @@ cat /proc/1/comm
 If the output is not `systemd`, enable it inside the distro and restart WSL:
 
 ```bash
-printf '[boot]\nsystemd=true\n' | sudo tee /etc/wsl.conf
+sudoedit /etc/wsl.conf
+```
+
+Add or update this section while preserving any existing settings:
+
+```ini
+[boot]
+systemd=true
 ```
 
 ```powershell
@@ -66,10 +72,12 @@ cd ~/repos/chezmoi-dotfiles
 ./scripts/install-docker-engine-wsl.sh
 ```
 
-Then close and reopen the WSL session so the `docker` group membership is refreshed. Verify the install:
+The script prompts before adding your user to the `docker` group. Accept only if you want to run Docker without `sudo`; Docker daemon access is effectively root-equivalent inside the WSL distro.
+
+Then close and reopen the WSL session if you accepted the group change. Verify the install:
 
 ```bash
-docker run hello-world
+docker run --rm hello-world
 docker compose version
 ```
 

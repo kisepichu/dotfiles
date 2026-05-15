@@ -50,8 +50,27 @@ docker_packages=(
   docker-compose-plugin
 )
 
+conflicting_packages=(
+  docker.io
+  docker-doc
+  docker-compose
+  docker-compose-v2
+  podman-docker
+  containerd
+  runc
+)
+installed_conflicting_packages=()
+for package in "${conflicting_packages[@]}"; do
+  if dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fxq "install ok installed"; then
+    installed_conflicting_packages+=("$package")
+  fi
+done
+
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
+if [ "${#installed_conflicting_packages[@]}" -gt 0 ]; then
+  sudo DEBIAN_FRONTEND=noninteractive apt-get remove -y "${installed_conflicting_packages[@]}"
+fi
 
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -75,8 +94,21 @@ if ! getent group docker >/dev/null 2>&1; then
   sudo groupadd docker
 fi
 if ! id -nG "$current_user" | tr ' ' '\n' | grep -Fxq docker; then
-  sudo usermod -aG docker "$current_user"
-  echo "info: added $current_user to docker group; restart WSL or run 'newgrp docker' before using docker without sudo" >&2
+  add_to_docker_group="${ADD_USER_TO_DOCKER_GROUP:-}"
+  if [ -z "$add_to_docker_group" ] && [ -t 0 ]; then
+    echo "Docker daemon access is root-equivalent inside this WSL distro." >&2
+    read -r -p "Add $current_user to the docker group for passwordless docker access? [y/N] " add_to_docker_group
+  fi
+
+  case "$add_to_docker_group" in
+    1 | y | Y | yes | YES)
+      sudo usermod -aG docker "$current_user"
+      echo "info: added $current_user to docker group; restart WSL or run 'newgrp docker' before using docker without sudo" >&2
+      ;;
+    *)
+      echo "info: did not add $current_user to docker group; use 'sudo docker' or rerun with ADD_USER_TO_DOCKER_GROUP=1" >&2
+      ;;
+  esac
 fi
 
 sudo systemctl enable --now docker.service
