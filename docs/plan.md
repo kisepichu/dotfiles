@@ -8,7 +8,7 @@
 
 ## 参考方針
 
-- `mizchi/chezmoi-dotfiles` のように、Claude/Codex 用の agent assets も chezmoi で管理する。
+- 参考にした dotfiles repo のように、Claude/Codex 用の agent assets も chezmoi で管理する。
 - ただし Codex は `~/.codex/skills/.system` を持つため、`~/.codex/skills` 全体を symlink せず、共通 skill を個別 symlink する。
 - Claude Code の slash command は `dot_claude/commands/` に置き、spec command の導入手順は `spec-setup` skill に分離する。
 
@@ -66,7 +66,7 @@
 - [x] `starship` prompt と `zoxide` の `z` command を user-level tool として有効化する。
 - [x] `mise` を入れ、常用 CLI と language runtime の管理境界を決める。
 - [x] Nix は optional path として試験導入し、最初から必須 bootstrap にしない。
-- [ ] `chezmoi init --apply` までの最短経路を確認する。通常の `chezmoi apply` は managed `chezmoi.toml` で `~/repos/chezmoi-dotfiles` を default source にする方針まで反映済み。
+- [x] `chezmoi init --apply` の追加導線は追わず、README の bootstrap 手順を正ルートにする。
 - [x] Docker は WSL Ubuntu 内 Docker Engine を `scripts/install-docker-engine-wsl.sh` で任意導入する方針にする。
 
 ### Phase 4: chezmoi template 化
@@ -86,6 +86,6 @@
 詳細: `docs/current-state.md`
 
 - `fish`, `tmux`, `nvim`, `mise`, `starship`, `zoxide`, agent workflow は chezmoi source に取り込み済み。
-- `scripts/bootstrap-wsl-ubuntu.sh` は repo 外の作業場所から実行しても `~/repos/chezmoi-dotfiles` を default source として使えるようにする。
+- `scripts/bootstrap-wsl-ubuntu.sh` は repo 外の作業場所から実行しても `~/repos/dotfiles` を default source として使えるようにする。
 - `run_onchange_after_40-mise-install.sh.tmpl` は `dot_config/mise/config.toml` の変更で再実行されるため、後から追加した `starship`/`zoxide` も `chezmoi apply` で install 対象になる。
-- 次の大きな作業は、`chezmoi init --apply` 導線の確認、Docker Engine を bootstrap に含めるかの判断、追加の secret scan 導入検討を進めること。
+- 次の大きな作業は、追加の secret scan 導入検討と Phase 4 の template/private config 整理を進めること。

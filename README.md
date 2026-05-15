@@ -1,4 +1,4 @@
-# chezmoi-dotfiles
+# dotfiles
 
 Public chezmoi source for Windows + WSL Ubuntu dotfiles and agent workflows.
 
@@ -22,8 +22,8 @@ Public chezmoi source for Windows + WSL Ubuntu dotfiles and agent workflows.
    sudo apt-get update
    sudo apt-get install -y git
    mkdir -p ~/repos
-   git clone https://github.com/kisepichu/chezmoi-dotfiles.git ~/repos/chezmoi-dotfiles
-   cd ~/repos/chezmoi-dotfiles
+   git clone https://github.com/kisepichu/dotfiles.git ~/repos/dotfiles
+   cd ~/repos/dotfiles
    ```
 
 4. Run the WSL bootstrap.
@@ -68,7 +68,7 @@ wsl --terminate Ubuntu
 Replace `Ubuntu` with the distro name when it differs.
 
 ```bash
-cd ~/repos/chezmoi-dotfiles
+cd ~/repos/dotfiles
 ./scripts/install-docker-engine-wsl.sh
 ```
 

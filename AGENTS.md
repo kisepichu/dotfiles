@@ -1,4 +1,4 @@
-# chezmoi-dotfiles
+# dotfiles
 
 This repository is the public, chezmoi-managed source for personal dotfiles and agent workflows.
 

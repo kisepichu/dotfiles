@@ -23,7 +23,7 @@ Implemented and committed:
 Recent implementation commits before this handoff update include:
 
 - WSL bootstrap hardening for fresh Ubuntu and repo path handling
-- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
+- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 - `mise` install rerun trigger when `dot_config/mise/config.toml` changes
 - Fish startup ordering so `mise` activation happens before `starship`/`zoxide` initialization
 - Public safety scan fixes from PR review
@@ -88,7 +88,7 @@ Agent workflow:
 - `~/.codex/skills/review`
 - `~/.codex/skills/spec-setup`
 - `~/.codex/skills/skill-improvement`
-- `~/.config/chezmoi/chezmoi.toml` with `~/repos/chezmoi-dotfiles` as the default source
+- `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 
 Core tools:
 
@@ -119,6 +119,11 @@ Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
 
+## Decisions
+
+- The README bootstrap flow is the supported fresh WSL setup path. `chezmoi init --apply` is not being pursued as an additional shortcut because the bootstrap script already installs the required user-local tools and applies this source tree.
+- Docker Engine remains optional and outside the core bootstrap. Use `scripts/install-docker-engine-wsl.sh` when container-based project work is needed.
+
 ## Repo-Only Files
 
 These are intentionally excluded by `.chezmoiignore`:
@@ -140,11 +145,11 @@ Previously passed:
 - `fish_indent --check dot_config/fish/config.fish`
 - `mise exec chezmoi -- chezmoi --version`
 - `tmux -f dot_tmux.conf start-server ; source-file -n dot_tmux.conf`
-- `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/chezmoi-dotfiles-nvim-state XDG_CACHE_HOME=/tmp/chezmoi-dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
+- `env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/dotfiles-nvim-state XDG_CACHE_HOME=/tmp/dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'`
 - rendered shell syntax checks for chezmoi scripts with `chezmoi --source . execute-template ... | bash -n`
-- `scripts/install-docker-engine-wsl.sh` on the `chezmoi-dotfiles-test` WSL distro after enabling systemd
-- rerun of `scripts/install-docker-engine-wsl.sh` on `chezmoi-dotfiles-test` with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
-- `docker run --rm hello-world` and `docker compose version` as the normal user on `chezmoi-dotfiles-test`
+- `scripts/install-docker-engine-wsl.sh` on a test WSL distro after enabling systemd
+- rerun of `scripts/install-docker-engine-wsl.sh` on the test WSL distro with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
+- `docker run --rm hello-world` and `docker compose version` as the normal user on the test WSL distro
 
 ## Next Steps
 
@@ -158,6 +163,5 @@ Previously passed:
    - `tmux source-file ~/.tmux.conf`
    - `nvim --headless '+lua require("config.lazy")' '+quitall'`
    - `mise ls starship zoxide`
-5. Confirm the remote GitHub repo URL and document `chezmoi init --apply` flow.
-6. Decide whether Docker Engine should remain optional or be included in a future bootstrap phase.
-7. Consider adding `gitleaks` in addition to `secretlint`.
+5. Consider adding `gitleaks` in addition to `secretlint`.
+6. Continue Phase 4 template/private config cleanup.
