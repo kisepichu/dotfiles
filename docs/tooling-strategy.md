@@ -58,7 +58,13 @@
 - project 固有の LSP, formatter, compiler version
 - 一時的な検証用 toolchain
 
-Docker 自体の導入は Windows/WSL integration の判断が必要なため、core dotfiles bootstrap には含めない。Windows 側 Docker Desktop を使うか、WSL 内 Docker Engine を使うかは別タスクで決める。
+Docker 自体の導入は core dotfiles bootstrap には含めない。必要になった時点で WSL Ubuntu 内に Docker Engine を導入する。
+
+導入方法:
+
+- `scripts/install-docker-engine-wsl.sh` を明示実行する。
+- Docker 公式 apt repository から `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin` を入れる。
+- systemd enabled WSL を前提にし、Docker daemon は WSL 内の systemd service として動かす。
 
 ### Windows-side tools
 
