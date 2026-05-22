@@ -1,0 +1,55 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+setup_homebrew_path() {
+  if command -v brew >/dev/null 2>&1; then
+    return 0
+  fi
+
+  for brew_path in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$brew_path" ]; then
+      eval "$("$brew_path" shellenv)"
+      return 0
+    fi
+  done
+}
+
+setup_homebrew_path
+
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is not installed; skipping macOS package install. Run scripts/bootstrap-macos.sh first." >&2
+  exit 0
+fi
+
+brew_formulae=(
+  ca-certificates
+  curl
+  fd
+  fish
+  git
+  jq
+  pkg-config
+  ripgrep
+  tmux
+  unzip
+  xz
+)
+
+for formula in "${brew_formulae[@]}"; do
+  brew list --formula "$formula" >/dev/null 2>&1 || brew install "$formula"
+done
+
+brew_casks=(
+  karabiner-elements
+  wezterm
+)
+
+for cask in "${brew_casks[@]}"; do
+  brew list --cask "$cask" >/dev/null 2>&1 || brew install --cask "$cask"
+done
+{{- else -}}
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+{{- end }}

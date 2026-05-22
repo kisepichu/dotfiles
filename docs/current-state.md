@@ -4,7 +4,7 @@ Last updated: 2026-05-15
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with a separate first-pass macOS bootstrap path.
 
 Implemented and committed:
 
@@ -19,6 +19,7 @@ Implemented and committed:
 - Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
 - Optional WSL Ubuntu Docker Engine install script
+- macOS bootstrap script and Windows-friendly Karabiner-Elements profile
 
 Recent implementation commits before this handoff update include:
 
@@ -118,6 +119,12 @@ Run scripts:
 Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
+- `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source, and runs conservative macOS defaults.
+- `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, and trackpad tap-to-click.
+
+macOS:
+
+- `~/.config/karabiner/karabiner.json`
 
 ## Decisions
 
@@ -150,6 +157,10 @@ Previously passed:
 - `scripts/install-docker-engine-wsl.sh` on a test WSL distro after enabling systemd
 - rerun of `scripts/install-docker-engine-wsl.sh` on the test WSL distro with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
 - `docker run --rm hello-world` and `docker compose version` as the normal user on the test WSL distro
+
+Not yet done:
+
+- `scripts/bootstrap-macos.sh` on real macOS hardware.
 
 ## Next Steps
 

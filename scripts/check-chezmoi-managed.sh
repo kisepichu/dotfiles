@@ -51,7 +51,9 @@ require_managed=(
 )
 
 require_source=(
+  "dot_config/karabiner/karabiner.json"
   "run_once_before_10-install-apt-packages.sh.tmpl"
+  "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
   "run_once_before_20-install-tmux-plugin-manager.sh"
   "run_onchange_after_40-mise-install.sh.tmpl"

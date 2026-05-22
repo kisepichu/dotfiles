@@ -2,6 +2,10 @@ function __is_wsl
     string match -qi "*microsoft*" (uname -r)
 end
 
+function __is_macos
+    test (uname -s) = Darwin
+end
+
 function __path_prepend
     for dir in $argv
         if test -d "$dir"; and not contains -- "$dir" $PATH
@@ -51,6 +55,10 @@ if __is_wsl
     if test -d /mnt/c/Windows/Fonts
         set -gx TYPST_FONT_PATHS "/mnt/c/fonts:/mnt/c/Windows/Fonts"
     end
+end
+
+if __is_macos; and command -q open
+    set -gx BROWSER open
 end
 
 set -l current_tty (tty 2>/dev/null)
@@ -151,6 +159,8 @@ function browse
     set -l target (realpath "$argv[1]")
     if set -q BROWSER
         "$BROWSER" "$target"
+    else if __is_macos; and command -q open
+        open "$target"
     else
         xdg-open "$target"
     end
