@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -lt 1 ] || [ -z "${1:-}" ]; then
+  echo "usage: cloudflared-access-ssh-proxy <hostname>" >&2
+  exit 2
+fi
+
+hostname="$1"
+cloudflared_bin="$(command -v cloudflared || true)"
+ssh_bin="$(command -v ssh || true)"
+
+if [ -z "$cloudflared_bin" ]; then
+  echo "error: cloudflared is not installed or not in PATH" >&2
+  exit 127
+fi
+
+if [ -z "$ssh_bin" ]; then
+  echo "error: ssh is not installed or not in PATH" >&2
+  exit 127
+fi
+
+tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/cloudflared-access-ssh-proxy.XXXXXXXXXX")"
+client_prefix_file="$tmpdir/client-prefix.bin"
+ssh_prefix_file="$tmpdir/ssh-prefix.txt"
+ssh_version="$("$ssh_bin" -V 2>&1 | sed -n 's/^\(OpenSSH_[^,]*\),.*/\1/p')"
+
+: "${ssh_version:=OpenSSH_compatible}"
+printf 'SSH-' >"$ssh_prefix_file"
+
+cleanup() {
+  local status="$?"
+
+  rm -rf "$tmpdir"
+  exit "$status"
+}
+
+trap cleanup EXIT INT TERM HUP
+
+forward_client_stream() {
+  dd bs=1 count=4 of="$client_prefix_file" 2>/dev/null || true
+
+  if [ ! -s "$client_prefix_file" ]; then
+    return 0
+  fi
+
+  # Some OpenSSH/cloudflared ProxyCommand combinations start stdin at KEXINIT.
+  # In that case the remote sshd sees binary data instead of the client banner.
+  if ! cmp -s "$client_prefix_file" "$ssh_prefix_file"; then
+    printf 'SSH-2.0-%s\r\n' "$ssh_version"
+  fi
+
+  cat "$client_prefix_file"
+  cat
+}
+
+forward_client_stream | "$cloudflared_bin" access tcp --hostname "$hostname"
