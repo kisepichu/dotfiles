@@ -119,8 +119,8 @@ if ! command -v mise >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-mise install --yes chezmoi@2.69.1
+mise install --quiet --yes chezmoi@2.69.1
 "$repo_dir/scripts/configure-macos-defaults.sh"
-mise exec chezmoi@2.69.1 -- chezmoi --source "$repo_dir" apply
+mise exec --quiet chezmoi@2.69.1 -- chezmoi --source "$repo_dir" apply
 
 echo "macOS bootstrap completed. Open Karabiner-Elements once and grant its macOS permissions."

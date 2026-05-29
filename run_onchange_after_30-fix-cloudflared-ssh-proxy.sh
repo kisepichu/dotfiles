@@ -40,12 +40,13 @@ cleanup() {
 
 trap cleanup EXIT INT TERM HUP
 
-if ! chmod --reference="$config_path" "$tmp_file"; then
+config_mode="$(stat -f %Lp "$config_path" 2>/dev/null || stat -c %a "$config_path" 2>/dev/null || true)"
+if [ -n "$config_mode" ] && ! chmod "$config_mode" "$tmp_file"; then
   echo "warning: failed to copy SSH config permissions; continuing with temporary file defaults" >&2
 fi
 
 while IFS= read -r line || [ -n "$line" ]; do
-  if [[ "$line" =~ ^([[:space:]]*)ProxyCommand[[:space:]]+(/usr/bin/|/usr/local/bin/)?cloudflared[[:space:]]+access[[:space:]]+(ssh|tcp)[[:space:]]+--hostname[[:space:]]+%h[[:space:]]*$ ]]; then
+  if [[ "$line" =~ ^([[:space:]]*)ProxyCommand[[:space:]]+(/usr/bin/|/usr/local/bin/|/opt/homebrew/bin/)?cloudflared[[:space:]]+access[[:space:]]+(ssh|tcp)[[:space:]]+--hostname[[:space:]]+%h[[:space:]]*$ ]]; then
     printf '%sProxyCommand %s %%h\n' "${BASH_REMATCH[1]}" "$helper_path" >>"$tmp_file"
     changed=1
   else
