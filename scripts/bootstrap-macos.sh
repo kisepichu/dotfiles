@@ -7,7 +7,7 @@ if [ "$(uname -s)" != "Darwin" ]; then
 fi
 
 missing_commands=()
-for required_command in curl dscl grep head id ln mkdir mktemp pkgutil sed sh uname; do
+for required_command in curl dirname dscl grep head id ln mkdir mktemp pkgutil readlink sed sh uname; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     missing_commands+=("$required_command")
   fi
@@ -88,13 +88,26 @@ for cask in "${brew_casks[@]}"; do
 done
 
 fish_path="$(command -v fish || true)"
-if [ -n "$fish_path" ] && ! grep -Fxq "$fish_path" /etc/shells; then
-  echo "$fish_path" | sudo tee -a /etc/shells >/dev/null
+fish_shell_available=0
+if [ -n "$fish_path" ]; then
+  if grep -Fxq "$fish_path" /etc/shells; then
+    fish_shell_available=1
+  elif [ -t 0 ]; then
+    if printf '%s\n' "$fish_path" | sudo tee -a /etc/shells >/dev/null; then
+      fish_shell_available=1
+    else
+      echo "warning: failed to add fish to /etc/shells; run 'echo $fish_path | sudo tee -a /etc/shells' manually" >&2
+    fi
+  else
+    echo "warning: fish is not listed in /etc/shells; run 'echo $fish_path | sudo tee -a /etc/shells' manually" >&2
+  fi
 fi
 
 current_shell="$(dscl . -read "/Users/${USER:-$(id -un)}" UserShell 2>/dev/null | sed 's/^UserShell: //' || true)"
 if [ -n "$fish_path" ] && [ "$current_shell" != "$fish_path" ]; then
-  if [ -t 0 ]; then
+  if [ "$fish_shell_available" -eq 0 ]; then
+    echo "warning: default shell is not fish; add $fish_path to /etc/shells, then run 'chsh -s $fish_path' manually" >&2
+  elif [ -t 0 ]; then
     chsh -s "$fish_path" || echo "warning: failed to change default shell to fish" >&2
   else
     echo "warning: default shell is not fish; run 'chsh -s $fish_path' manually" >&2

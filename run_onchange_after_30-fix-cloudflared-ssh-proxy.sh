@@ -10,8 +10,36 @@ if [ ! -x "$helper_file" ]; then
   exit 0
 fi
 
+resolve_symlink_target() {
+  local link_path="$1"
+  local link_target=""
+  local link_dir=""
+  local resolved=""
+
+  resolved="$(readlink -f "$link_path" 2>/dev/null || true)"
+  if [ -n "$resolved" ]; then
+    printf '%s\n' "$resolved"
+    return 0
+  fi
+
+  link_target="$(readlink "$link_path" 2>/dev/null || true)"
+  if [ -z "$link_target" ]; then
+    return 1
+  fi
+
+  case "$link_target" in
+    /*)
+      printf '%s\n' "$link_target"
+      ;;
+    *)
+      link_dir="$(cd "$(dirname "$link_path")" && pwd -P)" || return 1
+      printf '%s/%s\n' "$link_dir" "$link_target"
+      ;;
+  esac
+}
+
 if [ -L "$config_file" ]; then
-  config_path="$(readlink -f "$config_file" || true)"
+  config_path="$(resolve_symlink_target "$config_file" || true)"
   if [ -z "$config_path" ] || [ ! -f "$config_path" ]; then
     echo "warning: SSH config symlink target is unavailable; skipping SSH config migration" >&2
     exit 0
