@@ -68,7 +68,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM HUP
 
-config_mode="$(stat -f %Lp "$config_path" 2>/dev/null || stat -c %a "$config_path" 2>/dev/null || true)"
+config_mode="$(stat -c %a "$config_path" 2>/dev/null || stat -f %Lp "$config_path" 2>/dev/null || true)"
 if [ -n "$config_mode" ] && ! chmod "$config_mode" "$tmp_file"; then
   echo "warning: failed to copy SSH config permissions; continuing with temporary file defaults" >&2
 fi
