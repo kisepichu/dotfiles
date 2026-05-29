@@ -18,8 +18,8 @@ setup_homebrew_path() {
 setup_homebrew_path
 
 if ! command -v brew >/dev/null 2>&1; then
-  echo "Homebrew is not installed; skipping macOS package install. Run scripts/bootstrap-macos.sh first." >&2
-  exit 0
+  echo "Homebrew is not installed; run scripts/bootstrap-macos.sh first, then rerun chezmoi apply." >&2
+  exit 1
 fi
 
 brew_formulae=(
