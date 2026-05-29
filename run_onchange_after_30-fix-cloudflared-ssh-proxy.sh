@@ -10,8 +10,36 @@ if [ ! -x "$helper_file" ]; then
   exit 0
 fi
 
+resolve_symlink_target() {
+  local link_path="$1"
+  local link_target=""
+  local link_dir=""
+  local resolved=""
+
+  resolved="$(readlink -f "$link_path" 2>/dev/null || true)"
+  if [ -n "$resolved" ]; then
+    printf '%s\n' "$resolved"
+    return 0
+  fi
+
+  link_target="$(readlink "$link_path" 2>/dev/null || true)"
+  if [ -z "$link_target" ]; then
+    return 1
+  fi
+
+  case "$link_target" in
+    /*)
+      printf '%s\n' "$link_target"
+      ;;
+    *)
+      link_dir="$(cd "$(dirname "$link_path")" && pwd -P)" || return 1
+      printf '%s/%s\n' "$link_dir" "$link_target"
+      ;;
+  esac
+}
+
 if [ -L "$config_file" ]; then
-  config_path="$(readlink -f "$config_file" || true)"
+  config_path="$(resolve_symlink_target "$config_file" || true)"
   if [ -z "$config_path" ] || [ ! -f "$config_path" ]; then
     echo "warning: SSH config symlink target is unavailable; skipping SSH config migration" >&2
     exit 0
@@ -40,12 +68,13 @@ cleanup() {
 
 trap cleanup EXIT INT TERM HUP
 
-if ! chmod --reference="$config_path" "$tmp_file"; then
+config_mode="$(stat -c %a "$config_path" 2>/dev/null || stat -f %Lp "$config_path" 2>/dev/null || true)"
+if [ -n "$config_mode" ] && ! chmod "$config_mode" "$tmp_file"; then
   echo "warning: failed to copy SSH config permissions; continuing with temporary file defaults" >&2
 fi
 
 while IFS= read -r line || [ -n "$line" ]; do
-  if [[ "$line" =~ ^([[:space:]]*)ProxyCommand[[:space:]]+(/usr/bin/|/usr/local/bin/)?cloudflared[[:space:]]+access[[:space:]]+(ssh|tcp)[[:space:]]+--hostname[[:space:]]+%h[[:space:]]*$ ]]; then
+  if [[ "$line" =~ ^([[:space:]]*)ProxyCommand[[:space:]]+(/usr/bin/|/usr/local/bin/|/opt/homebrew/bin/)?cloudflared[[:space:]]+access[[:space:]]+(ssh|tcp)[[:space:]]+--hostname[[:space:]]+%h[[:space:]]*$ ]]; then
     printf '%sProxyCommand %s %%h\n' "${BASH_REMATCH[1]}" "$helper_path" >>"$tmp_file"
     changed=1
   else

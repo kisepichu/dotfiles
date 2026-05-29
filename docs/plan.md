@@ -3,6 +3,7 @@
 ## 目的
 
 - 新 Windows PC + WSL Ubuntu を再現可能にセットアップする。
+- Windows/WSL を主軸にしつつ、必要になった時に新規 macOS も再現可能にセットアップする。
 - 公開してよい dotfiles と agent workflow を GitHub に集約する。
 - 秘密情報と環境固有値は公開 repo から分離する。
 
@@ -81,6 +82,15 @@
 - [ ] `chezmoi diff` と `chezmoi apply` を確認する。bootstrap 中の `chezmoi` 呼び出し、default source、`mise` config 変更後の `starship`/`zoxide` install 再実行は修正済み。
 - [ ] `gitleaks` か同等の secret scan を通す。
 
+### Phase 6: macOS bootstrap
+
+- [x] Windows から macOS へ移る人向けのキーボード設定事例を調査する。
+- [x] macOS 専用 bootstrap script を作る。
+- [x] Homebrew, Karabiner-Elements, WezTerm, mise, chezmoi apply の導線を作る。
+- [x] Windows 寄せの Karabiner-Elements 設定を chezmoi 管理へ追加する。
+- [x] macOS 初期設定手順を `docs/macos-initial-setup.md` にまとめる。
+- [ ] 実機 macOS で `scripts/bootstrap-macos.sh` を検証する。
+
 ## 現在の状態
 
 詳細: `docs/current-state.md`
@@ -89,3 +99,4 @@
 - `scripts/bootstrap-wsl-ubuntu.sh` は repo 外の作業場所から実行しても `~/repos/dotfiles` を default source として使えるようにする。
 - `run_onchange_after_40-mise-install.sh.tmpl` は `dot_config/mise/config.toml` の変更で再実行されるため、後から追加した `starship`/`zoxide` も `chezmoi apply` で install 対象になる。
 - 次の大きな作業は、追加の secret scan 導入検討と Phase 4 の template/private config 整理を進めること。
+- macOS 実機がないため、macOS bootstrap は静的検証済み・実機検証待ち。

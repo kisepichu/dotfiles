@@ -2,6 +2,22 @@
 
 Public chezmoi source for Windows + WSL Ubuntu dotfiles and agent workflows.
 
+## Fresh macOS
+
+This path is for a Windows/WSL-first workflow on a new Mac. It is separate from the WSL bootstrap.
+
+```bash
+xcode-select --install
+mkdir -p ~/repos
+git clone https://github.com/kisepichu/dotfiles.git ~/repos/dotfiles
+cd ~/repos/dotfiles
+./scripts/bootstrap-macos.sh
+```
+
+After the script completes, open Karabiner-Elements once and grant the permissions requested by macOS.
+
+Detailed notes: `docs/macos-initial-setup.md`
+
 ## Fresh WSL Ubuntu
 
 1. Install WSL and Ubuntu from Windows.
