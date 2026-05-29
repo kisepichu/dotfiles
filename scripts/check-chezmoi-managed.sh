@@ -30,6 +30,8 @@ require_managed=(
   ".codex/skills/commit"
   ".codex/skills/pr"
   ".codex/skills/pr-review"
+  ".codex/skills/pr-review/SKILL.md"
+  ".codex/skills/pr-review/scripts"
   ".codex/skills/review"
   ".codex/skills/spec-setup"
   ".codex/skills/skill-improvement/SKILL.md"
