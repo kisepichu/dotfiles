@@ -46,10 +46,12 @@ fi
 setup_homebrew_path
 
 if ! command -v brew >/dev/null 2>&1; then
-  installer="$(mktemp)"
-  trap 'rm -f "$installer"' EXIT
-  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$installer"
-  NONINTERACTIVE=1 /bin/bash "$installer"
+  homebrew_installer="$(mktemp)"
+  trap 'rm -f "$homebrew_installer"' EXIT
+  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$homebrew_installer"
+  NONINTERACTIVE=1 /bin/bash "$homebrew_installer"
+  rm -f "$homebrew_installer"
+  trap - EXIT
   setup_homebrew_path
 fi
 
@@ -112,10 +114,12 @@ if [ "$repo_dir" != "$expected_repo_dir" ]; then
 fi
 
 if ! command -v mise >/dev/null 2>&1; then
-  installer="$(mktemp)"
-  trap 'rm -f "$installer"' EXIT
-  curl -fsSL https://mise.run -o "$installer"
-  MISE_VERSION="$mise_version" sh "$installer"
+  mise_installer="$(mktemp)"
+  trap 'rm -f "$mise_installer"' EXIT
+  curl -fsSL https://mise.run -o "$mise_installer"
+  MISE_VERSION="$mise_version" sh "$mise_installer"
+  rm -f "$mise_installer"
+  trap - EXIT
   export PATH="$HOME/.local/bin:$PATH"
 fi
 

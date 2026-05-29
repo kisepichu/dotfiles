@@ -37,8 +37,8 @@ The script installs Homebrew when missing, installs base CLI packages, installs 
 
 The managed Karabiner profile is intentionally conservative.
 
-- `fn` becomes `Command` so the lower-left MacBook key behaves like the Windows `Ctrl` position for common app shortcuts.
-- `Caps Lock` becomes `Control` so terminal and editor control chords remain available.
+- `fn` becomes `Control`, and physical left `Control` becomes `fn`, so the lower-left MacBook key keeps terminal and editor control chords available.
+- `Caps Lock` becomes `Right Arrow` for local navigation muscle memory.
 - `Home` and `End` move to the beginning and end of the current line, including shifted selection.
 - `Ctrl+Left`, `Ctrl+Right`, `Ctrl+Backspace`, and `Ctrl+Delete` map to macOS word movement and word delete.
 - Common `Ctrl` app shortcuts map to `Command` in GUI apps, but terminal-like apps and code editors are excluded so shell signals and integrated terminals keep normal control behavior.
