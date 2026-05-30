@@ -1,0 +1,29 @@
+{
+  "theme": "dark",
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

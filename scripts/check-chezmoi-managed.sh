@@ -11,6 +11,13 @@ ignored="$(chezmoi --source . ignored)"
 
 # These are chezmoi target paths, not repository source filenames.
 require_managed=(
+  ".claude/settings.json"
+  ".claude/hooks/supervisor/permission-supervisor.py"
+  ".claude/hooks/supervisor/judge-codex.sh"
+  ".claude/hooks/supervisor/judge-mock.sh"
+  ".claude/hooks/supervisor/supervisor.json"
+  ".claude/hooks/supervisor/prompt-template.md"
+  ".claude/hooks/supervisor/README.md"
   ".claude/commands/spec-do.md"
   ".claude/commands/spec-review.md"
   ".claude/commands/spec-update.md"
