@@ -1,5 +1,13 @@
 {
-  "theme": "dark",
+  "model": "opus[1m]",
+  "permissions": {
+    "allow": [
+      "Bash(python3 ~/.claude/skills/pr-review/scripts/*.py:*)"
+    ],
+    "ask": [
+      "AskUserQuestion"
+    ]
+  },
   "hooks": {
     "PermissionRequest": [
       {
@@ -25,5 +33,9 @@
         ]
       }
     ]
+  },
+  "theme": "dark",
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
   }
 }

@@ -2,11 +2,20 @@
   "enabled": false,
   "backend": "judge-codex.sh",
   "backend_timeout_seconds": 120,
+  "answer_user_questions": false,
+  "always_allow_patterns": [
+    "\\bpython3\\s+(~|\\$HOME|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)",
+    "^Read\\n",
+    "^Bash\\n.*\"command\":\\s*\"\\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|rg|fd|find|git\\s+(status|log|diff|show|branch|remote|fetch|ls-files|rev-parse|config\\s+--get))\\b[^\"&;><$`]*\""
+  ],
+  "always_ask_tools": [
+    "AskUserQuestion"
+  ],
   "hard_escalate_patterns": [
-    "\\brm\\s+-[a-zA-Z]*[rRfF]",
-    "\\brm\\b.*(--recursive|--force)",
+    "\\brm\\s+-[A-Za-z]*[rR][A-Za-z]*[fF]",
+    "\\brm\\s+-[A-Za-z]*[fF][A-Za-z]*[rR]",
+    "\\brm\\b(?=.*--recursive)(?=.*--force)",
     "\\bgit\\s+push\\b.*(--force|-f)\\b",
-    "\\bgit\\s+reset\\s+--hard\\b",
     "\\bsudo\\b",
     "\\bcurl\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
     "\\bwget\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
@@ -15,6 +24,8 @@
     "(^|[^\\w])~?/?\\.ssh/",
     "\\.env(\\b|[^\\w])",
     "id_rsa|id_ed25519|\\.pem\\b|credentials",
+    "\\.aws/|\\.netrc\\b|\\.git-credentials\\b|\\.npmrc\\b|\\.pgpass\\b|\\.kube/config\\b|\\.docker/config\\.json\\b",
+    "\\bsecrets?\\.(json|ya?ml|env|txt)\\b|\\bservice[-_]account.*\\.json\\b",
     "\\b:\\s*\\(\\)\\s*\\{"
   ]
 }

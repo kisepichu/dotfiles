@@ -3,8 +3,9 @@
 # orchestrator can be exercised without invoking a real AI.
 #
 # Behavior is controlled by env vars:
-#   MOCK_DECISION : allow | deny | ask   (default: ask)
+#   MOCK_DECISION : allow | deny | ask | answer  (default: ask)
 #   MOCK_REASON   : reason string        (default: "mock")
+#   MOCK_ANSWER   : answer string        (used when MOCK_DECISION=answer)
 #   MOCK_SLEEP    : seconds to sleep      (to exercise timeout handling)
 #   MOCK_EXIT     : exit code             (non-zero exercises error handling)
 #   MOCK_RAW      : if set, print this raw string instead of JSON
@@ -17,8 +18,12 @@ cat >/dev/null  # consume context
 if [ -n "${MOCK_RAW:-}" ]; then
   printf '%s\n' "$MOCK_RAW"
 else
-  python3 -c "import json,sys; print(json.dumps({'decision':sys.argv[1],'reason':sys.argv[2]}))" \
-    "${MOCK_DECISION:-ask}" "${MOCK_REASON:-mock}"
+  python3 -c "import json,sys
+d,r,a=sys.argv[1],sys.argv[2],sys.argv[3]
+o={'decision':d,'reason':r}
+if d=='answer': o['answer']=a
+print(json.dumps(o))" \
+    "${MOCK_DECISION:-ask}" "${MOCK_REASON:-mock}" "${MOCK_ANSWER:-mock answer}"
 fi
 
 exit "${MOCK_EXIT:-0}"
