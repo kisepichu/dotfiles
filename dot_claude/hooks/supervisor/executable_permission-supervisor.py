@@ -38,6 +38,7 @@ DEFAULT_CONFIG = {
     # forces escalation to the human; the judge cannot auto-allow these.
     "hard_escalate_patterns": [
         r"\brm\s+-[a-zA-Z]*[rf]",
+        r"\brm\b.*(--recursive|--force)",
         r"\bgit\s+push\b.*(--force|-f)\b",
         r"\bgit\s+reset\s+--hard\b",
         r"\bsudo\b",
@@ -93,9 +94,15 @@ def matches_hard_rule(cfg, haystack):
 
 def run_backend(cfg, context):
     """Run the configured judge backend. Returns (decision, reason)."""
-    backend = os.environ.get("CLAUDE_SUPERVISOR_BACKEND") or cfg.get("backend", "judge-codex.sh")
-    backend_path = backend if os.path.isabs(backend) else str(HOOK_DIR / backend)
-    timeout = float(cfg.get("backend_timeout_seconds", 120))
+    try:
+        backend = os.environ.get("CLAUDE_SUPERVISOR_BACKEND") or cfg.get("backend", "judge-codex.sh")
+        backend_path = backend if os.path.isabs(backend) else str(HOOK_DIR / backend)
+    except (TypeError, AttributeError) as exc:
+        return "ask", "malformed backend config: {}".format(exc)
+    try:
+        timeout = float(cfg.get("backend_timeout_seconds", 120))
+    except (TypeError, ValueError):
+        timeout = 120.0
     try:
         # input= sets the child's stdin to our context JSON, so the child
         # never reads the hook's own (already-consumed) stdin.

@@ -4,6 +4,7 @@
   "backend_timeout_seconds": 120,
   "hard_escalate_patterns": [
     "\\brm\\s+-[a-zA-Z]*[rf]",
+    "\\brm\\b.*(--recursive|--force)",
     "\\bgit\\s+push\\b.*(--force|-f)\\b",
     "\\bgit\\s+reset\\s+--hard\\b",
     "\\bsudo\\b",
