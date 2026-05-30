@@ -3,18 +3,19 @@
   "backend": "judge-codex.sh",
   "backend_timeout_seconds": 120,
   "answer_user_questions": false,
+  "always_allow_tools": [
+    "Read"
+  ],
   "always_allow_patterns": [
-    "\\bpython3\\s+(~|\\$HOME|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)",
-    "^Read\\n",
-    "^Bash\\n.*\"command\":\\s*\"\\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|rg|fd|find|git\\s+(status|log|diff|show|branch|remote|fetch|ls-files|rev-parse|config\\s+--get))\\b[^\"&;><$`]*\""
+    "\\bpython3\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)"
   ],
   "always_ask_tools": [
     "AskUserQuestion"
   ],
   "hard_escalate_patterns": [
-    "\\brm\\s+-[A-Za-z]*[rR][A-Za-z]*[fF]",
-    "\\brm\\s+-[A-Za-z]*[fF][A-Za-z]*[rR]",
-    "\\brm\\b(?=.*--recursive)(?=.*--force)",
+    "\\brm\\b[^\\n]*\\s-[A-Za-z]*[rRfF]",
+    "\\brm\\b[^\\n]*--(recursive|force)\\b",
+    "\\bgit\\s+reset\\s+--hard\\b",
     "\\bgit\\s+push\\b.*(--force|-f)\\b",
     "\\bsudo\\b",
     "\\bcurl\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",

