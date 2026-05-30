@@ -31,6 +31,9 @@
 
 ## TDD サイクル (チェックリスト項目ごと)
 
+> **前提**: `.claude/agents/test-writer.md` と `.claude/agents/implementer.md` が配置済みであること。
+> 無ければ spec-setup を適用してテンプレを入れる (`{{TEST_TOOL_ALLOW}}` 等のプレースホルダも埋める)。
+
 各項目を **RED → GREEN → REFACTOR** で進める。RED が GREEN まで完了してから次の項目へ。
 
 - **RED** — `.claude/agents/test-writer.md` のテンプレを task 全文で埋め、test-writer を起動。

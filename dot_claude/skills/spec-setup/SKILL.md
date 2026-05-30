@@ -19,12 +19,14 @@ metadata:
 
 1. 対象プロジェクトのルールを確認する。
    - `AGENTS.md`, `CLAUDE.md`, `README.md`, 既存の `.claude/commands/` を読む。
-2. `.claude/commands/` がなければ作成する。
+2. 必要なディレクトリを作成する。
+   - `.claude/commands/` がなければ作成する。
+   - TDD subagent テンプレも入れる場合は `.claude/agents/` がなければ作成する。
 3. この skill の `templates/` から以下をコピーする。
    - `spec-do.md` -> `.claude/commands/spec-do.md`
    - `spec-review.md` -> `.claude/commands/spec-review.md`
    - `spec-update.md` -> `.claude/commands/spec-update.md`
-   - テストのある開発プロジェクトなら TDD subagent テンプレも:
+   - テストのある開発プロジェクトなら TDD subagent テンプレも (コピー先 `.claude/agents/` は手順2で作成済みであること):
      - `templates/agents/test-writer.md` -> `.claude/agents/test-writer.md`
      - `templates/agents/implementer.md` -> `.claude/agents/implementer.md`
 4. プロジェクトの実態に合わせてテンプレートを調整する。
