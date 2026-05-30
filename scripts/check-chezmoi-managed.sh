@@ -34,6 +34,8 @@ require_managed=(
   ".claude/skills/spec-setup/templates/spec-do.md"
   ".claude/skills/spec-setup/templates/spec-review.md"
   ".claude/skills/spec-setup/templates/spec-update.md"
+  ".claude/skills/spec-setup/templates/agents/test-writer.md"
+  ".claude/skills/spec-setup/templates/agents/implementer.md"
   ".codex/skills/commit"
   ".codex/skills/pr"
   ".codex/skills/pr-review"

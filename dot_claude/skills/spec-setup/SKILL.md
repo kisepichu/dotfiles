@@ -19,24 +19,44 @@ metadata:
 
 1. 対象プロジェクトのルールを確認する。
    - `AGENTS.md`, `CLAUDE.md`, `README.md`, 既存の `.claude/commands/` を読む。
-2. `.claude/commands/` がなければ作成する。
+2. 必要なディレクトリを作成する。
+   - `.claude/commands/` がなければ作成する。
+   - TDD subagent テンプレも入れる場合は `.claude/agents/` がなければ作成する。
 3. この skill の `templates/` から以下をコピーする。
    - `spec-do.md` -> `.claude/commands/spec-do.md`
    - `spec-review.md` -> `.claude/commands/spec-review.md`
    - `spec-update.md` -> `.claude/commands/spec-update.md`
+   - テストのある開発プロジェクトなら TDD subagent テンプレも (コピー先 `.claude/agents/` は手順2で作成済みであること):
+     - `templates/agents/test-writer.md` -> `.claude/agents/test-writer.md`
+     - `templates/agents/implementer.md` -> `.claude/agents/implementer.md`
 4. プロジェクトの実態に合わせてテンプレートを調整する。
    - 仕様ファイルの探索順
    - タスクディレクトリと命名規則
    - ブランチ作成ルール
    - 検証コマンド
    - 公開安全性や secret 管理の注意点
-5. 既存コマンドがある場合は上書きせず、差分を確認して必要な変更だけ反映する。
-6. 最後に追加・変更したファイルと、プロジェクト固有に調整した点を報告する。
+   - TDD を使う場合、agent テンプレと spec-do.md の `{{...}}` プレースホルダを埋める:
+     - `{{TEST_COMMAND}}` / `{{FULL_TEST_COMMAND}}` — 単体/全体のテスト実行コマンド
+     - `{{TEST_LOCATION}}` — テストの置き場所 (層・ディレクトリ規則)
+     - `{{ARCHITECTURE}}` — レイヤー構成と依存方向の禁止事項
+     - `{{ERROR_HANDLING}}` — エラー処理や型の規約 (任意)
+     - `{{TEST_NAME_LANG}}` — テスト名の言語と例
+     - `{{VERIFY_COMMANDS}}` — 仕上げの検証コマンド一式
+     - `{{TEST_TOOL_ALLOW}}` — offload 起動時に許可するテスト実行コマンド
+       (例: `Bash(cargo:*)` / `Bash(pnpm:*)` / `Bash(python3:*)`)
+5. subagent の起動方法を確認する (spec-do.md の「offload 主軸」節)。
+   - コスト節約で別アカウントへ逃がす場合は、利用者が `$CLAUDE_OFFLOAD_CONFIG_DIR`
+     (offload 先の config ディレクトリ) を環境変数で用意する前提。値は command に書かない。
+   - offload を使わないなら Agent (Task) ツールのフォールバックで動く。
+6. 既存コマンドがある場合は上書きせず、差分を確認して必要な変更だけ反映する。
+7. 最後に追加・変更したファイルと、プロジェクト固有に調整した点を報告する。
 
 ## 検証
 
 - `.claude/commands/spec-do.md`, `spec-review.md`, `spec-update.md` が存在する。
 - 3 command すべてが対象プロジェクトの仕様配置、タスク配置、検証コマンドに合っている。
+- TDD を使う場合、`.claude/agents/test-writer.md` と `implementer.md` が存在し、
+  `{{...}}` プレースホルダがプロジェクト実態の値で埋まっている。
 - 既存 command を更新した場合は、上書きではなく意図した差分だけになっている。
 
 ## テンプレート
@@ -44,6 +64,8 @@ metadata:
 - [templates/spec-do.md](templates/spec-do.md)
 - [templates/spec-review.md](templates/spec-review.md)
 - [templates/spec-update.md](templates/spec-update.md)
+- [templates/agents/test-writer.md](templates/agents/test-writer.md)
+- [templates/agents/implementer.md](templates/agents/implementer.md)
 
 ## 注意
 
