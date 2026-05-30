@@ -201,10 +201,16 @@ def matches_hard_rule(cfg, haystack):
 # evil`, `ls && rm -rf x`, `cat $(...)`) must go to the judge/human.
 _BASH_UNSAFE_CHARS = re.compile(r"[|&;<>$`(){}\n]")
 
-# The leading command of an auto-allowable read-only Bash invocation.
+# The leading command of an auto-allowable read-only Bash invocation. Kept
+# deliberately small: only tools with no write/exec/delete escape hatch that
+# works without a shell metacharacter. Excluded on purpose:
+#   find/fd  -> -delete / -exec / -x run or remove files
+#   rg       -> --pre runs an arbitrary preprocessor command
+#   git branch/remote/fetch -> mutate refs/config (e.g. `git branch -D`)
+# Anything left out still reaches the judge; it is just not auto-allowed.
 _SAFE_READONLY_CMD = re.compile(
-    r"^\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|rg|fd|find|"
-    r"git\s+(status|log|diff|show|branch|remote|fetch|ls-files|rev-parse|config\s+--get))\b"
+    r"^\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
+    r"git\s+(status|log|diff|show|ls-files|rev-parse|config\s+--get))\b"
 )
 
 
@@ -444,20 +450,23 @@ def cli_main(argv):
         print("state file: {}{}".format(path, "" if path.exists() else " (absent)"))
         print("answer_user_questions: {}".format(bool(cfg.get("answer_user_questions"))))
         return 0
+    # When CLAUDE_SUPERVISOR is set it still wins, so the state file write below
+    # does not change the effective state — say so to avoid a misleading message.
+    env_note = "" if os.environ.get("CLAUDE_SUPERVISOR") is None \
+        else " (note: CLAUDE_SUPERVISOR env still overrides the effective state)"
     if cmd in ("--on", "on"):
         write_state({"enabled": True}, cwd)
-        note = "" if os.environ.get("CLAUDE_SUPERVISOR") is None \
-            else " (note: CLAUDE_SUPERVISOR env still overrides)"
-        print("supervisor enabled for {} -> next hook call{}".format(key or path, note))
+        print("supervisor enabled for {} -> next hook call{}".format(key or path, env_note))
         return 0
     if cmd in ("--off", "off"):
         write_state({"enabled": False}, cwd)
-        print("supervisor disabled for {}".format(key or path))
+        print("supervisor disabled for {}{}".format(key or path, env_note))
         return 0
     if cmd in ("--toggle", "toggle"):
         new = not is_enabled(cfg)  # flip the effective state, not just the file
         write_state({"enabled": new}, cwd)
-        print("supervisor {} for {}".format("enabled" if new else "disabled", key or path))
+        print("supervisor {} for {}{}".format(
+            "enabled" if new else "disabled", key or path, env_note))
         return 0
     if cmd in ("--answers-on", "--answer-on"):
         write_state({"answer_user_questions": True}, cwd)
