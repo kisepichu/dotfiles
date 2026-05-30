@@ -39,6 +39,7 @@ DEFAULT_CONFIG = {
     "hard_escalate_patterns": [
         r"\brm\s+-[a-zA-Z]*[rf]",
         r"\bgit\s+push\b.*(--force|-f)\b",
+        r"\bgit\s+reset\s+--hard\b",
         r"\bsudo\b",
         r"\bcurl\b[^\n|]*\|\s*(sh|bash|zsh)\b",
         r"\bwget\b[^\n|]*\|\s*(sh|bash|zsh)\b",
@@ -74,7 +75,7 @@ def is_enabled(cfg):
     env = os.environ.get("CLAUDE_SUPERVISOR")
     if env is not None:
         return env.strip().lower() in ("1", "true", "yes", "on")
-    return bool(cfg.get("enabled"))
+    return cfg.get("enabled") is True
 
 
 def matches_hard_rule(cfg, haystack):
@@ -83,7 +84,7 @@ def matches_hard_rule(cfg, haystack):
             if re.search(pat, haystack):
                 return pat
         except re.error:
-            continue
+            return pat  # invalid pattern → fail safe: escalate to human
     return None
 
 

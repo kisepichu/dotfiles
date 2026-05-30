@@ -10,7 +10,8 @@ HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATE="$HOOK_DIR/prompt-template.md"
 
 ask() {
-  printf '{"decision":"ask","reason":"%s"}\n' "${1:-codex backend error}"
+  python3 -c "import json,sys; print(json.dumps({'decision':'ask','reason':sys.argv[1]}))" \
+    "${1:-codex backend error}"
   exit 0
 }
 

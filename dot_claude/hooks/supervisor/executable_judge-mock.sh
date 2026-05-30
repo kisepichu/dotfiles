@@ -17,7 +17,8 @@ cat >/dev/null  # consume context
 if [ -n "${MOCK_RAW:-}" ]; then
   printf '%s\n' "$MOCK_RAW"
 else
-  printf '{"decision":"%s","reason":"%s"}\n' "${MOCK_DECISION:-ask}" "${MOCK_REASON:-mock}"
+  python3 -c "import json,sys; print(json.dumps({'decision':sys.argv[1],'reason':sys.argv[2]}))" \
+    "${MOCK_DECISION:-ask}" "${MOCK_REASON:-mock}"
 fi
 
 exit "${MOCK_EXIT:-0}"
