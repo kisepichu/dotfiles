@@ -13,7 +13,7 @@
 
 - **両参考プロジェクトの subagent はステートレスなワーカー設計**。「タスク全文＋アーキ説明＋(GREEN には)test-writer の失敗テスト一覧」をプロンプトで丸ごと渡し、レポート(Status / 変更ファイル / テスト出力)を返させる。会話履歴を共有しない前提なので、起動方法を Agent ツール → headless 別プロセスに差し替えても構造が成立する。
 - **アカウントの制約**: 1 つの `claude` プロセス = 1 アカウント。`Agent`/`Task` ツールの subagent は親プロセスのアカウント・settings・hooks を継承し、per-subagent のアカウント上書きは存在しない。よって「監督は yumemi、subagent だけ A社」を1セッション内で実現する唯一の道は、Agent ツールをやめて **Bash 経由で headless な別 claude を起動**すること。
-  - 例: `CLAUDE_CONFIG_DIR=~/.claude-companyA claude -p --permission-mode acceptEdits --output-format json "<prompt>"`
+  - 例: `CLAUDE_CONFIG_DIR=~/.claude-companyA claude -p --permission-mode acceptEdits --allowedTools "Bash(<runner>:*)" --output-format text "<prompt>" < /dev/null`(`--allowedTools` と `text` はドライランで確定。下の作業ログ参照)
   - headless は人間に承認を聞けないため `--permission-mode acceptEdits`(または allowlist)が必須。test-writer/implementer は元々無監督前提なので許容範囲。
   - 生成(高コスト)が A社 課金になり、yumemi はプロンプト生成＋レポート取り込みのみ → 狙い通りの節約。
 - **A社 側制約**: org の managed-settings が hooks を無効化している(= dotfiles の permission supervisor は A社 では動かない)。`--dangerously-skip-permissions` 等も縛られる可能性があるため `acceptEdits` で足りるか要検証。
@@ -39,7 +39,7 @@
 ### spec-setup テンプレ汎用化(TDD + offload)
 
 - [x] `task-009-tdd-spec-setup-account-offload` ブランチを切る。
-- [x] `templates/spec-do.md` を RED→GREEN→REFACTOR の TDD サイクルに刷新。RED/GREEN は headless 別アカウント起動(`CLAUDE_CONFIG_DIR` + `claude -p` + `acceptEdits` + 構造化出力)を標準フローとして記述。
+- [x] `templates/spec-do.md` を RED→GREEN→REFACTOR の TDD サイクルに刷新。RED/GREEN は headless 別アカウント起動(`CLAUDE_CONFIG_DIR` + `claude -p` + `acceptEdits` + `--allowedTools` + `--output-format text`)を標準フローとして記述。
 - [x] subagent プロンプトのテンプレを `templates/agents/test-writer.md` / `templates/agents/implementer.md`(汎用ベース)として追加。compro-env/blog の共通項(役割・YAGNI・レポート形式)を抽出し、言語/テスト/アーキはプレースホルダ化。
 - [x] `SKILL.md` の手順を更新: 適用時にプロジェクトの言語・テストランナー・アーキ層・検証コマンド・offload 用 `CLAUDE_CONFIG_DIR` を確認して埋める旨を追記。
 - [x] offload を使わない(同一アカウントで Agent ツール起動する)フォールバック手順もテンプレ内に明記。
