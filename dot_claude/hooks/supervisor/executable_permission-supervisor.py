@@ -68,9 +68,12 @@ def load_config():
 
 
 def is_enabled(cfg):
-    """Enabled only when config says so AND the env opt-in is set.
+    """Return True if the supervisor is enabled.
 
-    CLAUDE_SUPERVISOR overrides: "1"/"true" force-on, "0"/"false" force-off.
+    CLAUDE_SUPERVISOR env var takes precedence over supervisor.json:
+      set to "1"/"true"/"yes"/"on"  → always enabled (override)
+      set to "0"/"false"/"no"/"off" → always disabled (override)
+      unset                         → fall back to supervisor.json "enabled" field
     """
     env = os.environ.get("CLAUDE_SUPERVISOR")
     if env is not None:
@@ -195,6 +198,8 @@ def main():
         "tool": tool_name,
         "cwd": cwd,
     }
+    if "_config_error" in cfg:
+        record["config_error"] = cfg["_config_error"]
 
     if not is_enabled(cfg):
         record.update(decision="ask", stage="disabled")
