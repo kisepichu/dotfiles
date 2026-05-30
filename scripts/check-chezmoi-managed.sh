@@ -11,6 +11,13 @@ ignored="$(chezmoi --source . ignored)"
 
 # These are chezmoi target paths, not repository source filenames.
 require_managed=(
+  ".claude/settings.json"
+  ".claude/hooks/supervisor/permission-supervisor.py"
+  ".claude/hooks/supervisor/judge-codex.sh"
+  ".claude/hooks/supervisor/judge-mock.sh"
+  ".claude/hooks/supervisor/supervisor.json"
+  ".claude/hooks/supervisor/prompt-template.md"
+  ".claude/hooks/supervisor/README.md"
   ".claude/commands/spec-do.md"
   ".claude/commands/spec-review.md"
   ".claude/commands/spec-update.md"
@@ -30,6 +37,8 @@ require_managed=(
   ".codex/skills/commit"
   ".codex/skills/pr"
   ".codex/skills/pr-review"
+  ".codex/skills/pr-review/SKILL.md"
+  ".codex/skills/pr-review/scripts"
   ".codex/skills/review"
   ".codex/skills/spec-setup"
   ".codex/skills/skill-improvement/SKILL.md"
@@ -46,14 +55,18 @@ require_managed=(
   ".config/nvim/lazy-lock.json"
   ".config/nvim/lazyvim.json"
   ".config/nvim/stylua.toml"
+  ".local/bin/cloudflared-access-ssh-proxy"
   ".tmux.conf"
   ".tmux/new-session"
 )
 
 require_source=(
+  "dot_config/karabiner/karabiner.json"
   "run_once_before_10-install-apt-packages.sh.tmpl"
+  "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
   "run_once_before_20-install-tmux-plugin-manager.sh"
+  "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_40-mise-install.sh.tmpl"
 )
 

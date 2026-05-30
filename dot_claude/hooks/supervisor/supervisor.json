@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "backend": "judge-codex.sh",
+  "backend_timeout_seconds": 120,
+  "hard_escalate_patterns": [
+    "\\brm\\s+-[a-zA-Z]*[rRfF]",
+    "\\brm\\b.*(--recursive|--force)",
+    "\\bgit\\s+push\\b.*(--force|-f)\\b",
+    "\\bgit\\s+reset\\s+--hard\\b",
+    "\\bsudo\\b",
+    "\\bcurl\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
+    "\\bwget\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
+    "\\bchmod\\s+-R\\b",
+    "\\bmkfs\\b|\\bdd\\s+if=",
+    "(^|[^\\w])~?/?\\.ssh/",
+    "\\.env(\\b|[^\\w])",
+    "id_rsa|id_ed25519|\\.pem\\b|credentials",
+    "\\b:\\s*\\(\\)\\s*\\{"
+  ]
+}

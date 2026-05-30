@@ -28,11 +28,13 @@ Copilot 再レビュー依頼には `gh >= 2.88.0` が必要。
 
 PR 作成直後など、Copilot の初回 review がまだ無い場合がある。コメント取得前に必ず次を実行する。既存の Copilot review があればその結果を使い、まだ無ければ Copilot に review 依頼して待つ。
 
+この待ちは **必ず `run_in_background: true` で起動する**。スクリプトは Copilot の review が出るまで（最大15分）ポーリングして exit する。前景で実行するとシェルのタイムアウトに掛かり、まだ完了していないのに agent が再実行・並列待ちを始める原因になる。
+
 ```bash
 python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num}
 ```
 
-exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に進む。
+起動したらこのターンを終え、**完了通知が来るまで待つ。自分でポーリングしたり、別の wait を並列で起動したりしない**（harness が完了時に自動で再起動する）。完了したら background タスクの stdout（JSON 1行）と exit code を確認する。exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に進む。exit code 1 ならタイムアウトなので状況を確認する。
 
 ### 3. コメント全件取得
 
@@ -69,16 +71,17 @@ python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py {owner} {re
 
 ### 8. push 後に Copilot 再レビュー依頼して待つ
 
-修正を commit / push したら、Copilot に再レビュー依頼して完了まで待つ。
+修正を commit / push したら、Copilot に再レビュー依頼して完了まで待つ。手順 2 同様 **必ず `run_in_background: true` で起動し、完了通知が来るまで待つ。ポーリングや並列待ちはしない**。
 
 ```bash
 python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num} --request
 ```
 
-exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に戻る。新規コメントを修正、返信、resolve、push し、再度手順 8 を実行する。
+完了したら stdout（JSON 1行）と exit code を確認する。exit code 0 かつ `no_comments: true` なら完了。exit code 20 なら Copilot がコメントを生成しているので手順 3 に戻る。新規コメントを修正、返信、resolve、push し、再度手順 8 を実行する。
 
 ## 注意
 
+- `wait-copilot-review.py` は必ず `run_in_background: true` で起動する。完了通知が来るまで待ち、ポーリングや並列の wait 再起動はしない。Copilot は数分〜十数分かかることがあり、前景実行はシェルタイムアウトで誤動作の原因になる。
 - 修正を push した場合は `generated no comments` / `generated no new comments` が返るまで続ける。
 - review comment 一覧、review comment への返信、review thread resolve はスキル配下 script を使う。
 - Resolve 不可ならユーザーに手動依頼する。

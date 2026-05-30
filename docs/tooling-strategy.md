@@ -78,6 +78,17 @@ Windows GUI tool は WSL とは別に扱う。
 
 `wezterm` は Windows 側に入れ、設定だけを別 phase で管理する。WSL 内 bootstrap の必須項目にはしない。
 
+### macOS-side tools
+
+macOS は WSL bootstrap と分離し、`scripts/bootstrap-macos.sh` から Homebrew と user-level tools を入れる。
+
+- Homebrew formula: `git`, `curl`, `fish`, `tmux`, `jq`, `ripgrep`, `fd` などの基礎 CLI
+- Homebrew cask: `karabiner-elements`, `wezterm`
+- user-level common tools: WSL と同じく `mise` で `chezmoi`, `neovim`, `starship`, `zoxide` などを入れる
+- keyboard customization: `~/.config/karabiner/karabiner.json`
+
+macOS の Karabiner-Elements は権限付与が必要なため完全無人化できない。bootstrap は設定ファイル配置までを自動化し、権限許可は手順書に残す。
+
 ## Nix の扱い
 
 今回の結論: Nix は有用だが、最初から dotfiles bootstrap の必須基盤にしない。まず optional にする。
