@@ -38,16 +38,16 @@
 
 ### spec-setup テンプレ汎用化(TDD + offload)
 
-- [ ] `task-009-tdd-spec-setup-account-offload` ブランチを切る。
-- [ ] `templates/spec-do.md` を RED→GREEN→REFACTOR の TDD サイクルに刷新。RED/GREEN は headless 別アカウント起動(`CLAUDE_CONFIG_DIR` + `claude -p` + `acceptEdits` + 構造化出力)を標準フローとして記述。
-- [ ] subagent プロンプトのテンプレを `templates/agents/test-writer.md` / `templates/agents/implementer.md`(汎用ベース)として追加。compro-env/blog の共通項(役割・YAGNI・レポート形式)を抽出し、言語/テスト/アーキはプレースホルダ化。
-- [ ] `SKILL.md` の手順を更新: 適用時にプロジェクトの言語・テストランナー・アーキ層・検証コマンド・offload 用 `CLAUDE_CONFIG_DIR` を確認して埋める旨を追記。
-- [ ] offload を使わない(同一アカウントで Agent ツール起動する)フォールバック手順もテンプレ内に明記。
-- [ ] `dot_codex/skills/` の symlink 整合(AGENTS.md 規約)を確認・更新する。
+- [x] `task-009-tdd-spec-setup-account-offload` ブランチを切る。
+- [x] `templates/spec-do.md` を RED→GREEN→REFACTOR の TDD サイクルに刷新。RED/GREEN は headless 別アカウント起動(`CLAUDE_CONFIG_DIR` + `claude -p` + `acceptEdits` + 構造化出力)を標準フローとして記述。
+- [x] subagent プロンプトのテンプレを `templates/agents/test-writer.md` / `templates/agents/implementer.md`(汎用ベース)として追加。compro-env/blog の共通項(役割・YAGNI・レポート形式)を抽出し、言語/テスト/アーキはプレースホルダ化。
+- [x] `SKILL.md` の手順を更新: 適用時にプロジェクトの言語・テストランナー・アーキ層・検証コマンド・offload 用 `CLAUDE_CONFIG_DIR` を確認して埋める旨を追記。
+- [x] offload を使わない(同一アカウントで Agent ツール起動する)フォールバック手順もテンプレ内に明記。
+- [x] `dot_codex/skills/` の symlink 整合(AGENTS.md 規約)を確認・更新する。→ `symlink_spec-setup` が spec-setup ディレクトリ全体を指すため新テンプレも自動包含。変更不要。
 
 ### 検証
 
-- [ ] `scripts/validate-skills.sh` 相当 / `chezmoi managed` / `scripts/check-chezmoi-managed.sh` / `prek run --all-files`(無ければ `pre-commit run --all-files`)を通す。
+- [x] `scripts/validate-skills.sh` 相当 / `chezmoi managed` / `scripts/check-chezmoi-managed.sh` / `prek run --all-files`(無ければ `pre-commit run --all-files`)を通す。→ 全通過。新テンプレ2件を `check-chezmoi-managed.sh` の require_managed に追加。
 - [ ] テンプレを未使用の新規ダミープロジェクト(任意言語)に spec-setup 適用 → spec-do で1サイクル(RED で失敗テスト→GREEN で通過)が回ることをドライランで確認する。
 
 ## 完了条件
@@ -62,3 +62,4 @@
 - 2026-05-30: タスク作成。隣接プロジェクト compro-env(Rust/cargo)・blog(TS/pnpm+Playwright)の TDD subagent パターン(RED:test-writer / GREEN:implementer / REFACTOR、Agent ツール起動、ステートレス・ワーカー設計)を確認。アカウント制約(subagent は親アカウント継承・per-subagent 切替不可 → offload は headless `claude -p` + `CLAUDE_CONFIG_DIR` のみ)を整理。ユーザー判断で「offload 主軸テンプレ」「認証分離はまず CLAUDE_CONFIG_DIR を実機検証」に決定。
 - 2026-05-30: 認証分離を実機検証。`claude auth status`=yumemi / `CLAUDE_CONFIG_DIR=$HOME/.claude-companyA claude auth status`=A社 が両方 `loggedIn:true` を維持し、Keychain 衝突なしを確認。CLAUDE_CONFIG_DIR 方式採用が確定。
 - 2026-05-30: headless offload を実機検証。`/tmp/acc-test` で `env CLAUDE_CONFIG_DIR=$HOME/.claude-companyA claude -p --permission-mode acceptEdits "..."` を実行し `hello.txt` 生成に成功。A社 の managed-settings は `acceptEdits` での編集を縛らないことを確認。**検証フェーズ完了**。次はテンプレ汎用化(offload 主軸)に着手。
+- 2026-05-30: テンプレ汎用化を実装。`templates/agents/test-writer.md`・`implementer.md`(汎用 + `{{...}}` プレースホルダ)を追加し、`templates/spec-do.md` を RED→GREEN→REFACTOR + offload 主軸起動(`CLAUDE_CONFIG_DIR=$CLAUDE_OFFLOAD_CONFIG_DIR claude -p --permission-mode acceptEdits`)に刷新。`SKILL.md` にコピー対象・プレースホルダ・起動方法を追記。`check-chezmoi-managed.sh` に新テンプレ2件を追加。validate-skills / chezmoi managed / check-chezmoi-managed / prek 全通過。残るはダミープロジェクトでのドライラン。

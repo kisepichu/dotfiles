@@ -21,10 +21,50 @@
    - `tasks/doing/` がなければ作成する。
 5. ブランチ名をユーザーに確認し、メインブランチから feature ブランチを切る。
 6. チェックリストを上から進める。
-   - 実装なら test-first を優先する。
-   - 非実装なら各チェック項目の成果物と検証方法を明記する。
+   - **テストのある開発プロジェクトなら、各項目を下の「TDD サイクル」で進める。**
+   - test を書けない非実装作業なら、各チェック項目の成果物と検証方法を明記して進める。
    - 完了した項目はその都度 `[x]` に更新する。
 7. 完了時は検証結果を記録し、必要なら `tasks/done/` に移動する。
+   - 仕上げに検証コマンド一式を通す: {{VERIFY_COMMANDS}}
+     <!-- 例: cargo fmt --all / cargo clippy --workspace / cargo test --workspace
+              pnpm astro check / pnpm lint / pnpm test / pnpm build -->
+
+## TDD サイクル (チェックリスト項目ごと)
+
+各項目を **RED → GREEN → REFACTOR** で進める。RED が GREEN まで完了してから次の項目へ。
+
+- **RED** — `.claude/agents/test-writer.md` のテンプレを task 全文で埋め、test-writer を起動。
+  失敗テストが「未実装による失敗」であることを確認してから次へ。
+- **GREEN** — `.claude/agents/implementer.md` のテンプレを埋め、**test-writer の失敗テスト名・
+  ファイルパスをプロンプトに含めて** implementer を起動。全テスト通過のレポートを得る。
+- **REFACTOR** — 全テストが通る状態を保ったまま、オーケストレータ自身が整理する。
+
+### subagent の起動方法 (offload 主軸)
+
+test-writer / implementer は **無監督で回せる定型ワーカー**なので、コスト節約のため
+**別アカウントの headless claude** に逃がすのを既定とする。生成コストは offload 先に課金され、
+オーケストレータは「プロンプト生成 + レポート取り込み」だけを負担する。
+
+1. 埋めたプロンプトを一時ファイルに書く (例: `tasks/.agent-prompt.md`)。
+2. プロジェクトルートを cwd にして起動する:
+
+   ```sh
+   env CLAUDE_CONFIG_DIR="$CLAUDE_OFFLOAD_CONFIG_DIR" \
+     claude -p "$(cat tasks/.agent-prompt.md)" \
+     --permission-mode acceptEdits \
+     --output-format text
+   ```
+
+   - `$CLAUDE_OFFLOAD_CONFIG_DIR` は offload 先アカウントの config ディレクトリ
+     (例: 各自の `~/.claude-<sub>`)。値は環境変数で渡し、command にハードコードしない。
+   - `--permission-mode acceptEdits` で headless でも編集が通る (人間に承認を聞けないため必須)。
+   - subagent はこの cwd の作業ツリーを直接編集する。編集結果はそのまま repo に残る。
+3. stdout のレポート (Status / 変更ファイル / テスト出力) を読み、RED は失敗確認、
+   GREEN は全通過を確認する。
+
+> **フォールバック**: `$CLAUDE_OFFLOAD_CONFIG_DIR` が未設定なら、同じプロンプトで
+> Agent (Task) ツールの general-purpose subagent を**そのセッション内**で起動する。
+> この場合は現在のアカウントで生成され、hooks が有効なら監督対象になる。
 
 ## タスクファイル形式
 
@@ -52,3 +92,6 @@
 
 - 仕様に曖昧さがあり、合理的な仮定では危険な場合だけユーザーに確認する。
 - 既存のタスクファイルがある場合は重複作成せず、続きから進める。
+- RED で test を書く前に実装を書かない。GREEN まで終える前に次の項目へ進まない。
+- 一時プロンプトファイル (`tasks/.agent-prompt.md` 等) は `.gitignore` 済みにするか、
+  commit に含めないこと。
