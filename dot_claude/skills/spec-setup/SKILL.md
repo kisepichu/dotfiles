@@ -40,6 +40,8 @@ metadata:
      - `{{ERROR_HANDLING}}` — エラー処理や型の規約 (任意)
      - `{{TEST_NAME_LANG}}` — テスト名の言語と例
      - `{{VERIFY_COMMANDS}}` — 仕上げの検証コマンド一式
+     - `{{TEST_TOOL_ALLOW}}` — offload 起動時に許可するテスト実行コマンド
+       (例: `Bash(cargo:*)` / `Bash(pnpm:*)` / `Bash(python3:*)`)
 5. subagent の起動方法を確認する (spec-do.md の「offload 主軸」節)。
    - コスト節約で別アカウントへ逃がす場合は、利用者が `$CLAUDE_OFFLOAD_CONFIG_DIR`
      (offload 先の config ディレクトリ) を環境変数で用意する前提。値は command に書かない。

@@ -48,14 +48,14 @@
 ### 検証
 
 - [x] `scripts/validate-skills.sh` 相当 / `chezmoi managed` / `scripts/check-chezmoi-managed.sh` / `prek run --all-files`(無ければ `pre-commit run --all-files`)を通す。→ 全通過。新テンプレ2件を `check-chezmoi-managed.sh` の require_managed に追加。
-- [ ] テンプレを未使用の新規ダミープロジェクト(任意言語)に spec-setup 適用 → spec-do で1サイクル(RED で失敗テスト→GREEN で通過)が回ることをドライランで確認する。
+- [x] テンプレを未使用の新規ダミープロジェクト(任意言語)に spec-setup 適用 → spec-do で1サイクル(RED で失敗テスト→GREEN で通過)が回ることをドライランで確認する。→ `/tmp/spec-dryrun`(Python + stdlib unittest)で実施。RED: test-writer が `tests/test_calc.py` を生成し `ModuleNotFoundError` で正しく失敗。GREEN: implementer が `src/calc.py` を生成しテスト4件全通過。両フェーズとも offload(A社)経由で成立。**重要修正**: offload 起動には `acceptEdits` だけでなく `--allowedTools "Bash(<runner>:*)"` が必須(subagent はテスト実行が必要)。`bypassPermissions` は A社 の managed-settings で無効化され使えない(編集すら止まる)。テンプレに反映済み(`{{TEST_TOOL_ALLOW}}` 追加・`< /dev/null`・bypass 不使用の注意書き)。
 
 ## 完了条件
 
-- [ ] 言語・アーキに依らない汎用 TDD テンプレが spec-setup に入り、適用時にプロジェクト実態へ合わせて TDD サイクルを生成できる。
-- [ ] `templates/spec-do.md` の RED/GREEN が headless 別アカウント起動(offload)を標準フローとして記述し、同一アカウントのフォールバックも併記されている。
-- [ ] 認証分離(まず CLAUDE_CONFIG_DIR)の実機検証結果が調査メモに反映され、採用方式が決まっている。
-- [ ] secret / host-specific 値を含まず、chezmoi managed と skill validation、pre-commit 相当の検証が通っている。
+- [x] 言語・アーキに依らない汎用 TDD テンプレが spec-setup に入り、適用時にプロジェクト実態へ合わせて TDD サイクルを生成できる。
+- [x] `templates/spec-do.md` の RED/GREEN が headless 別アカウント起動(offload)を標準フローとして記述し、同一アカウントのフォールバックも併記されている。
+- [x] 認証分離(まず CLAUDE_CONFIG_DIR)の実機検証結果が調査メモに反映され、採用方式が決まっている。
+- [x] secret / host-specific 値を含まず、chezmoi managed と skill validation、pre-commit 相当の検証が通っている。
 
 ## 作業ログ
 
@@ -63,3 +63,4 @@
 - 2026-05-30: 認証分離を実機検証。`claude auth status`=yumemi / `CLAUDE_CONFIG_DIR=$HOME/.claude-companyA claude auth status`=A社 が両方 `loggedIn:true` を維持し、Keychain 衝突なしを確認。CLAUDE_CONFIG_DIR 方式採用が確定。
 - 2026-05-30: headless offload を実機検証。`/tmp/acc-test` で `env CLAUDE_CONFIG_DIR=$HOME/.claude-companyA claude -p --permission-mode acceptEdits "..."` を実行し `hello.txt` 生成に成功。A社 の managed-settings は `acceptEdits` での編集を縛らないことを確認。**検証フェーズ完了**。次はテンプレ汎用化(offload 主軸)に着手。
 - 2026-05-30: テンプレ汎用化を実装。`templates/agents/test-writer.md`・`implementer.md`(汎用 + `{{...}}` プレースホルダ)を追加し、`templates/spec-do.md` を RED→GREEN→REFACTOR + offload 主軸起動(`CLAUDE_CONFIG_DIR=$CLAUDE_OFFLOAD_CONFIG_DIR claude -p --permission-mode acceptEdits`)に刷新。`SKILL.md` にコピー対象・プレースホルダ・起動方法を追記。`check-chezmoi-managed.sh` に新テンプレ2件を追加。validate-skills / chezmoi managed / check-chezmoi-managed / prek 全通過。残るはダミープロジェクトでのドライラン。
+- 2026-05-30: ドライラン実施(`/tmp/spec-dryrun`, Python+unittest)。RED→GREEN が offload 経由で成立。判明した重要修正をテンプレへ反映: ①subagent はテスト実行が必要なため `acceptEdits` に加え `--allowedTools "Bash(<runner>:*)"`(新プレースホルダ `{{TEST_TOOL_ALLOW}}`)が必須 ②`bypassPermissions` は制限付き組織アカウントで無効化され使用不可 ③`< /dev/null` で stdin 待ち回避。再検証(validate-skills/chezmoi/prek)全通過。**全完了条件を満たし TASK 完了**。
