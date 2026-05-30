@@ -37,7 +37,7 @@ DEFAULT_CONFIG = {
     # Regexes (matched against tool_name + serialized tool_input). Any match
     # forces escalation to the human; the judge cannot auto-allow these.
     "hard_escalate_patterns": [
-        r"\brm\s+-[a-zA-Z]*[rf]",
+        r"\brm\s+-[a-zA-Z]*[rRfF]",
         r"\brm\b.*(--recursive|--force)",
         r"\bgit\s+push\b.*(--force|-f)\b",
         r"\bgit\s+reset\s+--hard\b",
