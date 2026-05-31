@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# dot_config/mise/config.toml checksum: {{ include "dot_config/mise/config.toml" | sha256sum }}
+
+# Ensure the rust toolchain managed by mise has the components neovim needs:
+# - rust-analyzer: LSP server used by rustaceanvim (the ~/.cargo/bin proxy errors
+#   until this component is installed).
+# - rust-src: standard library sources for completion and go-to-definition.
+#
+# Idempotent: `rustup component add` is a no-op when the component is present.
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v mise >/dev/null 2>&1; then
+  echo "mise is not installed; skipping rust component setup" >&2
+  exit 0
+fi
+
+# Only act when rust is actually managed by mise.
+if ! mise ls rust >/dev/null 2>&1 || [ -z "$(mise ls --installed rust 2>/dev/null)" ]; then
+  echo "mise-managed rust is not installed; skipping rust component setup" >&2
+  exit 0
+fi
+
+# rustup resolves the active toolchain from the env mise sets (RUSTUP_TOOLCHAIN),
+# so this targets the same toolchain mise installed on both macOS and WSL.
+if ! mise exec rust -- rustup --version >/dev/null 2>&1; then
+  echo "rustup is not available in the mise rust environment; skipping" >&2
+  exit 0
+fi
+
+mise exec rust -- rustup component add rust-analyzer rust-src

@@ -106,6 +106,32 @@ docker compose version
 
 The script follows Docker's official Ubuntu apt repository flow and installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`.
 
+## Nix (optional)
+
+Nix is not part of the core bootstrap. Install it explicitly when a reproducible `nix develop` shell or optional Nix-managed tooling is wanted. The script uses the Determinate Nix Installer and supports macOS and WSL Ubuntu.
+
+```bash
+cd ~/repos/dotfiles
+./scripts/install-nix.sh
+```
+
+On WSL, the script detects whether systemd is PID 1. If it is not (no `systemd=true` in `/etc/wsl.conf`), it installs with `--init none` so the install does not depend on a systemd-managed `nix-daemon`. For a systemd-managed daemon, enable systemd in WSL first (see the Docker section above).
+
+Options:
+
+- `NIX_INSTALL_NO_CONFIRM=1` runs the installer non-interactively.
+- `NIX_INSTALL_DETERMINATE=1` installs Determinate Nix instead of upstream Nix.
+
+Open a new shell after installing; `conf.d/nix.fish` sources the nix profile automatically. To uninstall a Determinate install:
+
+```bash
+/nix/nix-installer uninstall
+```
+
+## Rust
+
+Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `chezmoi apply`, `mise install` installs the toolchain and `run_onchange_after_45-rust-components.sh.tmpl` adds the `rust-analyzer` and `rust-src` components that neovim (rustaceanvim) needs. No manual step is required; open neovim in a Rust project and the LSP starts.
+
 ## Validation
 
 Before committing, run:

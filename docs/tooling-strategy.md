@@ -43,6 +43,8 @@
 - version pin がしやすい。
 - project ごとの `.mise.toml` に切り替えやすい。
 
+`rust` は `mise` 管理にする。mise の rust は rustup ベースなので、neovim (rustaceanvim) が必要とする `rust-analyzer` と `rust-src` component は `run_onchange_after_45-rust-components.sh.tmpl` が `chezmoi apply` 時に冪等に追加する。`~/.cargo/bin/rust-analyzer` proxy は component 未導入だと起動に失敗するため、この補完が必要。
+
 ### Project-specific development
 
 言語・プロジェクトに強く依存するものはローカルに直接入れない。
@@ -114,11 +116,23 @@ macOS の Karabiner-Elements は権限付与が必要なため完全無人化で
 3. Home Manager はすぐには使わない。chezmoi 管理が辛くなった場合だけ検討する。
 4. Nix が安定して便利なら、常用 CLI の一部を `nix profile` または Home Manager に移す。
 
-### WSL でのインストール方針
+### インストール方針
 
-- systemd enabled WSL なら official Nix の multi-user install を候補にする。
-- systemd なし WSL なら official Nix の single-user install を候補にする。
-- Determinate Nix Installer は WSL 対応で rollback/uninstall が分かりやすいため、実験環境では候補にする。
+結論: インストーラは **Determinate Nix Installer** に統一する。core bootstrap には含めず、`scripts/install-nix.sh` の明示実行にする（`scripts/install-docker-engine-wsl.sh` と同じ扱い）。
+
+理由:
+
+- macOS / Linux / WSL を 1 つのインストーラで扱える。
+- uninstall/rollback が `/nix/nix-installer uninstall` で分かりやすく、実験的に入れて消すのが容易。
+- WSL の systemd 有無を吸収しやすい。
+
+`scripts/install-nix.sh` の挙動:
+
+- `nix` 導入済み（`/nix/var/nix/profiles/default` あり）なら何もしない。
+- macOS は `install macos`。
+- Linux は `install linux`。systemd が PID 1 でない場合（`systemd=true` 未設定の WSL 等）は `--init none` を付けて daemon を systemd 管理にしない。
+- 既定では upstream Nix を入れる。`NIX_INSTALL_DETERMINATE=1` で Determinate Nix、`NIX_INSTALL_NO_CONFIRM=1` で非対話インストール。
+- インストール後は `conf.d/nix.fish` が `~/.nix-profile/etc/profile.d/nix.fish` を読み込む。
 
 ## 取り込み対象
 
