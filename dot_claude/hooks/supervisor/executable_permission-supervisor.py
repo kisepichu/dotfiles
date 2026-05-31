@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -216,6 +217,12 @@ def matches_hard_rule(cfg, haystack):
 # evil`, `ls && rm -rf x`, `cat $(...)`) must go to the judge/human.
 _BASH_UNSAFE_CHARS = re.compile(r"[|&;<>$`(){}\n]")
 
+# Glob/tilde/wildcard chars. The shell expands these at exec time to paths the
+# hard-rule secret check never saw (e.g. `cat ~/.config/*`, `grep -r token ~`,
+# `cat ~/.s*h/id_rsa`), so a generic read-only command containing any of them
+# is NOT auto-allowed and must go to the judge.
+_BASH_GLOB_CHARS = re.compile(r"[*?~\[\]]")
+
 # The leading command of an auto-allowable read-only Bash invocation. Kept
 # deliberately small: only tools with no write/exec/delete escape hatch that
 # works without a shell metacharacter. Excluded on purpose:
@@ -250,8 +257,13 @@ def matches_allow_rule(cfg, tool_name, tool_input):
         # Reject anything that is not a single simple command.
         if not cmd or _BASH_UNSAFE_CHARS.search(cmd):
             return None
-        if _SAFE_READONLY_CMD.search(cmd):
+        # Generic read-only commands must also be free of glob/tilde, which
+        # could otherwise expand to secret paths the hard rules never matched.
+        if _SAFE_READONLY_CMD.search(cmd) and not _BASH_GLOB_CHARS.search(cmd):
             return "safe read-only bash"
+        # Trusted fixed scripts (matched on the real command, not the serialized
+        # payload). These do not read arbitrary expanded paths, so a `~` in the
+        # script path is acceptable here.
         for pat in cfg.get("always_allow_patterns", []):
             try:
                 if re.search(pat, cmd):
@@ -418,26 +430,31 @@ def write_state(updates, cwd=None):
     return state
 
 
+_CLI_USAGE = ("usage: permission-supervisor.py "
+              "[--on|--off|--toggle|--status|--list"
+              "|--answers-on|--answers-off|--answers-toggle]")
+_CLI_HELP = ("Toggle the permission supervisor for the current project at "
+             "runtime (the hook re-reads its state on every call).")
+
+
 def cli_main(argv):
     """Handle invocations with CLI args (live toggle / status). Returns exit code.
 
-    Usage: permission-supervisor.py
-        [--on | --off | --toggle | --status | --list
-         | --answers-on | --answers-off | --answers-toggle]
-    These edit a runtime state file, which the hook re-reads on every call, so
-    the supervisor can be flipped while Claude Code keeps running. The file is
-    scoped to the CURRENT project (git root of the working dir) unless
-    CLAUDE_SUPERVISOR_STATE_FILE points it elsewhere, so parallel projects
-    toggle independently.
+    Toggles a per-project runtime state file (scoped to the cwd's project root
+    unless CLAUDE_SUPERVISOR_STATE_FILE points elsewhere), which the hook
+    re-reads on every call, so the supervisor can be flipped while Claude Code
+    keeps running. See _CLI_USAGE for the accepted flags. Exactly one flag is
+    expected; extras are rejected so typos surface.
     """
+    if argv and argv[0] in ("--help", "-h", "help"):
+        print(_CLI_HELP)
+        print(_CLI_USAGE)
+        return 0
+    if len(argv) != 1:
+        sys.stderr.write(_CLI_USAGE + "\n")
+        return 2
     cmd = argv[0]
     cwd = os.getcwd()
-    if cmd in ("--help", "-h", "help"):
-        print(cli_main.__doc__.strip().splitlines()[0])
-        print("usage: permission-supervisor.py "
-              "[--on|--off|--toggle|--status|--list"
-              "|--answers-on|--answers-off|--answers-toggle]")
-        return 0
     if cmd in ("--list", "list"):
         env = os.environ.get(STATE_ENV)
         if env:
@@ -506,10 +523,7 @@ def cli_main(argv):
         print("answer_user_questions {} for {}".format(
             "ENABLED" if new else "disabled", key or path))
         return 0
-    sys.stderr.write(
-        "usage: permission-supervisor.py "
-        "[--on|--off|--toggle|--status|--list"
-        "|--answers-on|--answers-off|--answers-toggle]\n")
+    sys.stderr.write(_CLI_USAGE + "\n")
     return 2
 
 
@@ -543,6 +557,16 @@ def main():
         return  # no output -> human decides
 
     haystack = "{}\n{}".format(tool_name, json.dumps(tool_input, ensure_ascii=False))
+    # For Bash, also feed the hard rules a de-quoted form of the command so that
+    # quoted dangerous flags (e.g. `rm "-rf" dir`) cannot slip past patterns
+    # like `\s-...`. shlex strips the quotes the way the shell would.
+    if tool_name == "Bash":
+        cmd = _bash_command(tool_input)
+        if cmd:
+            try:
+                haystack += "\n" + " ".join(shlex.split(cmd))
+            except ValueError:
+                pass  # unbalanced quotes -> keep raw haystack; still checked
 
     if matches_always_ask_tool(cfg, tool_name):
         # Optionally let the judge answer the question instead of blocking on a
