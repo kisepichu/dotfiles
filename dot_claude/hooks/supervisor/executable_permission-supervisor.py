@@ -95,12 +95,23 @@ DEFAULT_CONFIG = {
 }
 
 
+_VCS_MARKERS = (".git", ".hg", ".jj", ".svn")
+_PROJECT_MARKERS = (
+    "pyproject.toml", "package.json", "Cargo.toml", "go.mod", "Gemfile", "pom.xml",
+)
+
+
 def project_key(cwd):
     """Normalize a cwd to its project root so subdirectories share one toggle.
 
-    Walks up from cwd looking for a `.git` marker (cheap stat calls, no
-    subprocess). Falls back to the cwd itself when no repo is found. Returns an
-    absolute, resolved path string, or "" when cwd is unknown.
+    Walks up from cwd (cheap stat calls, no subprocess): a VCS root (.git/.hg/
+    .jj/.svn) is preferred, otherwise the nearest dir with a common project
+    marker (pyproject.toml, package.json, ...). Falls back to the cwd itself
+    when nothing is found. Returns an absolute, resolved path string, or ""
+    when cwd is unknown.
+
+    Note: a non-VCS project with no recognized marker file gets a per-cwd file,
+    so toggling from different subdirectories of it creates separate state.
     """
     if not cwd:
         return ""
@@ -108,8 +119,12 @@ def project_key(cwd):
         cur = Path(cwd).resolve()
     except Exception:
         return cwd
-    for d in (cur, *cur.parents):
-        if (d / ".git").exists():
+    chain = (cur, *cur.parents)
+    for d in chain:
+        if any((d / m).exists() for m in _VCS_MARKERS):
+            return str(d)
+    for d in chain:
+        if any((d / m).exists() for m in _PROJECT_MARKERS):
             return str(d)
     return str(cur)
 
@@ -345,13 +360,17 @@ def emit_answer(event_name, answer, reason):
     reads the denial reason as feedback and proceeds with that answer instead
     of re-asking.
     """
+    # Collapse whitespace and quote so a free-form/multiline answer cannot blur
+    # the boundary with the "Rationale:" clause that follows.
+    answer = " ".join(str(answer).split())
+    reason = " ".join(str(reason).split()) or "(supervisor judgement)"
     feedback = (
         "The human operator is unattended; the permission supervisor answered "
-        "this question on their behalf. Selected answer: {answer}. "
+        'this question on their behalf. Selected answer: "{answer}". '
         "Rationale: {reason} "
         "Treat this as the user's final answer, proceed accordingly, and do "
         "not call AskUserQuestion again for the same decision."
-    ).format(answer=answer, reason=reason or "(supervisor judgement)")
+    ).format(answer=answer, reason=reason)
     if event_name == "PermissionRequest":
         out = {
             "hookSpecificOutput": {
@@ -387,6 +406,8 @@ def write_state(updates, cwd=None):
     key = project_key(cwd)
     if key and not os.environ.get(STATE_ENV):
         state["_project"] = key  # for --list readability; ignored on load
+    else:
+        state.pop("_project", None)  # don't keep a stale label in a shared file
     path.parent.mkdir(parents=True, exist_ok=True)
     # Write atomically: a concurrent hook read must never see a truncated file
     # (which load_state would swallow as {}, briefly flipping enabled).
@@ -432,9 +453,11 @@ def cli_main(argv):
                     st = json.load(fh)
             except Exception:
                 continue
+            # Env-pointed files are shared (no per-project label by design).
+            label = "(shared)" if env else st.get("_project", "?")
             print("{:8} {}  ({})".format(
                 "ENABLED" if st.get("enabled") is True else "disabled",
-                st.get("_project", "?"), f.name))
+                label, f.name))
         return 0
 
     cfg = load_config(cwd)
@@ -448,7 +471,8 @@ def cli_main(argv):
             "ENABLED" if is_enabled(cfg) else "disabled", src))
         print("project:    {}".format(key or "(unknown cwd)"))
         print("state file: {}{}".format(path, "" if path.exists() else " (absent)"))
-        print("answer_user_questions: {}".format(bool(cfg.get("answer_user_questions"))))
+        # Strict check: the hook only answers when the value is exactly True.
+        print("answer_user_questions: {}".format(cfg.get("answer_user_questions") is True))
         return 0
     # When CLAUDE_SUPERVISOR is set it still wins, so the state file write below
     # does not change the effective state — say so to avoid a misleading message.
