@@ -17,6 +17,7 @@ require_managed=(
   ".claude/hooks/supervisor/judge-mock.sh"
   ".claude/hooks/supervisor/supervisor.json"
   ".claude/hooks/supervisor/prompt-template.md"
+  ".claude/hooks/supervisor/prompt-answer-template.md"
   ".claude/hooks/supervisor/README.md"
   ".claude/commands/spec-do.md"
   ".claude/commands/spec-review.md"

@@ -2,11 +2,21 @@
   "enabled": false,
   "backend": "judge-codex.sh",
   "backend_timeout_seconds": 120,
+  "answer_user_questions": false,
+  "always_allow_tools": [
+    "Read"
+  ],
+  "always_allow_patterns": [
+    "^\\s*python3\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)"
+  ],
+  "always_ask_tools": [
+    "AskUserQuestion"
+  ],
   "hard_escalate_patterns": [
-    "\\brm\\s+-[a-zA-Z]*[rRfF]",
-    "\\brm\\b.*(--recursive|--force)",
-    "\\bgit\\s+push\\b.*(--force|-f)\\b",
+    "\\brm\\b[^\\n]*\\s-[A-Za-z]*[rRfF]",
+    "\\brm\\b[^\\n]*--(recursive|force)\\b",
     "\\bgit\\s+reset\\s+--hard\\b",
+    "\\bgit\\s+push\\b.*(--force|-f)\\b",
     "\\bsudo\\b",
     "\\bcurl\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
     "\\bwget\\b[^\\n|]*\\|\\s*(sh|bash|zsh)\\b",
@@ -15,6 +25,8 @@
     "(^|[^\\w])~?/?\\.ssh/",
     "\\.env(\\b|[^\\w])",
     "id_rsa|id_ed25519|\\.pem\\b|credentials",
+    "\\.aws/|\\.netrc\\b|\\.git-credentials\\b|\\.npmrc\\b|\\.pgpass\\b|\\.kube/config\\b|\\.docker/config\\.json\\b",
+    "\\bsecrets?\\.(json|ya?ml|env|txt)\\b|\\bservice[-_]account.*\\.json\\b",
     "\\b:\\s*\\(\\)\\s*\\{"
   ]
 }
