@@ -23,3 +23,10 @@ if should_use_osc52 and ok then
 
   vim.opt.clipboard = "unnamedplus"
 end
+
+-- auto-session restores buffers without re-running filetype detection for the
+-- buffer that was active at save time, leaving its `filetype` empty (so LSP /
+-- rustaceanvim never attaches until the file is reopened). `filetype` is a
+-- buffer-local option, so include `localoptions` in sessionoptions to persist
+-- and restore it. See rmagatti/auto-session recommended config.
+vim.opt.sessionoptions:append("localoptions")
