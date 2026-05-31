@@ -410,6 +410,35 @@ def audit(record):
         pass  # logging must never break the hook
 
 
+def truncate_for_audit(value, limit=20000):
+    text = str(value)
+    if len(text) <= limit:
+        return text
+    omitted = len(text) - limit
+    return text[:limit] + "\n[truncated {} chars]".format(omitted)
+
+
+def add_audit_context(record, event, tool_name, tool_input):
+    for key in ("session_id", "tool_use_id", "transcript_path", "permission_mode"):
+        value = event.get(key)
+        if value:
+            record[key] = value
+    if tool_name != "Bash" or not isinstance(tool_input, dict):
+        return
+    command = _bash_command(tool_input)
+    if command:
+        record["bash_command"] = truncate_for_audit(command)
+        record["bash_command_sha256"] = hashlib.sha256(
+            command.encode("utf-8")
+        ).hexdigest()
+        record["bash_command_truncated"] = (
+            record["bash_command"] != command
+        )
+    description = tool_input.get("description")
+    if isinstance(description, str) and description:
+        record["bash_description"] = truncate_for_audit(description, limit=1000)
+
+
 def write_state(updates, cwd=None):
     """Merge `updates` into the project's runtime state file. Returns new state."""
     path = state_path(cwd)
@@ -548,6 +577,7 @@ def main():
         "tool": tool_name,
         "cwd": cwd,
     }
+    add_audit_context(record, event, tool_name, tool_input)
     if "_config_error" in cfg:
         record["config_error"] = cfg["_config_error"]
 

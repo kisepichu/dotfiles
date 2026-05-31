@@ -151,7 +151,10 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
   質問ツールが暗黙に実行されることはない。`answer` verdict は質問ツール以外の
   経路では `ask` に丸められる（誤作動で勝手に実行されない）。
 - **フェイルセーフ**: 不確実・タイムアウト・エラーは一切 allow に倒さず人間へ。
-- **監査ログ** `logs/audit.jsonl`（chezmoi 管理外、実行時生成）。
+- **監査ログ** `logs/audit.jsonl`（chezmoi 管理外、実行時生成）。各行に
+  `session_id` / `tool_use_id` / `transcript_path`、Bash では
+  `bash_command` / `bash_command_sha256` / `bash_description` も残す。
+  長いコマンドは 20,000 文字で切り詰める。
 
 ## 注意
 
