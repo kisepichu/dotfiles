@@ -63,7 +63,7 @@ DEFAULT_CONFIG = {
     # cannot trigger a false allow). Only applied to a single simple command
     # (no pipe/chaining/redirection/substitution). Hard escalation still wins.
     "always_allow_patterns": [
-        r"\bpython3\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\.py(\s|$)",
+        r"^\s*python3\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\.py(\s|$)",
     ],
     # Tool names that should always be left to the real user. This keeps
     # clarifying questions from being auto-allowed or auto-denied by the judge.

@@ -7,7 +7,7 @@
     "Read"
   ],
   "always_allow_patterns": [
-    "\\bpython3\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)"
+    "^\\s*python3\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)"
   ],
   "always_ask_tools": [
     "AskUserQuestion"
