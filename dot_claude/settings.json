@@ -2,8 +2,9 @@
   "model": "opus[1m]",
   "permissions": {
     "allow": [
-      "Bash(python3 ~/.claude/skills/*/scripts/*:*)",
-      "Bash(bash ~/.claude/skills/*/scripts/*:*)"
+      "Bash(python3 ~/.claude/skills/*/scripts/*.py:*)",
+      "Bash(bash ~/.claude/skills/*/scripts/*.sh:*)",
+      "Bash(sh ~/.claude/skills/*/scripts/*.sh:*)"
     ],
     "ask": [
       "AskUserQuestion"

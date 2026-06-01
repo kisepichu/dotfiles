@@ -87,7 +87,8 @@ python3 "$SUP" --answers-toggle
 python3 "$SUP" --learn-on        # ask→人間 allow したコマンド形を学習
 python3 "$SUP" --learn-off       # 学習を止める（既定）
 python3 "$SUP" --list-learned    # 学習済みコマンド形の一覧
-python3 "$SUP" --forget-learned "git log"   # 特定形を破棄（--all で全消去）
+python3 "$SUP" --forget-learned "git log"   # 特定形を破棄（引数必須）
+python3 "$SUP" --forget-learned --all       # 全消去（明示時のみ。引数なしはエラー）
 
 # 複数セッションをまとめて切り替えたい場合は共有ファイルを指す
 export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared.json
@@ -119,8 +120,10 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
 - `always_allow_patterns` の既定が `~/.claude/skills/<skill>/scripts/<name>.(py|sh)` を
   `python3`/`bash`/`sh` で起動する**単一の単純コマンド**にマッチ（メタ文字を含めば不許可）。
 - 対話運用（supervisor オフ）でもプロンプトが出ないよう、`settings.json` の
-  `permissions.allow` にも `Bash(python3 ~/.claude/skills/*/scripts/*:*)` /
-  `Bash(bash ~/.claude/skills/*/scripts/*:*)` を登録済み。
+  `permissions.allow` にも拡張子を絞った形で登録済み:
+  `Bash(python3 ~/.claude/skills/*/scripts/*.py:*)` /
+  `Bash(bash ~/.claude/skills/*/scripts/*.sh:*)` /
+  `Bash(sh ~/.claude/skills/*/scripts/*.sh:*)`（`sh` ランチャも対象）。
 
 ### ローカル開発アクションは許可（過剰エスカレーション抑制）
 
@@ -168,8 +171,9 @@ allow した**コマンドの「形」を学習し、以後の同系統コマン
   ことはない。昇格時にもハード規則を再チェックし、一致する形は決して学習しない。
 - **保存先**: `logs/learned/<proj>-<hash>.json`（プロジェクト単位・chezmoi 管理外・
   実行時生成）。pending は `logs/learned/pending/` 配下で1時間で間引き。
-- **確認/破棄**: `--list-learned` で一覧、`--forget-learned <sig>`／`--forget-learned --all`
-  で破棄。`--status` に有効/無効と学習件数を表示。
+- **確認/破棄**: `--list-learned` で一覧、`--forget-learned <sig>` で特定形を破棄、
+  `--forget-learned --all` で全消去（引数必須。引数なしはエラーで、誤って全消去しない）。
+  `--status` に有効/無効と学習件数を表示。
 
 ## 監査ログのノイズ低減
 

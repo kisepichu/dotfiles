@@ -713,7 +713,7 @@ _CLI_USAGE = ("usage: permission-supervisor.py "
               "[--on|--off|--toggle|--status|--list"
               "|--answers-on|--answers-off|--answers-toggle"
               "|--learn-on|--learn-off|--list-learned"
-              "|--forget-learned [SIG|--all]]")
+              "|--forget-learned <SIG|--all>]")
 _CLI_HELP = ("Toggle the permission supervisor for the current project at "
              "runtime (the hook re-reads its state on every call).")
 
@@ -731,9 +731,10 @@ def cli_main(argv):
         print(_CLI_HELP)
         print(_CLI_USAGE)
         return 0
-    # Exactly one flag, except --forget-learned which takes an optional target.
-    if not argv or (len(argv) != 1 and not (
-            argv[0] in ("--forget-learned", "forget-learned") and len(argv) == 2)):
+    # Exactly one flag, except --forget-learned which *requires* a target
+    # (a signature or --all) so a bare invocation can never wipe the allowlist.
+    forget = bool(argv) and argv[0] in ("--forget-learned", "forget-learned")
+    if not argv or len(argv) != (2 if forget else 1):
         sys.stderr.write(_CLI_USAGE + "\n")
         return 2
     cmd = argv[0]
@@ -828,11 +829,11 @@ def cli_main(argv):
             print("  {:4}x  {}".format(s.get("count", 0), s.get("sig", "?")))
         return 0
     if cmd in ("--forget-learned", "forget-learned"):
-        target = argv[1] if len(argv) == 2 else None
+        target = argv[1]  # required by the arg-count guard above
         lpath, _ = learned_paths(cwd)
         data = _load_json(lpath)
         sigs = data.get("signatures", []) if isinstance(data, dict) else []
-        if target in (None, "--all", "all"):
+        if target in ("--all", "all"):
             _write_json(lpath, {"signatures": []})
             print("forgot all {} learned shape(s) for {}".format(len(sigs), key or cwd))
             return 0
