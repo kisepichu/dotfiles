@@ -10,7 +10,7 @@
   5. **scratch ディレクトリの書込/削除許可** — `/tmp`・`$TMPDIR` に閉じた編集・`rm` は、通常ハード規則で必ず人間に回る再帰/強制削除であっても自動許可する。
 - TASK-008（supervisor フック初版）／TASK-010（自動応答・scope 緩和・起動中トグル）
 - 既存実装: `dot_claude/hooks/supervisor/executable_permission-supervisor.py` / `supervisor.json` / `prompt-template.md` / `README.md`
-- `dot_claude/settings.json`（`permissions.allow` と PermissionRequest/PreToolUse フック登録）
+- `dot_claude/settings.json`（`permissions.allow` と PermissionRequest/PreToolUse/PostToolUse フック登録。PostToolUse は学習に使用）
 - AGENTS.md（chezmoi ソースツリーの作法・`prek run --all-files`）
 
 ### 動機となった監査ログ（抜粋）
@@ -28,7 +28,7 @@
   - 補足: `settings.json` 側で allow 済みでも `PreToolUse` フックは発火するため、supervisor 有効時は別途フック側でも許可しないと judge へ回ってしまう。よって supervisor 内のパターン許可は必須。
 - **承認学習**: 人間の許可結果はフックに直接は返らない。ただし `PostToolUse` は **ツールが実際に実行された後**にのみ発火する＝supervisor が `ask`（出力なし）にした呼び出しが PostToolUse まで到達したら「人間が allow した」と判定できる。
   - 仕組み: `PreToolUse`/`PermissionRequest` で `stage=="backend"` かつ `decision=="ask"` のとき、`tool_use_id` をキーに正規化シグネチャを **pending ストア**へ記録 → `PostToolUse` で同じ `tool_use_id` の pending を見つけたら **学習 allowlist** へ昇格。`hard_rule`・`always_ask_tool`・`disabled` は学習対象外。
-  - 正規化シグネチャ（推奨どおり）: Bash は単一の単純コマンドに限り、`argv[0]`（＋ `git`/`gh`/`cargo`/`npm`/`docker`/`mise` 等のサブコマンド `argv[1]`）を骨格にし、残り引数は `<args>` にテンプレ化（例 `git log --oneline -20` → `git log <args>`）。シェルメタ文字・グロブ/チルダを含む場合は学習しない。
+  - 正規化シグネチャ（実装）: Bash は単一の単純コマンドに限り、`argv[0]`（＋ `git`/`gh`/`cargo`/`npm`/`docker`/`mise` 等のサブコマンド `argv[1]`、`docker`/`gh` のグループは `argv[2]` まで）を骨格にし、**残り引数は捨てる**（例 `git log --oneline -20` → `git log`、`gh pr view 123` → `gh pr view`）。シェルメタ文字・グロブ/チルダを含む場合、サブコマンド前にグローバルオプションが来て形が曖昧な場合、外部公開系（push/publish 等）は学習しない。
   - 安全: 昇格時にも `hard_escalate_patterns` を再チェックし、一致するシグネチャは決して学習しない。学習は `hard_rule` を上書きできない（評価順は `hard_rule` が先）。
 - **過剰エスカレーション**: `prompt-template.md` の決定規則が「writes/side effects outside the project → ask」と広く、`docker build`（Docker キャッシュ/イメージを cwd 外に書く）など**ローカル開発の通常副作用**まで `ask` に倒している。「ローカル開発の副作用（ビルドキャッシュ/依存導入/`docker build`/コンテナのローカル実行）は通常 allow、`ask`/`deny` は不可逆なデータ損失・秘密の読み書き/持ち出し・外部公開（push/deploy/publish）に限る」へ緩める。
 - **scratch 書込/削除**: `rm -r`/`-f` はハード規則で必ず人間へ。`/tmp`・`$TMPDIR` に**完全に閉じた**操作だけは自動許可したい。シンボリックリンクや `..` で scratch 外へ抜けられないよう、各オペランドを `realpath` 解決して scratch ルート配下に厳密包含されることを要求する必要がある。macOS の `$TMPDIR` は `/private/var/folders/...` 実体（`/var` は `/private/var` へのシンボリックリンク）なので realpath 正規化が必須。
@@ -45,16 +45,17 @@
   ^\s*(python3|bash|sh)\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/[\w-]+/scripts/[\w-]+\.(py|sh)\b
   ```
   既存 allow と同じく「単一の単純コマンド（メタ文字なし）」前提。スクリプトパスは固定なので `~` 可。
-- `settings.json` の `permissions.allow` に対話運用向けエントリを追加:
+- `settings.json` の `permissions.allow` に対話運用向けエントリを追加（拡張子を `*.py`/`*.sh` に限定し `sh` ランチャも許可）:
   ```
-  Bash(python3 ~/.claude/skills/*/scripts/*:*)
-  Bash(bash ~/.claude/skills/*/scripts/*:*)
+  Bash(python3 ~/.claude/skills/*/scripts/*.py:*)
+  Bash(bash ~/.claude/skills/*/scripts/*.sh:*)
+  Bash(sh ~/.claude/skills/*/scripts/*.sh:*)
   ```
 
 ### (2) 承認の学習（ask → 人間 allow → 後から自動許可）
 
 - `settings.json` に `PostToolUse`（matcher `*`）で同スクリプトを登録。
-- 学習トグル `learn_from_approvals`（既定 **false**）と CLI `--learn-on/--learn-off`、確認用 `--list-learned`、破棄用 `--forget-learned [sig|--all]`。
+- 学習トグル `learn_from_approvals`（既定 **false**）と CLI `--learn-on/--learn-off`、確認用 `--list-learned`、破棄用 `--forget-learned <SIG|--all>`（**引数必須**。裸呼び出しはエラーで全消去しない）。
 - ストア（いずれも `logs/` 配下・chezmoi 管理外・プロジェクト単位）:
   - pending: `logs/learned/pending/<proj>-<hash>.json`（`tool_use_id → {sig, ts, session_id}`、書込時に古い項目を時間で間引き）。
   - 学習済み: `logs/learned/<proj>-<hash>.json`（`{"signatures":[{"sig","approved_ts","count"}]}`）。
