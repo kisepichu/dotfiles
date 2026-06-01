@@ -168,6 +168,13 @@ allow した**コマンドの「形」を学習し、以後の同系統コマン
   `npm`/`docker`/`mise` 等はサブコマンド `argv[1]` まで）を骨格にし引数は捨てる
   （例 `git log --oneline -20` → `git log`、`gh pr view 123` → `gh pr`）。メタ文字・
   グロブ/チルダを含むコマンドは学習しない。
+- **過度に広いシグネチャは学習しない**: サブコマンド系ツールでサブコマンドの直前に
+  グローバルオプションが来る場合（例 `git -C /path log`）は形が曖昧なので学習しない
+  （裸の `git` に縮退させて無関係な `git push` まで許可してしまうのを防ぐ）。
+- **外部公開系は決して学習しない**: `git push`/`git fetch`/`git pull`・`gh pr create`/
+  `gh pr merge`/`gh release create`・`docker push`・`npm/pnpm/yarn/cargo/poetry publish`・
+  `kubectl apply/delete` 等の push/publish/外向き操作は、一度人間が許可しても自動学習
+  されない（先頭語で判定し、学習・許可マッチの両方で弾く）。
 - **安全**: ハード規則は学習より先に評価されるため、学習済み形が危険系を上書きする
   ことはない。昇格時にもハード規則を再チェックし、一致する形は決して学習しない。
 - **保存先**: `logs/learned/<proj>-<hash>.json`（プロジェクト単位・chezmoi 管理外・

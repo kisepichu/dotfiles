@@ -405,6 +405,16 @@ _SUBCOMMAND_TOOLS = frozenset((
     "kubectl", "poetry", "pip", "pip3",
 ))
 
+# Outward-facing / publishing subcommand shapes that are never auto-learned,
+# so a single human approval can't broaden into unattended pushes/publishes.
+_NEVER_LEARN_SIGS = frozenset((
+    "git push", "git fetch", "git pull",
+    "gh pr create", "gh pr merge", "gh release create", "gh repo delete",
+    "docker push", "docker image push", "npm publish", "pnpm publish",
+    "yarn publish", "cargo publish", "poetry publish",
+    "kubectl apply", "kubectl delete",
+))
+
 
 def command_signature(tool_name, tool_input):
     """Normalize a Bash command to a learnable shape, or None if not learnable.
@@ -425,7 +435,24 @@ def command_signature(tool_name, tool_input):
     if not tokens:
         return None
     verb = os.path.basename(tokens[0])
-    if verb in _SUBCOMMAND_TOOLS and len(tokens) > 1 and not tokens[1].startswith("-"):
+    if verb in _SUBCOMMAND_TOOLS:
+        # Require the subcommand to be the immediate next token. Global options
+        # before it (e.g. `git -C /path log`) make the shape ambiguous; refuse
+        # to learn rather than collapse to the bare verb `git`, which would
+        # then match unrelated commands like `git push`.
+        if len(tokens) < 2 or tokens[1].startswith("-"):
+            return None
+        # Never learn outward-facing/publishing shapes. Match on the leading
+        # non-flag words so `gh pr create` is gated even though the signature
+        # granularity is only `gh pr` (this also blocks it from matching a
+        # learned `gh pr`). Gating here covers both learning and allow-matching.
+        lead = [verb]
+        for t in tokens[1:]:
+            if t.startswith("-"):
+                break
+            lead.append(t)
+        if " ".join(lead[:2]) in _NEVER_LEARN_SIGS or " ".join(lead[:3]) in _NEVER_LEARN_SIGS:
+            return None
         return "{} {}".format(verb, tokens[1])
     return verb
 
