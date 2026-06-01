@@ -450,14 +450,17 @@ _COMPOUND_BAILOUT_CHARS = frozenset(("$", "`", "<", ">", "(", ")", "{", "}"))
 
 
 def _split_top_level(cmd):
-    """Split `cmd` into top-level simple-command segments, or None.
+    """Split `cmd` into top-level (connector, segment) pairs, or None.
 
     Tracks single/double quotes and backslash escapes, then splits on the
-    top-level operators `;` `\\n` `&&` `||` `|` `&`. Returns None if any
+    top-level operators `;` `\\n` `&&` `||` `|` `&`. Each pair's connector is
+    the operator that *precedes* the segment ("" for the first; `\\n` is
+    normalized to `;`). Connectors matter downstream: `|`/`&` spawn subshells,
+    where a `cd` does not change the parent shell's cwd. Returns None if any
     `_COMPOUND_BAILOUT_CHARS` appears outside quotes (undecomposable -> normal
     flow) or quotes are unbalanced. Empty/whitespace-only segments are dropped.
     """
-    segments, cur = [], []
+    pairs, cur, pending = [], [], ""
     i, n = 0, len(cmd)
     in_single = in_double = False
     while i < n:
@@ -503,26 +506,32 @@ def _split_top_level(cmd):
         if c in _COMPOUND_BAILOUT_CHARS:
             return None
         if c == "\n" or c == ";":
-            segments.append("".join(cur))
-            cur = []
+            pairs.append((pending, "".join(cur)))
+            cur, pending = [], ";"
             i += 1
             continue
         if c == "&":  # `&&` or background `&`
-            segments.append("".join(cur))
+            pairs.append((pending, "".join(cur)))
             cur = []
-            i += 2 if (i + 1 < n and cmd[i + 1] == "&") else 1
+            if i + 1 < n and cmd[i + 1] == "&":
+                pending, i = "&&", i + 2
+            else:
+                pending, i = "&", i + 1
             continue
         if c == "|":  # `||` or pipe `|`
-            segments.append("".join(cur))
+            pairs.append((pending, "".join(cur)))
             cur = []
-            i += 2 if (i + 1 < n and cmd[i + 1] == "|") else 1
+            if i + 1 < n and cmd[i + 1] == "|":
+                pending, i = "||", i + 2
+            else:
+                pending, i = "|", i + 1
             continue
         cur.append(c)
         i += 1
     if in_single or in_double:
         return None  # unbalanced quotes -> don't try to decompose
-    segments.append("".join(cur))
-    return [s.strip() for s in segments if s.strip()]
+    pairs.append((pending, "".join(cur)))
+    return [(conn, s.strip()) for conn, s in pairs if s.strip()]
 
 
 # Sentinel: a `cd` segment whose target cannot be resolved to a known absolute
@@ -536,11 +545,18 @@ def _apply_cd(segment, eval_cwd):
 
     Returns the (absolute, normalized) cwd in effect *after* `segment` runs:
     `eval_cwd` unchanged when the segment is not a `cd`, the new directory when
-    it is a strictly-resolvable `cd`, or `_CD_BAIL` when it is a `cd` we can't
-    resolve (no/extra args beyond a single path, `cd -`, options, `~`, an
-    unparseable segment, or a relative target with no known base). Bailing is
-    the safe choice: without an exact cwd a scratch-containment check on a
-    later `rm` could wrongly pass (e.g. `cd / && rm -rf etc` run from /tmp/x).
+    it is a strictly-resolvable `cd` to an existing directory, or `_CD_BAIL`
+    when it is a `cd` we can't resolve (no/extra args beyond a single path,
+    `cd -`, options, `~`, an unparseable segment, or a relative target with no
+    known base) OR whose target is not an existing directory.
+
+    Bailing is the safe choice on two counts: (1) without an exact cwd a later
+    scratch-containment check could wrongly pass (`cd / && rm -rf etc` from
+    /tmp/x); (2) a `cd` to a *missing* dir fails at runtime, so under `;`/
+    newline the later segment runs in the PRIOR cwd -- requiring the target to
+    exist means a tracked cwd shift only happens when the real `cd` succeeds
+    (`cd /tmp/x/NOPE; rm -rf build` would otherwise be judged under the missing
+    dir but actually delete ./build in the original cwd).
     """
     try:
         tokens = shlex.split(segment)
@@ -550,18 +566,48 @@ def _apply_cd(segment, eval_cwd):
         return eval_cwd  # not a cd -> cwd unchanged (may legitimately be None)
     args = tokens[1:]
     if not args:  # bare `cd` -> $HOME
-        home = os.path.expanduser("~")
-        return os.path.normpath(home) if os.path.isabs(home) else _CD_BAIL
-    if len(args) != 1:
+        resolved = os.path.normpath(os.path.expanduser("~"))
+    elif len(args) != 1:
         return _CD_BAIL  # `cd a b`, `cd -P dir`, ... -> not strictly one path
-    target = args[0]
-    if target.startswith("-") or "~" in target:
-        return _CD_BAIL  # `cd -`/OLDPWD, options, tilde expansion: untracked
-    if os.path.isabs(target):
-        return os.path.normpath(target)
-    if not eval_cwd:
-        return _CD_BAIL  # relative `cd` with no known base cwd
-    return os.path.normpath(os.path.join(eval_cwd, target))
+    else:
+        target = args[0]
+        if target.startswith("-") or "~" in target:
+            return _CD_BAIL  # `cd -`/OLDPWD, options, tilde expansion: untracked
+        if os.path.isabs(target):
+            resolved = os.path.normpath(target)
+        elif not eval_cwd:
+            return _CD_BAIL  # relative `cd` with no known base cwd
+        else:
+            resolved = os.path.normpath(os.path.join(eval_cwd, target))
+    # The cd only moves the shell if it succeeds; require an existing directory.
+    if not os.path.isabs(resolved) or not os.path.isdir(resolved):
+        return _CD_BAIL
+    return resolved
+
+
+def _segment_hard_haystack(segment, cwd):
+    """Hard-rule haystack for a segment, augmented with its relative operands
+    resolved against `cwd`.
+
+    A `cd` can move into a sensitive directory while a later segment refers to
+    a file there by a bare relative name -- `cd ~/.kube && cat config` -- which
+    the textual hard rules (e.g. `\\.kube/config`) would miss because the
+    segment alone is just `cat config`. Feeding the absolute path the segment
+    actually touches lets those path-based rules fire.
+    """
+    base = _build_haystack("Bash", {"command": segment})
+    if not cwd:
+        return base
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        return base
+    extra = []
+    for t in tokens[1:]:
+        if not t or t.startswith("-") or "~" in t or os.path.isabs(t):
+            continue  # flags, tilde (untracked), and absolute paths: already textual
+        extra.append(os.path.normpath(os.path.join(cwd, t)))
+    return base + "\n" + "\n".join(extra) if extra else base
 
 
 def _segment_allow_reason(cfg, segment, cwd):
@@ -572,7 +618,9 @@ def _segment_allow_reason(cfg, segment, cwd):
         return scratch
     # A hard rule on the segment means "not auto-allowable"; the whole compound
     # then falls through and the full-text hard rule escalates it to the human.
-    if matches_hard_rule(cfg, _build_haystack("Bash", seg_input)):
+    # Resolve relative operands against the tracked cwd so a `cd`-into-secret +
+    # bare-name read can't slip past path-based hard rules.
+    if matches_hard_rule(cfg, _segment_hard_haystack(segment, cwd)):
         return None
     return matches_allow_rule(cfg, "Bash", seg_input, cwd)
 
@@ -591,12 +639,17 @@ def matches_compound_allow(cfg, tool_name, tool_input, cwd=None):
     cmd = _bash_command(tool_input)
     if not cmd:
         return None
-    segments = _split_top_level(cmd)
-    if not segments or len(segments) < 2:
+    parts = _split_top_level(cmd)
+    if not parts or len(parts) < 2:
         return None
+    # A `cd` inside a pipeline (`|`) or backgrounded (`&`) runs in a subshell
+    # and does NOT change the parent shell's cwd, so cwd propagation across such
+    # a compound is unsound. If any subshell connector is present, bail the
+    # moment a real `cd` would shift the tracked cwd.
+    has_subshell = any(conn in ("|", "&") for conn, _ in parts)
     reasons = []
     eval_cwd = cwd
-    for seg in segments:
+    for _conn, seg in parts:
         # Evaluate against the cwd in effect when this segment runs (shifted by
         # any preceding `cd`), so scratch containment matches real execution.
         reason = _segment_allow_reason(cfg, seg, eval_cwd)
@@ -605,8 +658,11 @@ def matches_compound_allow(cfg, tool_name, tool_input, cwd=None):
         reasons.append(reason)
         new_cwd = _apply_cd(seg, eval_cwd)
         if new_cwd is _CD_BAIL:
-            return None  # unresolvable `cd` -> can't trust later containment
-        eval_cwd = new_cwd
+            return None  # unresolvable / missing-dir `cd` -> can't trust cwd
+        if new_cwd != eval_cwd:  # a real cd took effect
+            if has_subshell:
+                return None  # subshell cd doesn't propagate -> unsound to track
+            eval_cwd = new_cwd
     return reasons
 
 
