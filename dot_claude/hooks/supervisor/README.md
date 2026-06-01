@@ -151,6 +151,10 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
     scratch 配下に厳密包含。`..` による脱出・ルート自身の指定・scratch 外パスは拒否。
 - シンボリックリンクは `realpath` で実体解決後に判定するため、scratch 内リンクが外を
   指していても包含されない（＝許可されない）。
+- **環境変数展開を含む Bash は対象外**: `$` はメタ文字として弾かれるため、
+  `rm -rf "$TMPDIR/x"` のような書き方は scratch_allow に乗らず人間へエスカレーション
+  される（展開後パスを静的に検査できないため）。scratch 自動許可させたいときは
+  `rm -rf /tmp/x` のように**実パスで**指定する。
 - 例: `rm -rf /tmp/build` は許可、`rm -rf /tmp`（ルート自身）・`rm -rf /tmp/../etc`・
   `cp /etc/passwd /tmp/x`（scratch 外を含む）は従来どおり人間へ。
 

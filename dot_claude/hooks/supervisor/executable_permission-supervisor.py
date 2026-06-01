@@ -17,6 +17,7 @@ exiting 0, which makes Claude Code fall back to its normal prompt. This is
 robust against schema differences between hook versions.
 """
 
+import contextlib
 import hashlib
 import json
 import os
@@ -26,6 +27,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+try:  # POSIX-only; learning locks degrade gracefully without it.
+    import fcntl
+except Exception:  # pragma: no cover
+    fcntl = None
 
 HOOK_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = HOOK_DIR / "supervisor.json"
@@ -501,6 +507,34 @@ def _write_json(path, data):
         pass  # learning must never break the hook
 
 
+@contextlib.contextmanager
+def _file_lock(path):
+    """Serialize read-modify-write on `path` across concurrent hook processes.
+
+    Guards the learned/pending stores so a later writer can't clobber an
+    earlier update. Uses an exclusive flock on a sidecar `.lock` file; if flock
+    is unavailable or fails it degrades to no locking (learning is best-effort
+    and must never break the hook).
+    """
+    lockf = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if fcntl is not None:
+            lockf = open(str(path) + ".lock", "w")
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+    except Exception:
+        lockf = None
+    try:
+        yield
+    finally:
+        if lockf is not None:
+            try:
+                fcntl.flock(lockf, fcntl.LOCK_UN)
+                lockf.close()
+            except Exception:
+                pass
+
+
 def _project_slug(cwd):
     """Stable "<name>-<hash>" for a cwd's project root, or "global"."""
     key = project_key(cwd)
@@ -532,13 +566,14 @@ def record_pending(cwd, tool_use_id, sig, session_id=""):
     if not tool_use_id or not sig:
         return
     _, ppath = learned_paths(cwd)
-    data = _load_json(ppath)
-    pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
-    now = time.time()
-    pend = {k: v for k, v in pend.items()
-            if isinstance(v, dict) and now - v.get("ts", 0) < _PENDING_TTL_SECONDS}
-    pend[tool_use_id] = {"sig": sig, "ts": now, "session_id": session_id}
-    _write_json(ppath, {"pending": pend})
+    with _file_lock(ppath):
+        data = _load_json(ppath)
+        pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
+        now = time.time()
+        pend = {k: v for k, v in pend.items()
+                if isinstance(v, dict) and now - v.get("ts", 0) < _PENDING_TTL_SECONDS}
+        pend[tool_use_id] = {"sig": sig, "ts": now, "session_id": session_id}
+        _write_json(ppath, {"pending": pend})
 
 
 def promote_learned(cfg, cwd, tool_use_id, haystack):
@@ -546,28 +581,30 @@ def promote_learned(cfg, cwd, tool_use_id, haystack):
     if not tool_use_id:
         return None
     lpath, ppath = learned_paths(cwd)
-    data = _load_json(ppath)
-    pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
-    rec = pend.pop(tool_use_id, None)
-    if rec is None:
-        return None
-    _write_json(ppath, {"pending": pend})
+    with _file_lock(ppath):
+        data = _load_json(ppath)
+        pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
+        rec = pend.pop(tool_use_id, None)
+        if rec is None:
+            return None
+        _write_json(ppath, {"pending": pend})
     sig = rec.get("sig") if isinstance(rec, dict) else None
     if not sig:
         return None
     # Re-check hard rules at promotion time: never learn a dangerous shape.
     if matches_hard_rule(cfg, haystack):
         return None
-    ldata = _load_json(lpath)
-    sigs = ldata.get("signatures", []) if isinstance(ldata.get("signatures"), list) else []
-    for s in sigs:
-        if isinstance(s, dict) and s.get("sig") == sig:
-            s["count"] = s.get("count", 0) + 1
-            s["approved_ts"] = time.time()
-            _write_json(lpath, {"signatures": sigs})
-            return sig
-    sigs.append({"sig": sig, "approved_ts": time.time(), "count": 1})
-    _write_json(lpath, {"signatures": sigs})
+    with _file_lock(lpath):
+        ldata = _load_json(lpath)
+        sigs = ldata.get("signatures", []) if isinstance(ldata.get("signatures"), list) else []
+        for s in sigs:
+            if isinstance(s, dict) and s.get("sig") == sig:
+                s["count"] = s.get("count", 0) + 1
+                s["approved_ts"] = time.time()
+                _write_json(lpath, {"signatures": sigs})
+                return sig
+        sigs.append({"sig": sig, "approved_ts": time.time(), "count": 1})
+        _write_json(lpath, {"signatures": sigs})
     return sig
 
 
