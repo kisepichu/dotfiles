@@ -405,6 +405,23 @@ _SUBCOMMAND_TOOLS = frozenset((
     "kubectl", "poetry", "pip", "pip3",
 ))
 
+# Tools whose first subcommand is a *group* with its own actions (e.g.
+# `docker image ls`, `gh pr view`). For these the signature keeps a second
+# level so a learned `docker image ls` does not also auto-allow `docker image
+# rm`/`prune`. Other tools (kubectl get, cargo build, ...) stay single-level.
+_NESTED_GROUPS = {
+    "docker": frozenset((
+        "image", "container", "volume", "network", "system", "builder",
+        "context", "buildx", "compose", "trust", "plugin", "secret", "config",
+        "node", "service", "stack", "swarm", "manifest",
+    )),
+    "gh": frozenset((
+        "pr", "issue", "repo", "release", "run", "workflow", "gist", "cache",
+        "codespace", "label", "secret", "variable", "ruleset", "project",
+        "auth", "org", "search",
+    )),
+}
+
 # Outward-facing / publishing subcommand shapes that are never auto-learned,
 # so a single human approval can't broaden into unattended pushes/publishes.
 _NEVER_LEARN_SIGS = frozenset((
@@ -453,6 +470,11 @@ def command_signature(tool_name, tool_input):
             lead.append(t)
         if " ".join(lead[:2]) in _NEVER_LEARN_SIGS or " ".join(lead[:3]) in _NEVER_LEARN_SIGS:
             return None
+        # Keep a second level for multi-level group CLIs (docker/gh) so the
+        # learned shape stays close to what the human approved.
+        if (tokens[1] in _NESTED_GROUPS.get(verb, ())
+                and len(tokens) > 2 and not tokens[2].startswith("-")):
+            return "{} {} {}".format(verb, tokens[1], tokens[2])
         return "{} {}".format(verb, tokens[1])
     return verb
 
@@ -913,7 +935,7 @@ def handle_post_tool_use(cfg, event, tool_name, tool_input, cwd):
             "rule": "learned: {}".format(sig),
         }
         add_audit_context(record, event, tool_name, tool_input)
-        audit(record)  # rare + meaningful: always logged
+        maybe_audit(cfg, record)  # decision is "allow"; honors log_decisions
 
 
 def main():

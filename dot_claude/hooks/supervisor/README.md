@@ -166,7 +166,9 @@ allow した**コマンドの「形」を学習し、以後の同系統コマン
   場合のみ）学習 allowlist へ昇格・`count++`。
 - **正規化シグネチャ**: 単一の単純コマンドのみ対象。`argv[0]`（`git`/`gh`/`cargo`/
   `npm`/`docker`/`mise` 等はサブコマンド `argv[1]` まで）を骨格にし引数は捨てる
-  （例 `git log --oneline -20` → `git log`、`gh pr view 123` → `gh pr`）。メタ文字・
+  （例 `git log --oneline -20` → `git log`）。`docker`/`gh` のようにグループを持つ
+  多段 CLI は2段目まで残す（`docker image ls` → `docker image ls` なので
+  `docker image rm` を巻き込まない、`gh pr view 123` → `gh pr view`）。メタ文字・
   グロブ/チルダを含むコマンドは学習しない。
 - **過度に広いシグネチャは学習しない**: サブコマンド系ツールでサブコマンドの直前に
   グローバルオプションが来る場合（例 `git -C /path log`）は形が曖昧なので学習しない

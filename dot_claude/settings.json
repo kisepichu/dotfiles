@@ -20,7 +20,6 @@
       "Bash(basename:*)",
       "Bash(dirname:*)",
       "Bash(grep:*)",
-      "Bash(rg:*)",
       "Bash(echo:*)",
       "Bash(date:*)",
       "Bash(whoami:*)",
