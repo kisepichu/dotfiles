@@ -254,8 +254,12 @@ _BASH_GLOB_CHARS = re.compile(r"[*?~\[\]]")
 #   rg       -> --pre runs an arbitrary preprocessor command
 #   git branch/remote/fetch -> mutate refs/config (e.g. `git branch -D`)
 # Anything left out still reaches the judge; it is just not auto-allowed.
+# `cd` is a pure no-content navigation built-in (already in settings.json's
+# native allow); it is here so a compound like `cd dir && <trusted-script>`
+# can auto-allow every segment. A secret path (`cd .ssh/`) is still caught by
+# the hard rules, which run before this; a `~`/glob arg is rejected below.
 _SAFE_READONLY_CMD = re.compile(
-    r"^\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
+    r"^\s*(cd|cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
     r"git\s+(status|log|diff|show|ls-files|rev-parse|config\s+--get))\b"
 )
 
@@ -421,6 +425,264 @@ def matches_scratch_allow(cfg, tool_name, tool_input, cwd=None):
         if all(_under_scratch(op, roots, cwd) for op in operands):
             return "scratch {}".format(verb)
     return None
+
+
+# --- Compound command decomposition ----------------------------------------
+# Goal: replace "the human pressing Enter" -- a compound made only of commands
+# that would each auto-allow on their own (e.g. `cd dir && <trusted-script>`,
+# or `cd dir; <learned-cmd>`) should auto-allow as a whole. We split the top
+# level into simple commands and apply the SAME per-segment decision as a
+# single line (scratch -> hard -> allow). Allow the compound only if EVERY
+# segment auto-allows; otherwise we stay silent and let the existing flow
+# (full-text hard rule -> backend) decide (fail-safe).
+
+# Shell syntax we deliberately refuse to decompose. Seeing any of these
+# (outside quotes) means a segment could hide a side effect we cannot check
+# per-segment, so `_split_top_level` returns None and the call takes the
+# normal (judge/human) path:
+#   $  -> variable expansion ($VAR/$TMPDIR) and command substitution $(...)
+#   `  -> command substitution
+#   <> -> redirection (incl. &>, heredoc <<); write target not per-seg checkable
+#   (){} -> subshell/grouping/brace expansion
+# Listed char-by-char (not one string literal) so the backtick next to `<>`
+# can't be misread as dropping `>`: both `<` and `>` are intentionally here.
+_COMPOUND_BAILOUT_CHARS = frozenset(("$", "`", "<", ">", "(", ")", "{", "}"))
+
+
+def _split_top_level(cmd):
+    """Split `cmd` into top-level (connector, segment) pairs, or None.
+
+    Tracks single/double quotes and backslash escapes, then splits on the
+    top-level operators `;` `\\n` `&&` `||` `|` `&`. Each pair's connector is
+    the operator that *precedes* the segment ("" for the first; `\\n` is
+    normalized to `;`). Connectors matter downstream: `|`/`&` spawn subshells,
+    where a `cd` does not change the parent shell's cwd. Returns None if any
+    `_COMPOUND_BAILOUT_CHARS` appears outside quotes (undecomposable -> normal
+    flow) or quotes are unbalanced. Empty/whitespace-only segments are dropped.
+    """
+    pairs, cur, pending = [], [], ""
+    i, n = 0, len(cmd)
+    in_single = in_double = False
+    while i < n:
+        c = cmd[i]
+        if in_single:
+            if c == "'":
+                in_single = False
+            cur.append(c)
+            i += 1
+            continue
+        if in_double:
+            if c == "\\" and i + 1 < n:
+                cur.append(c)
+                cur.append(cmd[i + 1])
+                i += 2
+                continue
+            if c == "$" or c == "`":
+                return None  # expansion/substitution is still live in ""
+            if c == '"':
+                in_double = False
+            cur.append(c)
+            i += 1
+            continue
+        # --- unquoted ---
+        if c == "\\":
+            cur.append(c)
+            if i + 1 < n:
+                cur.append(cmd[i + 1])
+                i += 2
+            else:
+                i += 1
+            continue
+        if c == "'":
+            in_single = True
+            cur.append(c)
+            i += 1
+            continue
+        if c == '"':
+            in_double = True
+            cur.append(c)
+            i += 1
+            continue
+        if c in _COMPOUND_BAILOUT_CHARS:
+            return None
+        if c == "\n" or c == ";":
+            pairs.append((pending, "".join(cur)))
+            cur, pending = [], ";"
+            i += 1
+            continue
+        if c == "&":  # `&&` or background `&`
+            pairs.append((pending, "".join(cur)))
+            cur = []
+            if i + 1 < n and cmd[i + 1] == "&":
+                pending, i = "&&", i + 2
+            else:
+                pending, i = "&", i + 1
+            continue
+        if c == "|":  # `||` or pipe `|`
+            pairs.append((pending, "".join(cur)))
+            cur = []
+            if i + 1 < n and cmd[i + 1] == "|":
+                pending, i = "||", i + 2
+            else:
+                pending, i = "|", i + 1
+            continue
+        cur.append(c)
+        i += 1
+    if in_single or in_double:
+        return None  # unbalanced quotes -> don't try to decompose
+    pairs.append((pending, "".join(cur)))
+    return [(conn, s.strip()) for conn, s in pairs if s.strip()]
+
+
+# Sentinel: a `cd` segment whose target cannot be resolved to a known absolute
+# path. The compound must then bail (a later segment's scratch-containment
+# check would otherwise run against the wrong cwd -- see _apply_cd).
+_CD_BAIL = object()
+
+
+def _apply_cd(segment, eval_cwd):
+    """Track a `cd` so later segments are checked against the post-`cd` cwd.
+
+    Returns the (absolute, normalized) cwd in effect *after* `segment` runs:
+    `eval_cwd` unchanged when the segment is not a `cd`, the new directory when
+    it is a strictly-resolvable `cd` to an existing directory, or `_CD_BAIL`
+    when it is a `cd` we can't resolve (no/extra args beyond a single path,
+    `cd -`, options, `~`, an unparseable segment, or a relative target with no
+    known base) OR whose target is not an existing directory.
+
+    `command cd`/`builtin cd` wrappers (which also move the shell) are unwrapped
+    and tracked; opaque cwd-changers (`eval`/`exec`/`source`/`.`) bail.
+
+    Bailing is the safe choice on two counts: (1) without an exact cwd a later
+    scratch-containment check could wrongly pass (`cd / && rm -rf etc` from
+    /tmp/x); (2) a `cd` to a *missing* dir fails at runtime, so under `;`/
+    newline the later segment runs in the PRIOR cwd -- requiring the target to
+    exist means a tracked cwd shift only happens when the real `cd` succeeds
+    (`cd /tmp/x/NOPE; rm -rf build` would otherwise be judged under the missing
+    dir but actually delete ./build in the original cwd).
+    """
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        return _CD_BAIL
+    if not tokens:
+        return eval_cwd
+    # `command cd /x` and `builtin cd /x` run the cd builtin and DO move the
+    # shell, so unwrap those prefixes before deciding. A wrapper option (e.g.
+    # `command -p cd`) or a bare wrapper can't be parsed strictly -> bail.
+    wrap = 0
+    while os.path.basename(tokens[wrap]) in ("command", "builtin"):
+        if wrap + 1 >= len(tokens) or tokens[wrap + 1].startswith("-"):
+            return _CD_BAIL
+        wrap += 1
+    verb = os.path.basename(tokens[wrap])
+    # Constructs that can change cwd opaquely (a sourced script may `cd`, `eval`
+    # runs arbitrary text). They are not auto-allowed by default, but if one is
+    # ever learned, treating it as cwd-neutral would be unsound -> bail.
+    if verb in ("eval", "exec", "source", "."):
+        return _CD_BAIL
+    if verb != "cd":
+        return eval_cwd  # not a cd -> cwd unchanged (may legitimately be None)
+    args = tokens[wrap + 1:]
+    if not args:  # bare `cd` -> $HOME
+        resolved = os.path.normpath(os.path.expanduser("~"))
+    elif len(args) != 1:
+        return _CD_BAIL  # `cd a b`, `cd -P dir`, ... -> not strictly one path
+    else:
+        target = args[0]
+        if target.startswith("-") or "~" in target:
+            return _CD_BAIL  # `cd -`/OLDPWD, options, tilde expansion: untracked
+        if os.path.isabs(target):
+            resolved = os.path.normpath(target)
+        elif not eval_cwd:
+            return _CD_BAIL  # relative `cd` with no known base cwd
+        else:
+            resolved = os.path.normpath(os.path.join(eval_cwd, target))
+    # The cd only moves the shell if it succeeds; require an existing directory.
+    if not os.path.isabs(resolved) or not os.path.isdir(resolved):
+        return _CD_BAIL
+    return resolved
+
+
+def _segment_hard_haystack(segment, cwd):
+    """Hard-rule haystack for a segment, augmented with its relative operands
+    resolved against `cwd`.
+
+    A `cd` can move into a sensitive directory while a later segment refers to
+    a file there by a bare relative name -- `cd ~/.kube && cat config` -- which
+    the textual hard rules (e.g. `\\.kube/config`) would miss because the
+    segment alone is just `cat config`. Feeding the absolute path the segment
+    actually touches lets those path-based rules fire.
+    """
+    base = _build_haystack("Bash", {"command": segment})
+    if not cwd:
+        return base
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        return base
+    extra = []
+    for t in tokens[1:]:
+        if not t or t.startswith("-") or "~" in t or os.path.isabs(t):
+            continue  # flags, tilde (untracked), and absolute paths: already textual
+        extra.append(os.path.normpath(os.path.join(cwd, t)))
+    return base + "\n" + "\n".join(extra) if extra else base
+
+
+def _segment_allow_reason(cfg, segment, cwd):
+    """Reason a single segment auto-allows, or None. Same order as a line."""
+    seg_input = {"command": segment}
+    scratch = matches_scratch_allow(cfg, "Bash", seg_input, cwd)
+    if scratch:
+        return scratch
+    # A hard rule on the segment means "not auto-allowable"; the whole compound
+    # then falls through and the full-text hard rule escalates it to the human.
+    # Resolve relative operands against the tracked cwd so a `cd`-into-secret +
+    # bare-name read can't slip past path-based hard rules.
+    if matches_hard_rule(cfg, _segment_hard_haystack(segment, cwd)):
+        return None
+    return matches_allow_rule(cfg, "Bash", seg_input, cwd)
+
+
+def matches_compound_allow(cfg, tool_name, tool_input, cwd=None):
+    """Return per-segment reasons if a compound Bash command fully auto-allows.
+
+    A list of reasons (one per simple-command segment) is returned only when
+    the command decomposes into 2+ segments and EVERY segment auto-allows.
+    Returns None otherwise (single command -> normal flow handles it for back-
+    compat; undecomposable syntax or any non-auto-allowed/hard segment -> fall
+    through to the existing full-text hard rule + backend path).
+    """
+    if tool_name != "Bash":
+        return None
+    cmd = _bash_command(tool_input)
+    if not cmd:
+        return None
+    parts = _split_top_level(cmd)
+    if not parts or len(parts) < 2:
+        return None
+    # A `cd` inside a pipeline (`|`) or backgrounded (`&`) runs in a subshell
+    # and does NOT change the parent shell's cwd, so cwd propagation across such
+    # a compound is unsound. If any subshell connector is present, bail the
+    # moment a real `cd` would shift the tracked cwd.
+    has_subshell = any(conn in ("|", "&") for conn, _ in parts)
+    reasons = []
+    eval_cwd = cwd
+    for _conn, seg in parts:
+        # Evaluate against the cwd in effect when this segment runs (shifted by
+        # any preceding `cd`), so scratch containment matches real execution.
+        reason = _segment_allow_reason(cfg, seg, eval_cwd)
+        if not reason:
+            return None
+        reasons.append(reason)
+        new_cwd = _apply_cd(seg, eval_cwd)
+        if new_cwd is _CD_BAIL:
+            return None  # unresolvable / missing-dir `cd` -> can't trust cwd
+        if new_cwd != eval_cwd:  # a real cd took effect
+            if has_subshell:
+                return None  # subshell cd doesn't propagate -> unsound to track
+            eval_cwd = new_cwd
+    return reasons
 
 
 # --- Approval learning -----------------------------------------------------
@@ -1103,6 +1365,19 @@ def main():
     if scratch:
         reason = "auto-allowed ({})".format(scratch)
         record.update(decision="allow", stage="scratch_allow", rule=scratch, reason=reason)
+        maybe_audit(cfg, record)
+        emit(event_name, "allow", reason)
+        return
+
+    # Compound made only of individually-auto-allowed simple commands. Checked
+    # before the full-text hard rule (like scratch) so a compound containing a
+    # legitimately scratch-confined `rm -rf /tmp/x` still passes. Anything not
+    # fully auto-allowed returns None here and falls through to the normal flow.
+    compound = matches_compound_allow(cfg, tool_name, tool_input, cwd)
+    if compound:
+        reason = "auto-allowed (compound: {} segments)".format(len(compound))
+        record.update(decision="allow", stage="compound_allow",
+                      rule="compound", reason=reason, segment_reasons=compound)
         maybe_audit(cfg, record)
         emit(event_name, "allow", reason)
         return
