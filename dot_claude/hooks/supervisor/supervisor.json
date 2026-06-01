@@ -3,11 +3,21 @@
   "backend": "judge-codex.sh",
   "backend_timeout_seconds": 120,
   "answer_user_questions": false,
+  "learn_from_approvals": false,
+  "scratch_dirs": [
+    "/tmp"
+  ],
+  "log_decisions": [
+    "allow",
+    "deny",
+    "answer",
+    "ask"
+  ],
   "always_allow_tools": [
     "Read"
   ],
   "always_allow_patterns": [
-    "^\\s*python3\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\\.py(\\s|$)"
+    "^\\s*(python3|bash|sh)\\s+(~|/Users/[^/\\s]+|/home/[^/\\s]+)/\\.claude/skills/[\\w-]+/scripts/[\\w-]+\\.(py|sh)(\\s|$)"
   ],
   "always_ask_tools": [
     "AskUserQuestion"
