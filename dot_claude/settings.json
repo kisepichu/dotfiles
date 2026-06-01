@@ -2,7 +2,8 @@
   "model": "opus[1m]",
   "permissions": {
     "allow": [
-      "Bash(python3 ~/.claude/skills/pr-review/scripts/*.py:*)"
+      "Bash(python3 ~/.claude/skills/*/scripts/*:*)",
+      "Bash(bash ~/.claude/skills/*/scripts/*:*)"
     ],
     "ask": [
       "AskUserQuestion"
@@ -29,6 +30,18 @@
             "type": "command",
             "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
             "timeout": 600
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
+            "timeout": 30
           }
         ]
       }

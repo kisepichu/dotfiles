@@ -63,8 +63,24 @@ DEFAULT_CONFIG = {
     # cannot trigger a false allow). Only applied to a single simple command
     # (no pipe/chaining/redirection/substitution). Hard escalation still wins.
     "always_allow_patterns": [
-        r"^\s*python3\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/pr-review/scripts/[A-Za-z0-9_-]+\.py(\s|$)",
+        # Any skill's bundled scripts are trusted fixed code under ~/.claude.
+        # Covers python3/bash/sh launching <skill>/scripts/<name>.(py|sh).
+        r"^\s*(python3|bash|sh)\s+(~|/Users/[^/\s]+|/home/[^/\s]+)/\.claude/skills/[\w-]+/scripts/[\w-]+\.(py|sh)(\s|$)",
     ],
+    # When true, a tool call that the judge escalated to the human ("ask") and
+    # the human then approved (detected via PostToolUse) is recorded as a
+    # normalized signature; future same-shape Bash commands are auto-allowed.
+    # Hard-rule matches are never learned. Default off (opt-in).
+    "learn_from_approvals": False,
+    # Scratch roots whose contained writes/deletes are auto-allowed even when a
+    # hard rule (recursive/forced rm) would otherwise escalate. Only operations
+    # whose every operand realpath-resolves strictly inside one of these roots
+    # qualify. $TMPDIR is added at runtime. See matches_scratch_allow().
+    "scratch_dirs": ["/tmp"],
+    # Which decisions get appended to the audit log. Routine "ask" escalations
+    # are noisy and already visible in the UI, so they are omitted by default;
+    # add "ask" here to capture them (including hard-rule escalations).
+    "log_decisions": ["allow", "deny", "answer"],
     # Tool names that should always be left to the real user. This keeps
     # clarifying questions from being auto-allowed or auto-denied by the judge.
     # When `answer_user_questions` is true these are answered by the judge
@@ -243,7 +259,7 @@ def _bash_command(tool_input):
     return ""
 
 
-def matches_allow_rule(cfg, tool_name, tool_input):
+def matches_allow_rule(cfg, tool_name, tool_input, cwd=None):
     """Return a reason string if the call may be auto-allowed, else None.
 
     Matching is structured (on tool_name / the real Bash command field) rather
@@ -270,11 +286,231 @@ def matches_allow_rule(cfg, tool_name, tool_input):
                     return pat
             except re.error:
                 continue
+        # Previously human-approved command shapes (opt-in learning). Hard rules
+        # are evaluated before this, so a learned shape can never override them.
+        if cfg.get("learn_from_approvals") is True:
+            sig = command_signature(tool_name, tool_input)
+            if sig and sig in learned_signatures(cwd):
+                return "learned: {}".format(sig)
     return None
 
 
 def matches_always_ask_tool(cfg, tool_name):
     return tool_name in cfg.get("always_ask_tools", [])
+
+
+# --- Scratch-directory writes/deletes -------------------------------------
+# Mutating Bash verbs that are safe to auto-allow *only* when every operand is
+# confined to a scratch root. Verbs with non-path side effects are excluded.
+_SCRATCH_BASH_VERBS = frozenset(("rm", "mv", "cp", "mkdir", "rmdir", "touch"))
+
+
+def _scratch_roots(cfg):
+    """Realpath-resolved scratch roots: configured dirs plus $TMPDIR."""
+    roots = list(cfg.get("scratch_dirs") or [])
+    tmp = os.environ.get("TMPDIR")
+    if tmp:
+        roots.append(tmp)
+    out = []
+    for r in roots:
+        if not isinstance(r, str) or not r:
+            continue
+        try:
+            out.append(os.path.realpath(os.path.expanduser(r)))
+        except Exception:
+            continue
+    return out
+
+
+def _under_scratch(path, roots, cwd=None):
+    """True if `path` realpath-resolves strictly inside one of `roots`.
+
+    Relative paths are resolved against cwd. The path must be *below* a root,
+    not the root itself (so `rm -rf /tmp` is never auto-allowed). Symlinks are
+    resolved first, so a scratch symlink pointing outside is not contained.
+    """
+    if not path:
+        return False
+    try:
+        if not os.path.isabs(path):
+            base = cwd or os.getcwd()
+            path = os.path.join(base, path)
+        real = os.path.realpath(path)
+    except Exception:
+        return False
+    for root in roots:
+        prefix = root.rstrip(os.sep) + os.sep
+        if real != root and real.startswith(prefix):
+            return True
+    return False
+
+
+def matches_scratch_allow(cfg, tool_name, tool_input, cwd=None):
+    """Return a reason if the call is confined to a scratch dir, else None.
+
+    Evaluated *before* hard rules so a recursive/forced delete inside /tmp or
+    $TMPDIR is auto-allowed. The matcher is itself strict: only a fixed set of
+    mutating verbs / edit tools, only when every operand realpath-resolves
+    strictly inside a scratch root.
+    """
+    roots = _scratch_roots(cfg)
+    if not roots:
+        return None
+    if tool_name in ("Edit", "Write", "NotebookEdit"):
+        if not isinstance(tool_input, dict):
+            return None
+        target = tool_input.get("file_path") or tool_input.get("notebook_path")
+        if isinstance(target, str) and _under_scratch(target, roots, cwd):
+            return "scratch edit: {}".format(tool_name)
+        return None
+    if tool_name == "Bash":
+        cmd = _bash_command(tool_input)
+        # Single simple command only; no metacharacters or glob/tilde that could
+        # expand to paths the containment check never saw.
+        if not cmd or _BASH_UNSAFE_CHARS.search(cmd) or _BASH_GLOB_CHARS.search(cmd):
+            return None
+        try:
+            tokens = shlex.split(cmd)
+        except ValueError:
+            return None
+        if not tokens:
+            return None
+        verb = os.path.basename(tokens[0])
+        if verb not in _SCRATCH_BASH_VERBS:
+            return None
+        operands = [t for t in tokens[1:] if not t.startswith("-")]
+        if not operands:
+            return None
+        if all(_under_scratch(op, roots, cwd) for op in operands):
+            return "scratch {}".format(verb)
+    return None
+
+
+# --- Approval learning -----------------------------------------------------
+LEARNED_DIR = LOG_DIR / "learned"
+
+# Tools whose first positional token is a subcommand worth keeping in the
+# signature (so `git log` and `git push` are distinct shapes).
+_SUBCOMMAND_TOOLS = frozenset((
+    "git", "gh", "cargo", "npm", "pnpm", "yarn", "docker", "mise", "go",
+    "kubectl", "poetry", "pip", "pip3",
+))
+
+
+def command_signature(tool_name, tool_input):
+    """Normalize a Bash command to a learnable shape, or None if not learnable.
+
+    The shape is the leading command (plus a subcommand for tools like git/gh)
+    with all arguments dropped, e.g. `git log --oneline -20` -> "git log". Only
+    single simple commands free of metacharacters and glob/tilde are learnable.
+    """
+    if tool_name != "Bash":
+        return None
+    cmd = _bash_command(tool_input)
+    if not cmd or _BASH_UNSAFE_CHARS.search(cmd) or _BASH_GLOB_CHARS.search(cmd):
+        return None
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        return None
+    if not tokens:
+        return None
+    verb = os.path.basename(tokens[0])
+    if verb in _SUBCOMMAND_TOOLS and len(tokens) > 1 and not tokens[1].startswith("-"):
+        return "{} {}".format(verb, tokens[1])
+    return verb
+
+
+def _load_json(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        return {}
+
+
+def _write_json(path, data):
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp.{}".format(os.getpid()))
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+        os.replace(tmp, path)
+    except Exception:
+        pass  # learning must never break the hook
+
+
+def _project_slug(cwd):
+    """Stable "<name>-<hash>" for a cwd's project root, or "global"."""
+    key = project_key(cwd)
+    if not key:
+        return "global"
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]
+    name = re.sub(r"[^A-Za-z0-9_.-]", "_", os.path.basename(key) or "root")
+    return "{}-{}".format(name, digest)
+
+
+def learned_paths(cwd):
+    slug = _project_slug(cwd)
+    return (LEARNED_DIR / (slug + ".json"),
+            LEARNED_DIR / "pending" / (slug + ".json"))
+
+
+def learned_signatures(cwd):
+    lpath, _ = learned_paths(cwd)
+    data = _load_json(lpath)
+    sigs = data.get("signatures", []) if isinstance(data, dict) else []
+    return {s.get("sig") for s in sigs if isinstance(s, dict) and s.get("sig")}
+
+
+_PENDING_TTL_SECONDS = 3600
+
+
+def record_pending(cwd, tool_use_id, sig, session_id=""):
+    """Remember a sig escalated to the human, keyed by tool_use_id."""
+    if not tool_use_id or not sig:
+        return
+    _, ppath = learned_paths(cwd)
+    data = _load_json(ppath)
+    pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
+    now = time.time()
+    pend = {k: v for k, v in pend.items()
+            if isinstance(v, dict) and now - v.get("ts", 0) < _PENDING_TTL_SECONDS}
+    pend[tool_use_id] = {"sig": sig, "ts": now, "session_id": session_id}
+    _write_json(ppath, {"pending": pend})
+
+
+def promote_learned(cfg, cwd, tool_use_id, haystack):
+    """If a pending escalation for tool_use_id ran, learn its sig. Returns sig."""
+    if not tool_use_id:
+        return None
+    lpath, ppath = learned_paths(cwd)
+    data = _load_json(ppath)
+    pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
+    rec = pend.pop(tool_use_id, None)
+    if rec is None:
+        return None
+    _write_json(ppath, {"pending": pend})
+    sig = rec.get("sig") if isinstance(rec, dict) else None
+    if not sig:
+        return None
+    # Re-check hard rules at promotion time: never learn a dangerous shape.
+    if matches_hard_rule(cfg, haystack):
+        return None
+    ldata = _load_json(lpath)
+    sigs = ldata.get("signatures", []) if isinstance(ldata.get("signatures"), list) else []
+    for s in sigs:
+        if isinstance(s, dict) and s.get("sig") == sig:
+            s["count"] = s.get("count", 0) + 1
+            s["approved_ts"] = time.time()
+            _write_json(lpath, {"signatures": sigs})
+            return sig
+    sigs.append({"sig": sig, "approved_ts": time.time(), "count": 1})
+    _write_json(lpath, {"signatures": sigs})
+    return sig
 
 
 def run_backend(cfg, context):
@@ -401,6 +637,14 @@ def emit_answer(event_name, answer, reason):
     sys.stdout.write(json.dumps(out))
 
 
+def should_log(cfg, decision):
+    """Honor `log_decisions`: keep the audit log free of routine-ask noise."""
+    allowed = cfg.get("log_decisions")
+    if not isinstance(allowed, list):
+        return True  # misconfigured -> log everything (fail loud, not silent)
+    return decision in allowed
+
+
 def audit(record):
     try:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -408,6 +652,12 @@ def audit(record):
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
     except Exception:
         pass  # logging must never break the hook
+
+
+def maybe_audit(cfg, record):
+    """audit() gated by should_log() on the record's decision."""
+    if should_log(cfg, record.get("decision")):
+        audit(record)
 
 
 def truncate_for_audit(value, limit=20000):
@@ -461,7 +711,9 @@ def write_state(updates, cwd=None):
 
 _CLI_USAGE = ("usage: permission-supervisor.py "
               "[--on|--off|--toggle|--status|--list"
-              "|--answers-on|--answers-off|--answers-toggle]")
+              "|--answers-on|--answers-off|--answers-toggle"
+              "|--learn-on|--learn-off|--list-learned"
+              "|--forget-learned [SIG|--all]]")
 _CLI_HELP = ("Toggle the permission supervisor for the current project at "
              "runtime (the hook re-reads its state on every call).")
 
@@ -479,7 +731,9 @@ def cli_main(argv):
         print(_CLI_HELP)
         print(_CLI_USAGE)
         return 0
-    if len(argv) != 1:
+    # Exactly one flag, except --forget-learned which takes an optional target.
+    if not argv or (len(argv) != 1 and not (
+            argv[0] in ("--forget-learned", "forget-learned") and len(argv) == 2)):
         sys.stderr.write(_CLI_USAGE + "\n")
         return 2
     cmd = argv[0]
@@ -519,6 +773,8 @@ def cli_main(argv):
         print("state file: {}{}".format(path, "" if path.exists() else " (absent)"))
         # Strict check: the hook only answers when the value is exactly True.
         print("answer_user_questions: {}".format(cfg.get("answer_user_questions") is True))
+        print("learn_from_approvals: {} ({} learned)".format(
+            cfg.get("learn_from_approvals") is True, len(learned_signatures(cwd))))
         return 0
     # When CLAUDE_SUPERVISOR is set it still wins, so the state file write below
     # does not change the effective state — say so to avoid a misleading message.
@@ -552,8 +808,75 @@ def cli_main(argv):
         print("answer_user_questions {} for {}".format(
             "ENABLED" if new else "disabled", key or path))
         return 0
+    if cmd in ("--learn-on", "learn-on"):
+        write_state({"learn_from_approvals": True}, cwd)
+        print("learn_from_approvals ENABLED for {} (approved commands are learned)".format(key or path))
+        return 0
+    if cmd in ("--learn-off", "learn-off"):
+        write_state({"learn_from_approvals": False}, cwd)
+        print("learn_from_approvals disabled for {}".format(key or path))
+        return 0
+    if cmd in ("--list-learned", "list-learned"):
+        lpath, _ = learned_paths(cwd)
+        data = _load_json(lpath)
+        sigs = data.get("signatures", []) if isinstance(data, dict) else []
+        if not sigs:
+            print("(no learned command shapes for {})".format(key or cwd))
+            return 0
+        print("learned command shapes for {} ({}):".format(key or cwd, lpath))
+        for s in sorted(sigs, key=lambda x: x.get("count", 0), reverse=True):
+            print("  {:4}x  {}".format(s.get("count", 0), s.get("sig", "?")))
+        return 0
+    if cmd in ("--forget-learned", "forget-learned"):
+        target = argv[1] if len(argv) == 2 else None
+        lpath, _ = learned_paths(cwd)
+        data = _load_json(lpath)
+        sigs = data.get("signatures", []) if isinstance(data, dict) else []
+        if target in (None, "--all", "all"):
+            _write_json(lpath, {"signatures": []})
+            print("forgot all {} learned shape(s) for {}".format(len(sigs), key or cwd))
+            return 0
+        kept = [s for s in sigs if s.get("sig") != target]
+        _write_json(lpath, {"signatures": kept})
+        print("forgot {} learned shape(s) matching {!r}".format(len(sigs) - len(kept), target))
+        return 0
     sys.stderr.write(_CLI_USAGE + "\n")
     return 2
+
+
+def _build_haystack(tool_name, tool_input):
+    """Text fed to the hard rules: tool_name + serialized input (+ de-quoted
+    Bash command so quoted dangerous flags like `rm "-rf" dir` cannot slip)."""
+    haystack = "{}\n{}".format(tool_name, json.dumps(tool_input, ensure_ascii=False))
+    if tool_name == "Bash":
+        cmd = _bash_command(tool_input)
+        if cmd:
+            try:
+                haystack += "\n" + " ".join(shlex.split(cmd))
+            except ValueError:
+                pass  # unbalanced quotes -> keep raw haystack; still checked
+    return haystack
+
+
+def handle_post_tool_use(cfg, event, tool_name, tool_input, cwd):
+    """Learn an approved command shape after the tool actually ran.
+
+    PostToolUse only fires for tools that executed, so a pending escalation
+    reaching here means the human approved it. Promotion re-checks hard rules.
+    """
+    if cfg.get("learn_from_approvals") is not True:
+        return
+    tool_use_id = event.get("tool_use_id", "")
+    haystack = _build_haystack(tool_name, tool_input)
+    sig = promote_learned(cfg, cwd, tool_use_id, haystack)
+    if sig:
+        record = {
+            "ts": time.time(), "event": "PostToolUse", "tool": tool_name,
+            "cwd": cwd, "decision": "allow", "stage": "learned_promote",
+            "rule": "learned: {}".format(sig),
+        }
+        add_audit_context(record, event, tool_name, tool_input)
+        audit(record)  # rare + meaningful: always logged
 
 
 def main():
@@ -571,6 +894,15 @@ def main():
 
     cfg = load_config(cwd)
 
+    # Disabled: emit nothing and log nothing (the human decides as before).
+    if not is_enabled(cfg):
+        return
+
+    # PostToolUse fires after a tool ran; use it only to learn approvals.
+    if event_name == "PostToolUse":
+        handle_post_tool_use(cfg, event, tool_name, tool_input, cwd)
+        return
+
     record = {
         "ts": started,
         "event": event_name,
@@ -581,22 +913,7 @@ def main():
     if "_config_error" in cfg:
         record["config_error"] = cfg["_config_error"]
 
-    if not is_enabled(cfg):
-        record.update(decision="ask", stage="disabled")
-        audit(record)
-        return  # no output -> human decides
-
-    haystack = "{}\n{}".format(tool_name, json.dumps(tool_input, ensure_ascii=False))
-    # For Bash, also feed the hard rules a de-quoted form of the command so that
-    # quoted dangerous flags (e.g. `rm "-rf" dir`) cannot slip past patterns
-    # like `\s-...`. shlex strips the quotes the way the shell would.
-    if tool_name == "Bash":
-        cmd = _bash_command(tool_input)
-        if cmd:
-            try:
-                haystack += "\n" + " ".join(shlex.split(cmd))
-            except ValueError:
-                pass  # unbalanced quotes -> keep raw haystack; still checked
+    haystack = _build_haystack(tool_name, tool_input)
 
     if matches_always_ask_tool(cfg, tool_name):
         # Optionally let the judge answer the question instead of blocking on a
@@ -619,28 +936,38 @@ def main():
                     decision="answer", stage="answer_tool", reason=reason,
                     elapsed_ms=int((time.time() - started) * 1000),
                 )
-                audit(record)
+                maybe_audit(cfg, record)
                 emit_answer(event_name, answer, reason)
                 return
             record.update(decision="ask", stage="answer_tool_fallback",
                           reason=verdict.get("reason", ""))
-            audit(record)
+            maybe_audit(cfg, record)
             return  # judge declined to answer -> human decides
         record.update(decision="ask", stage="always_ask_tool")
-        audit(record)
+        maybe_audit(cfg, record)
         return  # no output -> user answers the question
+
+    # Scratch-confined writes/deletes are auto-allowed *before* hard rules, so a
+    # recursive/forced delete inside /tmp or $TMPDIR does not escalate.
+    scratch = matches_scratch_allow(cfg, tool_name, tool_input, cwd)
+    if scratch:
+        reason = "auto-allowed ({})".format(scratch)
+        record.update(decision="allow", stage="scratch_allow", rule=scratch, reason=reason)
+        maybe_audit(cfg, record)
+        emit(event_name, "allow", reason)
+        return
 
     hard = matches_hard_rule(cfg, haystack)
     if hard:
         record.update(decision="ask", stage="hard_rule", rule=hard)
-        audit(record)
+        maybe_audit(cfg, record)
         return  # dangerous -> always human
 
-    always_allow = matches_allow_rule(cfg, tool_name, tool_input)
+    always_allow = matches_allow_rule(cfg, tool_name, tool_input, cwd)
     if always_allow:
         reason = "auto-allowed ({})".format(always_allow)
         record.update(decision="allow", stage="always_allow", rule=always_allow, reason=reason)
-        audit(record)
+        maybe_audit(cfg, record)
         emit(event_name, "allow", reason)
         return
 
@@ -663,7 +990,13 @@ def main():
         reason=reason,
         elapsed_ms=int((time.time() - started) * 1000),
     )
-    audit(record)
+    maybe_audit(cfg, record)
+    # Learn from human approvals: remember a sig escalated to the human so a
+    # PostToolUse (= it actually ran) can promote it to the allowlist.
+    if decision == "ask" and cfg.get("learn_from_approvals") is True:
+        record_pending(cwd, event.get("tool_use_id", ""),
+                       command_signature(tool_name, tool_input),
+                       event.get("session_id", ""))
     emit(event_name, decision, reason)
 
 
