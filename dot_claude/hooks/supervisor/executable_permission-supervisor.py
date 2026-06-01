@@ -583,25 +583,57 @@ def learned_signatures(cwd):
 _PENDING_TTL_SECONDS = 3600
 
 
+def _pending_fresh(entry, now):
+    """True if a pending entry is a dict with a numeric, non-expired ts.
+
+    Tolerates malformed/old records (non-numeric or missing ts) by treating
+    them as not-fresh, so they are pruned instead of raising in arithmetic.
+    """
+    if not isinstance(entry, dict):
+        return False
+    ts = entry.get("ts")
+    if not isinstance(ts, (int, float)) or isinstance(ts, bool):
+        return False
+    return now - ts < _PENDING_TTL_SECONDS
+
+
 def record_pending(cwd, tool_use_id, sig, session_id=""):
-    """Remember a sig escalated to the human, keyed by tool_use_id."""
+    """Remember a sig escalated to the human, keyed by tool_use_id.
+
+    Best-effort: any error (incl. malformed on-disk data) is swallowed so the
+    learning path can never break permission handling.
+    """
     if not tool_use_id or not sig:
         return
-    _, ppath = learned_paths(cwd)
-    with _file_lock(ppath):
-        data = _load_json(ppath)
-        pend = data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
-        now = time.time()
-        pend = {k: v for k, v in pend.items()
-                if isinstance(v, dict) and now - v.get("ts", 0) < _PENDING_TTL_SECONDS}
-        pend[tool_use_id] = {"sig": sig, "ts": now, "session_id": session_id}
-        _write_json(ppath, {"pending": pend})
+    try:
+        _, ppath = learned_paths(cwd)
+        with _file_lock(ppath):
+            data = _load_json(ppath)
+            raw = data.get("pending")
+            pend = raw if isinstance(raw, dict) else {}
+            now = time.time()
+            pend = {k: v for k, v in pend.items() if _pending_fresh(v, now)}
+            pend[tool_use_id] = {"sig": sig, "ts": now, "session_id": session_id}
+            _write_json(ppath, {"pending": pend})
+    except Exception:
+        pass  # learning is best-effort; never break the hook
 
 
 def promote_learned(cfg, cwd, tool_use_id, haystack):
-    """If a pending escalation for tool_use_id ran, learn its sig. Returns sig."""
+    """If a pending escalation for tool_use_id ran, learn its sig. Returns sig.
+
+    Best-effort: any error is swallowed (returns None) so a malformed store can
+    never break the PostToolUse hook.
+    """
     if not tool_use_id:
         return None
+    try:
+        return _promote_learned(cfg, cwd, tool_use_id, haystack)
+    except Exception:
+        return None
+
+
+def _promote_learned(cfg, cwd, tool_use_id, haystack):
     lpath, ppath = learned_paths(cwd)
     with _file_lock(ppath):
         data = _load_json(ppath)
