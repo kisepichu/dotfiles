@@ -77,10 +77,12 @@ DEFAULT_CONFIG = {
     # whose every operand realpath-resolves strictly inside one of these roots
     # qualify. $TMPDIR is added at runtime. See matches_scratch_allow().
     "scratch_dirs": ["/tmp"],
-    # Which decisions get appended to the audit log. Routine "ask" escalations
-    # are noisy and already visible in the UI, so they are omitted by default;
-    # add "ask" here to capture them (including hard-rule escalations).
-    "log_decisions": ["allow", "deny", "answer"],
+    # Which decisions get appended to the audit log. "ask" (every escalation to
+    # the human: hard-rule, backend, and AskUserQuestion) is logged by default
+    # because tracking escalations is the primary use of the log -- the design
+    # assumes most calls are auto-allowed, so escalations are rare and signal,
+    # not noise. Drop a decision here only if you deliberately want it omitted.
+    "log_decisions": ["allow", "deny", "answer", "ask"],
     # Tool names that should always be left to the real user. This keeps
     # clarifying questions from being auto-allowed or auto-denied by the judge.
     # When `answer_user_questions` is true these are answered by the judge
@@ -638,7 +640,7 @@ def emit_answer(event_name, answer, reason):
 
 
 def should_log(cfg, decision):
-    """Honor `log_decisions`: keep the audit log free of routine-ask noise."""
+    """Honor `log_decisions`: which decisions are appended to the audit log."""
     allowed = cfg.get("log_decisions")
     if not isinstance(allowed, list):
         return True  # misconfigured -> log everything (fail loud, not silent)

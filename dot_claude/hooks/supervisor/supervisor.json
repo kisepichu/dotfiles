@@ -10,7 +10,8 @@
   "log_decisions": [
     "allow",
     "deny",
-    "answer"
+    "answer",
+    "ask"
   ],
   "always_allow_tools": [
     "Read"
