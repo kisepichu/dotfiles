@@ -39,7 +39,7 @@
 - [x] `main()` に複合 allow 高速路を追加（hard 全文チェックより前）。
 - [x] README/タスクに仕様を反映。
 - [x] ephemeral 単体テスト（上記観点）を通す。
-- [ ] `check-chezmoi-managed.sh` / `prek run --all-files` を通す。
+- [x] `check-chezmoi-managed.sh` / `prek run --all-files` を通す。
 
 ## 完了条件
 
