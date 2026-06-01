@@ -254,8 +254,12 @@ _BASH_GLOB_CHARS = re.compile(r"[*?~\[\]]")
 #   rg       -> --pre runs an arbitrary preprocessor command
 #   git branch/remote/fetch -> mutate refs/config (e.g. `git branch -D`)
 # Anything left out still reaches the judge; it is just not auto-allowed.
+# `cd` is a pure no-content navigation built-in (already in settings.json's
+# native allow); it is here so a compound like `cd dir && <trusted-script>`
+# can auto-allow every segment. A secret path (`cd .ssh/`) is still caught by
+# the hard rules, which run before this; a `~`/glob arg is rejected below.
 _SAFE_READONLY_CMD = re.compile(
-    r"^\s*(cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
+    r"^\s*(cd|cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
     r"git\s+(status|log|diff|show|ls-files|rev-parse|config\s+--get))\b"
 )
 
@@ -421,6 +425,141 @@ def matches_scratch_allow(cfg, tool_name, tool_input, cwd=None):
         if all(_under_scratch(op, roots, cwd) for op in operands):
             return "scratch {}".format(verb)
     return None
+
+
+# --- Compound command decomposition ----------------------------------------
+# Goal: replace "the human pressing Enter" -- a compound made only of commands
+# that would each auto-allow on their own (e.g. `cd dir && <trusted-script>`,
+# or `cd dir; <learned-cmd>`) should auto-allow as a whole. We split the top
+# level into simple commands and apply the SAME per-segment decision as a
+# single line (scratch -> hard -> allow). Allow the compound only if EVERY
+# segment auto-allows; otherwise we stay silent and let the existing flow
+# (full-text hard rule -> backend) decide (fail-safe).
+
+# Shell syntax we deliberately refuse to decompose. Seeing any of these
+# (outside quotes) means a segment could hide a side effect we cannot check
+# per-segment, so `_split_top_level` returns None and the call takes the
+# normal (judge/human) path:
+#   $  -> variable expansion ($VAR/$TMPDIR) and command substitution $(...)
+#   `  -> command substitution
+#   <> -> redirection (incl. &>, heredoc <<); write target not per-seg checkable
+#   (){} -> subshell/grouping/brace expansion
+_COMPOUND_BAILOUT_CHARS = frozenset("$`<>(){}")
+
+
+def _split_top_level(cmd):
+    """Split `cmd` into top-level simple-command segments, or None.
+
+    Tracks single/double quotes and backslash escapes, then splits on the
+    top-level operators `;` `\\n` `&&` `||` `|` `&`. Returns None if any
+    `_COMPOUND_BAILOUT_CHARS` appears outside quotes (undecomposable -> normal
+    flow) or quotes are unbalanced. Empty/whitespace-only segments are dropped.
+    """
+    segments, cur = [], []
+    i, n = 0, len(cmd)
+    in_single = in_double = False
+    while i < n:
+        c = cmd[i]
+        if in_single:
+            if c == "'":
+                in_single = False
+            cur.append(c)
+            i += 1
+            continue
+        if in_double:
+            if c == "\\" and i + 1 < n:
+                cur.append(c)
+                cur.append(cmd[i + 1])
+                i += 2
+                continue
+            if c == "$" or c == "`":
+                return None  # expansion/substitution is still live in ""
+            if c == '"':
+                in_double = False
+            cur.append(c)
+            i += 1
+            continue
+        # --- unquoted ---
+        if c == "\\":
+            cur.append(c)
+            if i + 1 < n:
+                cur.append(cmd[i + 1])
+                i += 2
+            else:
+                i += 1
+            continue
+        if c == "'":
+            in_single = True
+            cur.append(c)
+            i += 1
+            continue
+        if c == '"':
+            in_double = True
+            cur.append(c)
+            i += 1
+            continue
+        if c in _COMPOUND_BAILOUT_CHARS:
+            return None
+        if c == "\n" or c == ";":
+            segments.append("".join(cur))
+            cur = []
+            i += 1
+            continue
+        if c == "&":  # `&&` or background `&`
+            segments.append("".join(cur))
+            cur = []
+            i += 2 if (i + 1 < n and cmd[i + 1] == "&") else 1
+            continue
+        if c == "|":  # `||` or pipe `|`
+            segments.append("".join(cur))
+            cur = []
+            i += 2 if (i + 1 < n and cmd[i + 1] == "|") else 1
+            continue
+        cur.append(c)
+        i += 1
+    if in_single or in_double:
+        return None  # unbalanced quotes -> don't try to decompose
+    segments.append("".join(cur))
+    return [s.strip() for s in segments if s.strip()]
+
+
+def _segment_allow_reason(cfg, segment, cwd):
+    """Reason a single segment auto-allows, or None. Same order as a line."""
+    seg_input = {"command": segment}
+    scratch = matches_scratch_allow(cfg, "Bash", seg_input, cwd)
+    if scratch:
+        return scratch
+    # A hard rule on the segment means "not auto-allowable"; the whole compound
+    # then falls through and the full-text hard rule escalates it to the human.
+    if matches_hard_rule(cfg, _build_haystack("Bash", seg_input)):
+        return None
+    return matches_allow_rule(cfg, "Bash", seg_input, cwd)
+
+
+def matches_compound_allow(cfg, tool_name, tool_input, cwd=None):
+    """Return per-segment reasons if a compound Bash command fully auto-allows.
+
+    A list of reasons (one per simple-command segment) is returned only when
+    the command decomposes into 2+ segments and EVERY segment auto-allows.
+    Returns None otherwise (single command -> normal flow handles it for back-
+    compat; undecomposable syntax or any non-auto-allowed/hard segment -> fall
+    through to the existing full-text hard rule + backend path).
+    """
+    if tool_name != "Bash":
+        return None
+    cmd = _bash_command(tool_input)
+    if not cmd:
+        return None
+    segments = _split_top_level(cmd)
+    if not segments or len(segments) < 2:
+        return None
+    reasons = []
+    for seg in segments:
+        reason = _segment_allow_reason(cfg, seg, cwd)
+        if not reason:
+            return None
+        reasons.append(reason)
+    return reasons
 
 
 # --- Approval learning -----------------------------------------------------
@@ -1103,6 +1242,19 @@ def main():
     if scratch:
         reason = "auto-allowed ({})".format(scratch)
         record.update(decision="allow", stage="scratch_allow", rule=scratch, reason=reason)
+        maybe_audit(cfg, record)
+        emit(event_name, "allow", reason)
+        return
+
+    # Compound made only of individually-auto-allowed simple commands. Checked
+    # before the full-text hard rule (like scratch) so a compound containing a
+    # legitimately scratch-confined `rm -rf /tmp/x` still passes. Anything not
+    # fully auto-allowed returns None here and falls through to the normal flow.
+    compound = matches_compound_allow(cfg, tool_name, tool_input, cwd)
+    if compound:
+        reason = "auto-allowed (compound: {} segments)".format(len(compound))
+        record.update(decision="allow", stage="compound_allow",
+                      rule="compound", reason=reason, segment_reasons=compound)
         maybe_audit(cfg, record)
         emit(event_name, "allow", reason)
         return

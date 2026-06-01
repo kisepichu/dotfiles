@@ -34,20 +34,21 @@
 
 ## チェックリスト
 
-- [ ] `task-013-...` ブランチを切る（PR #15 とは別 PR）。
-- [ ] `_split_top_level` とセグメント評価、`matches_compound_allow` を実装。
-- [ ] `main()` に複合 allow 高速路を追加（hard 全文チェックより前）。
-- [ ] README/タスクに仕様を反映。
-- [ ] ephemeral 単体テスト（上記観点）を通す。
+- [x] `task-013-...` ブランチを切る（PR #15 とは別 PR）。
+- [x] `_split_top_level` とセグメント評価、`matches_compound_allow` を実装。
+- [x] `main()` に複合 allow 高速路を追加（hard 全文チェックより前）。
+- [x] README/タスクに仕様を反映。
+- [x] ephemeral 単体テスト（上記観点）を通す。
 - [ ] `check-chezmoi-managed.sh` / `prek run --all-files` を通す。
 
 ## 完了条件
 
-- [ ] 許可された単純コマンドのみで構成される複合（`cd ... && skill/learned コマンド` 等）が supervisor 有効時に自動許可され、毎回 ask されない。
-- [ ] 1つでも未許可セグメントを含む複合、または分解不可構文を含む複合は従来どおり judge/人間へ。
-- [ ] ハード規則に当たるセグメントを含む複合は必ず人間へ。
-- [ ] 単一コマンドの挙動は後方互換。検証スイートが通る。
+- [x] 許可された単純コマンドのみで構成される複合（`cd ... && skill/learned コマンド` 等）が supervisor 有効時に自動許可され、毎回 ask されない。
+- [x] 1つでも未許可セグメントを含む複合、または分解不可構文を含む複合は従来どおり judge/人間へ。
+- [x] ハード規則に当たるセグメントを含む複合は必ず人間へ。
+- [x] 単一コマンドの挙動は後方互換。検証スイートが通る。
 
 ## 作業ログ
 
 - 2026-06-01: PR #15 作業中に派生要望として起票。設計（分解＋per-segment 判定、AND で許可、分解不可構文はエスカレーション）と境界を合意。スコープは独立 PR。実装は #15 完了後に着手予定。
+- 2026-06-02: `task-013-supervisor-compound-command-decomposition` ブランチで実装。`_split_top_level`（クォート/エスケープ追跡・分解不可構文で `None`）、`_segment_allow_reason`（scratch→hard→allow を単一行と同順で再利用）、`matches_compound_allow`（2セグメント以上で全許可のときのみ reason 列を返す）を追加。`main()` の scratch 許可直後・全文ハード規則の前に複合 allow 高速路（`stage="compound_allow"`、`segment_reasons` を監査記録）を挿入。ヘッドライン例 `cd a && <skill>` を成立させるため `cd` を `_SAFE_READONLY_CMD` に追加（settings.json ネイティブ allow に既出のナビ専用コマンド・秘密パスはハード規則が先取り）。ephemeral 単体テスト 35 件＋ `main()` E2E（compound allow / scratch-rm compound / sudo・cat|curl・redirect は非 allow で judge/人間へ / 単一コマンド後方互換）を確認。
