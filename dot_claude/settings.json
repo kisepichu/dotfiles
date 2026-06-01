@@ -20,8 +20,6 @@
       "Bash(whoami:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git show:*)",
       "Bash(git rev-parse:*)"
     ],
     "ask": [

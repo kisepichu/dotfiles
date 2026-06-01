@@ -314,19 +314,30 @@ _SCRATCH_BASH_VERBS = frozenset(("rm", "mv", "cp", "mkdir", "rmdir", "touch"))
 
 
 def _scratch_roots(cfg):
-    """Realpath-resolved scratch roots: configured dirs plus $TMPDIR."""
+    """Realpath-resolved, de-duped scratch roots: configured dirs plus $TMPDIR.
+
+    A root that resolves to the filesystem root (`/`) is ignored: it would make
+    almost every path "under scratch" and let `rm -rf /etc` auto-allow before
+    the hard rules ever run. Same for any root whose parent is itself.
+    """
     roots = list(cfg.get("scratch_dirs") or [])
     tmp = os.environ.get("TMPDIR")
     if tmp:
         roots.append(tmp)
-    out = []
+    out, seen = [], set()
     for r in roots:
         if not isinstance(r, str) or not r:
             continue
         try:
-            out.append(os.path.realpath(os.path.expanduser(r)))
+            real = os.path.realpath(os.path.expanduser(r))
         except Exception:
             continue
+        if real == os.sep or os.path.dirname(real) == real:
+            continue  # filesystem root -> too broad to be a scratch dir
+        if real in seen:
+            continue
+        seen.add(real)
+        out.append(real)
     return out
 
 
