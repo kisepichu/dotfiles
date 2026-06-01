@@ -4,7 +4,31 @@
     "allow": [
       "Bash(python3 ~/.claude/skills/*/scripts/*.py:*)",
       "Bash(bash ~/.claude/skills/*/scripts/*.sh:*)",
-      "Bash(sh ~/.claude/skills/*/scripts/*.sh:*)"
+      "Bash(sh ~/.claude/skills/*/scripts/*.sh:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(stat:*)",
+      "Bash(tree:*)",
+      "Bash(which:*)",
+      "Bash(realpath:*)",
+      "Bash(basename:*)",
+      "Bash(dirname:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(echo:*)",
+      "Bash(date:*)",
+      "Bash(whoami:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)"
     ],
     "ask": [
       "AskUserQuestion"
