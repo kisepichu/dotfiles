@@ -523,6 +523,45 @@ def _split_top_level(cmd):
     return [s.strip() for s in segments if s.strip()]
 
 
+# Sentinel: a `cd` segment whose target cannot be resolved to a known absolute
+# path. The compound must then bail (a later segment's scratch-containment
+# check would otherwise run against the wrong cwd -- see _apply_cd).
+_CD_BAIL = object()
+
+
+def _apply_cd(segment, eval_cwd):
+    """Track a `cd` so later segments are checked against the post-`cd` cwd.
+
+    Returns the (absolute, normalized) cwd in effect *after* `segment` runs:
+    `eval_cwd` unchanged when the segment is not a `cd`, the new directory when
+    it is a strictly-resolvable `cd`, or `_CD_BAIL` when it is a `cd` we can't
+    resolve (no/extra args beyond a single path, `cd -`, options, `~`, an
+    unparseable segment, or a relative target with no known base). Bailing is
+    the safe choice: without an exact cwd a scratch-containment check on a
+    later `rm` could wrongly pass (e.g. `cd / && rm -rf etc` run from /tmp/x).
+    """
+    try:
+        tokens = shlex.split(segment)
+    except ValueError:
+        return _CD_BAIL
+    if not tokens or os.path.basename(tokens[0]) != "cd":
+        return eval_cwd  # not a cd -> cwd unchanged (may legitimately be None)
+    args = tokens[1:]
+    if not args:  # bare `cd` -> $HOME
+        home = os.path.expanduser("~")
+        return os.path.normpath(home) if os.path.isabs(home) else _CD_BAIL
+    if len(args) != 1:
+        return _CD_BAIL  # `cd a b`, `cd -P dir`, ... -> not strictly one path
+    target = args[0]
+    if target.startswith("-") or "~" in target:
+        return _CD_BAIL  # `cd -`/OLDPWD, options, tilde expansion: untracked
+    if os.path.isabs(target):
+        return os.path.normpath(target)
+    if not eval_cwd:
+        return _CD_BAIL  # relative `cd` with no known base cwd
+    return os.path.normpath(os.path.join(eval_cwd, target))
+
+
 def _segment_allow_reason(cfg, segment, cwd):
     """Reason a single segment auto-allows, or None. Same order as a line."""
     seg_input = {"command": segment}
@@ -554,11 +593,18 @@ def matches_compound_allow(cfg, tool_name, tool_input, cwd=None):
     if not segments or len(segments) < 2:
         return None
     reasons = []
+    eval_cwd = cwd
     for seg in segments:
-        reason = _segment_allow_reason(cfg, seg, cwd)
+        # Evaluate against the cwd in effect when this segment runs (shifted by
+        # any preceding `cd`), so scratch containment matches real execution.
+        reason = _segment_allow_reason(cfg, seg, eval_cwd)
         if not reason:
             return None
         reasons.append(reason)
+        new_cwd = _apply_cd(seg, eval_cwd)
+        if new_cwd is _CD_BAIL:
+            return None  # unresolvable `cd` -> can't trust later containment
+        eval_cwd = new_cwd
     return reasons
 
 
