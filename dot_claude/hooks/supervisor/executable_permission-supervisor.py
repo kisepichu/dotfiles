@@ -444,7 +444,9 @@ def matches_scratch_allow(cfg, tool_name, tool_input, cwd=None):
 #   `  -> command substitution
 #   <> -> redirection (incl. &>, heredoc <<); write target not per-seg checkable
 #   (){} -> subshell/grouping/brace expansion
-_COMPOUND_BAILOUT_CHARS = frozenset("$`<>(){}")
+# Listed char-by-char (not one string literal) so the backtick next to `<>`
+# can't be misread as dropping `>`: both `<` and `>` are intentionally here.
+_COMPOUND_BAILOUT_CHARS = frozenset(("$", "`", "<", ">", "(", ")", "{", "}"))
 
 
 def _split_top_level(cmd):
