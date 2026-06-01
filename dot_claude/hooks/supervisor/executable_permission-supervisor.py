@@ -386,14 +386,25 @@ def matches_scratch_allow(cfg, tool_name, tool_input, cwd=None):
         verb = os.path.basename(tokens[0])
         if verb not in _SCRATCH_BASH_VERBS:
             return None
-        rest = tokens[1:]
+        # Split into flags and operands. `--` ends option parsing: every token
+        # after it is an operand (even if it starts with `-`, e.g. a file named
+        # `-x`), so it must be containment-checked, not dropped as a flag.
+        flags, operands, end_of_opts = [], [], False
+        for t in tokens[1:]:
+            if end_of_opts:
+                operands.append(t)
+            elif t == "--":
+                end_of_opts = True
+            elif t.startswith("-"):
+                flags.append(t)
+            else:
+                operands.append(t)
         # A flag can smuggle a path as its value (e.g. `cp --target-directory=/etc`
         # or `mv -t/etc`), which the operand containment check below never sees.
         # If any flag embeds a path separator or `=value`, refuse to auto-allow.
         # (`~`/globs are already rejected for the whole command above.)
-        if any(("=" in t or "/" in t) for t in rest if t.startswith("-")):
+        if any(("=" in f or "/" in f) for f in flags):
             return None
-        operands = [t for t in rest if not t.startswith("-")]
         if not operands:
             return None
         if all(_under_scratch(op, roots, cwd) for op in operands):
