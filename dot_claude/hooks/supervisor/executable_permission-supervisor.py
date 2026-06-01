@@ -550,6 +550,9 @@ def _apply_cd(segment, eval_cwd):
     `cd -`, options, `~`, an unparseable segment, or a relative target with no
     known base) OR whose target is not an existing directory.
 
+    `command cd`/`builtin cd` wrappers (which also move the shell) are unwrapped
+    and tracked; opaque cwd-changers (`eval`/`exec`/`source`/`.`) bail.
+
     Bailing is the safe choice on two counts: (1) without an exact cwd a later
     scratch-containment check could wrongly pass (`cd / && rm -rf etc` from
     /tmp/x); (2) a `cd` to a *missing* dir fails at runtime, so under `;`/
@@ -562,9 +565,25 @@ def _apply_cd(segment, eval_cwd):
         tokens = shlex.split(segment)
     except ValueError:
         return _CD_BAIL
-    if not tokens or os.path.basename(tokens[0]) != "cd":
+    if not tokens:
+        return eval_cwd
+    # `command cd /x` and `builtin cd /x` run the cd builtin and DO move the
+    # shell, so unwrap those prefixes before deciding. A wrapper option (e.g.
+    # `command -p cd`) or a bare wrapper can't be parsed strictly -> bail.
+    wrap = 0
+    while os.path.basename(tokens[wrap]) in ("command", "builtin"):
+        if wrap + 1 >= len(tokens) or tokens[wrap + 1].startswith("-"):
+            return _CD_BAIL
+        wrap += 1
+    verb = os.path.basename(tokens[wrap])
+    # Constructs that can change cwd opaquely (a sourced script may `cd`, `eval`
+    # runs arbitrary text). They are not auto-allowed by default, but if one is
+    # ever learned, treating it as cwd-neutral would be unsound -> bail.
+    if verb in ("eval", "exec", "source", "."):
+        return _CD_BAIL
+    if verb != "cd":
         return eval_cwd  # not a cd -> cwd unchanged (may legitimately be None)
-    args = tokens[1:]
+    args = tokens[wrap + 1:]
     if not args:  # bare `cd` -> $HOME
         resolved = os.path.normpath(os.path.expanduser("~"))
     elif len(args) != 1:
