@@ -1,0 +1,77 @@
+name: Claude Review
+
+# On-demand PR review by Claude, triggered by an "@claude" comment.
+# Paired with the /pr-review skill (`/pr-review claude`), which posts the
+# trigger comment and then polls for claude[bot]'s inline review + summary.
+#
+# Prerequisites (one-time, per repo):
+#   1. Authorize the Claude GitHub App on this repo (github.com app install,
+#      or `/install-github-app` from Claude Code). This is a GitHub-side web
+#      integration -- nothing is installed locally. It makes review comments
+#      post as `claude[bot]`.
+#   2. Add the repo secret CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`).
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# Cancel a superseded review on the same PR.
+concurrency:
+  group: claude-review-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-review:
+    # Only react to "@claude" on a PR, and only from trusted authors. On a
+    # PUBLIC repo this gate is essential: it stops arbitrary commenters from
+    # burning the token or prompt-injecting. Do NOT add allowed_non_write_users.
+    if: >
+      (
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+        github.event_name == 'pull_request_review_comment'
+      ) &&
+      contains(github.event.comment.body, '@claude') &&
+      (
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Keep cost down: a light model and a bounded turn budget.
+          claude_args: "--model claude-sonnet-4-6 --max-turns 20"
+          prompt: |
+            You are reviewing this pull request.
+
+            Focus, in priority order, on:
+              1. Correctness bugs, logic errors, and data-loss / destructive risks.
+              2. Security issues (injection, secret handling, auth, unsafe shell).
+              3. High-value simplifications or reuse that clearly improve the code.
+            Mention low-value style nits only when they materially help; prefer
+            silence over noise.
+
+            Post each concrete finding as an INLINE review comment on the exact
+            line(s) it concerns, using the GitHub review tools available to you.
+
+            When finished, post ONE summary comment on the PR that contains
+            EXACTLY ONE of these sentinel lines, on its own line, verbatim:
+              - If you found nothing worth raising:
+                  CLAUDE_REVIEW: no issues found
+              - Otherwise (you posted inline comments):
+                  CLAUDE_REVIEW: <N> issue(s) -- see inline comments
+            The sentinel line is REQUIRED: an automated loop reads it to know the
+            review finished and whether there were findings. Do not omit it.
