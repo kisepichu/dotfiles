@@ -160,13 +160,14 @@ def main() -> int:
     before_ts = before["ts"] if before else ""
 
     # No new request: report an already-present completed review (like the
-    # Copilot waiter), but ONLY if it covers the current head -- a marker older
-    # than the latest commit is stale (new commits pushed since) and must not be
-    # accepted; fall through and trigger a fresh review instead.
+    # Copilot waiter), but ONLY if it provably covers the current head. Accept
+    # it solely when the head commit time is known AND the marker is at least as
+    # new. Any uncertainty (head time unknown, or marker older) fails safe to
+    # triggering a fresh review rather than trusting a possibly-stale result.
     need_trigger = args.request or not before
     if before and not args.request:
         head_ts = head_commit_time(args.owner, args.repo, args.pr)
-        if not head_ts or before_ts > head_ts:
+        if head_ts and before_ts >= head_ts:
             return emit(before, args.no_issues)
         need_trigger = True
 

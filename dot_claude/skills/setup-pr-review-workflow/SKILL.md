@@ -52,10 +52,10 @@ gh repo view --json nameWithOwner,visibility --jq '{repo: .nameWithOwner, visibi
 
 ### 4. CLAUDE_CODE_OAUTH_TOKEN secret を登録
 
-既に登録済みかを確認:
+既に登録済みかを確認（パイプ・`grep` を使わない単独コマンド。true なら登録済み）:
 
 ```bash
-gh secret list --json name --jq '.[].name' | grep -x CLAUDE_CODE_OAUTH_TOKEN || echo "(未登録)"
+gh secret list --json name --jq 'any(.[]; .name == "CLAUDE_CODE_OAUTH_TOKEN")'
 ```
 
 未登録なら、ユーザーに次を案内する（トークン値は会話やリポに残さない）:
