@@ -1,7 +1,7 @@
 ---
 name: setup-pr-review-workflow
 description: 任意のプロジェクトに「@claude review で Claude が PR をレビューする」GitHub Actions を一式セットアップする。workflow 雛形の生成・Claude GitHub App 認可・CLAUDE_CODE_OAUTH_TOKEN secret 登録を案内する。「Claude レビュー CI を入れて」「PR レビュー workflow をセットアップ」などで使用。
-allowed-tools: Read, Write, Edit, Bash(gh repo view:*), Bash(gh secret list:*), Bash(gh api:*), Bash(mkdir:*), Bash(git add:*), Bash(git status:*), Bash(git rev-parse:*)
+allowed-tools: Read, Write, Edit, Bash(gh repo view:*), Bash(gh secret list:*), Bash(mkdir:*), Bash(git add:*), Bash(git status:*), Bash(git rev-parse:*)
 ---
 
 # Claude PR レビュー CI セットアップスキル

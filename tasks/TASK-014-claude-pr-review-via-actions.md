@@ -29,7 +29,7 @@
 - 認証 = OAuth（`CLAUDE_CODE_OAUTH_TOKEN`）。軽量モデル（Sonnet）。
 - 発火 = オンデマンドのみ（`@claude review`）。`pull_request` 自動レビューは入れない。
 - 出力 = インラインレビュー（解決可能スレッド、主体 `claude[bot]`）。既存 get/reply/resolve を流用。
-- 公開リポゲート（必須）: 本文に `@claude` ＋ `author_association ∈ {OWNER, MEMBER, COLLABORATOR}`。`allowed_non_write_users` は使わない。
+- 公開リポゲート（必須）: 本文に `@claude review` ＋ `author_association ∈ {OWNER, MEMBER, COLLABORATOR}`。`allowed_non_write_users` は使わない。
 - workflow はスキル展開。Copilot はフォールバックに残す（`/pr-review` 既定 copilot / `/pr-review claude`）。
 
 ## 早期終了ロジック（/pr-review 共通・agent 判定。両 backend に適用）
@@ -57,9 +57,9 @@
 workflow 雛形の要点:
 
 - `on: issue_comment(created)` ＋ `pull_request_review_comment(created)`。`pull_request` は入れない。
-- `if`: 本文 `@claude` ＋ `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`。
+- `if`: 本文 `@claude review` ＋ `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`。
 - `permissions`: contents:read / pull-requests:write / issues:write。`concurrency: cancel-in-progress`。
-- `claude-code-action@v1` with `claude_code_oauth_token`。`claude_args: --model claude-sonnet-4-6 --max-turns N` ＋ tools 限定（`Bash(gh pr:*)` 等）。
+- `claude-code-action@v1` with `claude_code_oauth_token`。`claude_args: --model claude-sonnet-4-6 --max-turns N`。`--allowedTools` は付けない（v1 は GitHub コメント/レビュー系を既定許可。指定すると既定を置換して投稿が壊れる）。
 - `prompt`: 観点（バグ/セキュリティ/簡潔化）、インライン投稿、指摘ゼロなら明示マーカー（例 `CLAUDE_REVIEW: no issues found`）を必ず出す。`/code-review` 基準の流用検討。
 - secretlint / public-safety を通す（literal secret を置かない）。
 
@@ -67,7 +67,7 @@ workflow 雛形の要点:
 
 - 引数で backend 選択（既定 copilot / `claude`）。SKILL.md に分岐、`allowed-tools` に新スクリプト追加。
 - 新スクリプト `wait-claude-review.py`（Copilot 版の Claude 版）:
-  - 発火(`--request`): `gh pr comment {num} -R {owner}/{repo} --body "@claude review"`。
+  - 発火(`--request`): `@claude review` コメントを投稿（実装は `gh api -X POST repos/.../issues/{num}/comments`。サーバ側 timestamp を baseline に使うため。`gh pr comment` でも等価）。
   - 検知: トリガ timestamp 以降に `claude[bot]` が出した inline review / 進捗コメント完了・ゼロ指摘マーカーで判定。
   - exit code は Copilot 版と統一（ゼロ→0、新規あり→20、timeout→1）。`run_in_background` 起動・15分上限。
 - 早期終了ロジックを SKILL.md ループ手順に追加（両 backend 共通）。

@@ -179,7 +179,11 @@ def main() -> int:
 
     for _ in range(args.attempts):
         latest = latest_marker(args.owner, args.repo, args.pr, args.bot_login, args.marker)
-        if latest and latest["ts"] > baseline:
+        # `>=`, not `>`: GitHub timestamps are second-resolution, so the new
+        # marker can share the trigger's second. `>=` still can't match the
+        # trigger comment (not a bot marker) nor a prior-round marker (strictly
+        # older than this trigger), so it only ever catches this round's result.
+        if latest and latest["ts"] >= baseline:
             return emit(latest, args.no_issues)
         time.sleep(args.interval)
 
