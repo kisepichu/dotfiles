@@ -136,3 +136,7 @@ python3 ~/.claude/skills/pr-review/scripts/wait-claude-review.py {owner} {repo} 
 - Claude backend で waiter が exit 1（タイムアウト）を繰り返すときは、リポに
   `setup-pr-review-workflow` の CI が入っているか、Claude GitHub App が認可済みか、
   `CLAUDE_CODE_OAUTH_TOKEN` が有効（未失効）かを確認する。
+- `wait-claude-review.py` は投稿主体を `claude[bot]`（Bot タイプ）に**厳格一致**で照合する
+  （なりすまし `claude-*` による偽マーカーでループを誤終了させないため）。実際の login が
+  異なる場合のみ `--bot-login <login>` で指定する。`--request` 無しの初回確認では、現在の
+  head コミットより古いレビューは stale として無視し新規レビューを依頼する。

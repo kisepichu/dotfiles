@@ -36,10 +36,17 @@ def valid_name(value: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-z0-9_.-]+", value))
 
 
-def is_bot(login: Optional[str], bot_login: str) -> bool:
-    if not login:
+def is_bot(login: Optional[str], user_type: Optional[str], bot_login: str) -> bool:
+    """True only for the exact reviewer bot.
+
+    A loose prefix match would let anyone create a `claude-*` account and post a
+    fake `CLAUDE_REVIEW: no issues found` to end the local loop early on a public
+    repo, so require an exact login and (when the API gives it) a Bot type. If
+    the real app login differs, pass --bot-login rather than loosening this.
+    """
+    if not login or login != bot_login:
         return False
-    return login == bot_login or login.lower().startswith("claude")
+    return user_type in (None, "Bot")
 
 
 def issue_comment_markers(owner: str, repo: str, pr: int, bot_login: str, marker: str) -> List[Dict[str, Any]]:
@@ -56,9 +63,9 @@ def issue_comment_markers(owner: str, repo: str, pr: int, bot_login: str, marker
     out = []
     for page in pages:
         for c in page:
-            login = (c.get("user") or {}).get("login")
+            user = c.get("user") or {}
             body = c.get("body") or ""
-            if is_bot(login, bot_login) and marker in body:
+            if is_bot(user.get("login"), user.get("type"), bot_login) and marker in body:
                 ts = max(c.get("created_at") or "", c.get("updated_at") or "")
                 out.append({"source": "issue_comment", "id": c.get("id"), "ts": ts, "body": body})
     return out
@@ -73,9 +80,9 @@ def review_markers(owner: str, repo: str, pr: int, bot_login: str, marker: str) 
     out = []
     for page in pages:
         for r in page:
-            login = (r.get("user") or {}).get("login")
+            user = r.get("user") or {}
             body = r.get("body") or ""
-            if is_bot(login, bot_login) and marker in body:
+            if is_bot(user.get("login"), user.get("type"), bot_login) and marker in body:
                 out.append({"source": "review", "id": r.get("id"), "ts": r.get("submitted_at") or "", "body": body})
     return out
 
@@ -85,6 +92,25 @@ def latest_marker(owner: str, repo: str, pr: int, bot_login: str, marker: str) -
     if not found:
         return None
     return max(found, key=lambda m: m["ts"])
+
+
+def head_commit_time(owner: str, repo: str, pr: int) -> str:
+    """ISO timestamp of the PR's latest commit, or '' if unknown.
+
+    Used to reject a stale review: an existing marker from before the current
+    head (new commits pushed since) must not be reported as a fresh result.
+    """
+    try:
+        pages = run_json([
+            "gh", "api", "--paginate", "--slurp",
+            f"repos/{owner}/{repo}/pulls/{pr}/commits?per_page=100",
+        ])
+    except Exception:
+        return ""
+    commits = [c for page in pages for c in page]
+    if not commits:
+        return ""
+    return (((commits[-1].get("commit") or {}).get("committer") or {}).get("date")) or ""
 
 
 def post_trigger(owner: str, repo: str, pr: int, body: str) -> str:
@@ -133,15 +159,21 @@ def main() -> int:
     before = latest_marker(args.owner, args.repo, args.pr, args.bot_login, args.marker)
     before_ts = before["ts"] if before else ""
 
-    # No new request: report an already-present completed review, like the
-    # Copilot waiter does.
+    # No new request: report an already-present completed review (like the
+    # Copilot waiter), but ONLY if it covers the current head -- a marker older
+    # than the latest commit is stale (new commits pushed since) and must not be
+    # accepted; fall through and trigger a fresh review instead.
+    need_trigger = args.request or not before
     if before and not args.request:
-        return emit(before, args.no_issues)
+        head_ts = head_commit_time(args.owner, args.repo, args.pr)
+        if not head_ts or before_ts > head_ts:
+            return emit(before, args.no_issues)
+        need_trigger = True
 
     # Trigger a (re-)review by posting the @claude comment. Use the comment's
     # server timestamp as the baseline so clock skew can't hide the result.
     baseline = before_ts
-    if args.request or not before:
+    if need_trigger:
         baseline = post_trigger(args.owner, args.repo, args.pr, args.trigger_body) or before_ts
 
     for _ in range(args.attempts):
