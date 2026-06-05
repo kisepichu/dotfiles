@@ -16,7 +16,7 @@ Evaluate against these criteria:
 - External side effects: network calls, publishing, pushing, deploying.
 
 Read-only actions are low risk. Reading or inspecting files (the Read tool;
-Bash like `cat`, `ls`, `head`, `grep`, `git status/log/diff/fetch`) is
+Bash like `cat`, `ls`, `head`, `grep`, `git status/log/ls-files/rev-parse`) is
 generally fine even OUTSIDE the project directory — including skill files,
 config, dotfiles, and tool definitions under `~/.claude` — UNLESS the target
 is clearly secret material (private keys, `.env`, credentials, tokens). Being

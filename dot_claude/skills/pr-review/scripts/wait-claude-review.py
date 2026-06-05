@@ -133,9 +133,18 @@ def post_trigger(owner: str, repo: str, pr: int, body: str) -> str:
     return created.get("created_at") or ""
 
 
-def emit(marker_hit: Dict[str, Any], no_issues_phrase: str) -> int:
+def _sentinel_line(body: str, marker: str) -> str:
+    """Extract the CLAUDE_REVIEW: sentinel line from body, or ''."""
+    for line in body.splitlines():
+        if marker in line:
+            return line
+    return ""
+
+
+def emit(marker_hit: Dict[str, Any], no_issues_phrase: str, marker: str = "CLAUDE_REVIEW:") -> int:
     body = marker_hit.get("body") or ""
-    no_comments = no_issues_phrase.lower() in body.lower()
+    sentinel = _sentinel_line(body, marker)
+    no_comments = no_issues_phrase.lower() in sentinel.lower()
     print(json.dumps({
         "source": marker_hit.get("source"),
         "id": marker_hit.get("id"),
@@ -178,7 +187,7 @@ def main() -> int:
     if before and not args.request:
         head_ts = head_pushed_date(args.owner, args.repo, args.pr)
         if head_ts and before_ts >= head_ts:
-            return emit(before, args.no_issues)
+            return emit(before, args.no_issues, args.marker)
         need_trigger = True
 
     # Trigger a (re-)review by posting the @claude comment. Use the comment's
@@ -194,7 +203,7 @@ def main() -> int:
         # trigger comment (not a bot marker) nor a prior-round marker (strictly
         # older than this trigger), so it only ever catches this round's result.
         if latest and latest["ts"] >= baseline:
-            return emit(latest, args.no_issues)
+            return emit(latest, args.no_issues, args.marker)
         time.sleep(args.interval)
 
     print("Timed out waiting for Claude review.", file=sys.stderr)
