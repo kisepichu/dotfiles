@@ -144,7 +144,8 @@ def _sentinel_line(body: str, marker: str) -> str:
 def emit(marker_hit: Dict[str, Any], no_issues_phrase: str, marker: str = "CLAUDE_REVIEW:") -> int:
     body = marker_hit.get("body") or ""
     sentinel = _sentinel_line(body, marker)
-    no_comments = no_issues_phrase.lower() in sentinel.lower()
+    sentinel_value = sentinel.split(marker, 1)[1].strip().lower() if marker in sentinel else ""
+    no_comments = sentinel_value == no_issues_phrase.lower()
     print(json.dumps({
         "source": marker_hit.get("source"),
         "id": marker_hit.get("id"),
@@ -211,4 +212,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        raise
+    except Exception as exc:
+        print(f"fatal: {exc}", file=sys.stderr)
+        raise SystemExit(1)
