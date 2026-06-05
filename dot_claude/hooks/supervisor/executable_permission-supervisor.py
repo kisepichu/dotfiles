@@ -606,28 +606,12 @@ def _apply_cd(segment, eval_cwd):
 
 
 def _segment_hard_haystack(segment, cwd):
-    """Hard-rule haystack for a segment, augmented with its relative operands
-    resolved against `cwd`.
+    """Hard-rule haystack for a segment, augmented with cwd-resolved operands.
 
-    A `cd` can move into a sensitive directory while a later segment refers to
-    a file there by a bare relative name -- `cd ~/.kube && cat config` -- which
-    the textual hard rules (e.g. `\\.kube/config`) would miss because the
-    segment alone is just `cat config`. Feeding the absolute path the segment
-    actually touches lets those path-based rules fire.
+    Delegates to `_build_haystack` with cwd so that both single-command and
+    compound-segment flows share the same relative-path resolution logic.
     """
-    base = _build_haystack("Bash", {"command": segment})
-    if not cwd:
-        return base
-    try:
-        tokens = shlex.split(segment)
-    except ValueError:
-        return base
-    extra = []
-    for t in tokens[1:]:
-        if not t or t.startswith("-") or "~" in t or os.path.isabs(t):
-            continue  # flags, tilde (untracked), and absolute paths: already textual
-        extra.append(os.path.normpath(os.path.join(cwd, t)))
-    return base + "\n" + "\n".join(extra) if extra else base
+    return _build_haystack("Bash", {"command": segment}, cwd)
 
 
 def _segment_allow_reason(cfg, segment, cwd):
@@ -1257,9 +1241,31 @@ def cli_main(argv):
     return 2
 
 
-def _build_haystack(tool_name, tool_input):
+def _resolve_relative_args(cmd, cwd):
+    """Resolve relative non-flag arguments against *cwd* into absolute paths.
+
+    Returns a (possibly empty) list of resolved paths. Used to augment the
+    hard-rule haystack so that `cd /sensitive/dir` followed by `cat config`
+    as a separate tool call still triggers path-based hard rules.
+    """
+    if not cwd or not cmd:
+        return []
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        return []
+    resolved = []
+    for t in tokens[1:]:
+        if not t or t.startswith("-") or "~" in t or os.path.isabs(t):
+            continue
+        resolved.append(os.path.normpath(os.path.join(cwd, t)))
+    return resolved
+
+
+def _build_haystack(tool_name, tool_input, cwd=None):
     """Text fed to the hard rules: tool_name + serialized input (+ de-quoted
-    Bash command so quoted dangerous flags like `rm "-rf" dir` cannot slip)."""
+    Bash command so quoted dangerous flags like `rm "-rf" dir` cannot slip,
+    + cwd-resolved relative operands so a prior `cd` can't dodge path rules)."""
     haystack = "{}\n{}".format(tool_name, json.dumps(tool_input, ensure_ascii=False))
     if tool_name == "Bash":
         cmd = _bash_command(tool_input)
@@ -1268,6 +1274,9 @@ def _build_haystack(tool_name, tool_input):
                 haystack += "\n" + " ".join(shlex.split(cmd))
             except ValueError:
                 pass  # unbalanced quotes -> keep raw haystack; still checked
+            resolved = _resolve_relative_args(cmd, cwd)
+            if resolved:
+                haystack += "\n" + "\n".join(resolved)
     return haystack
 
 
@@ -1280,7 +1289,7 @@ def handle_post_tool_use(cfg, event, tool_name, tool_input, cwd):
     if cfg.get("learn_from_approvals") is not True:
         return
     tool_use_id = event.get("tool_use_id", "")
-    haystack = _build_haystack(tool_name, tool_input)
+    haystack = _build_haystack(tool_name, tool_input, cwd)
     sig = promote_learned(cfg, cwd, tool_use_id, haystack)
     if sig:
         record = {
@@ -1326,7 +1335,7 @@ def main():
     if "_config_error" in cfg:
         record["config_error"] = cfg["_config_error"]
 
-    haystack = _build_haystack(tool_name, tool_input)
+    haystack = _build_haystack(tool_name, tool_input, cwd)
 
     if matches_always_ask_tool(cfg, tool_name):
         # Optionally let the judge answer the question instead of blocking on a
