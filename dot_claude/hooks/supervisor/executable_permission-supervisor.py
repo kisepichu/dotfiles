@@ -716,7 +716,7 @@ _NESTED_GROUPS = {
 # Outward-facing / publishing subcommand shapes that are never auto-learned,
 # so a single human approval can't broaden into unattended pushes/publishes.
 _NEVER_LEARN_SIGS = frozenset((
-    "git push", "git fetch", "git pull",
+    "git push", "git fetch", "git pull", "git config",
     "gh pr create", "gh pr merge", "gh release create", "gh repo delete",
     "docker push", "docker image push", "npm publish", "pnpm publish",
     "yarn publish", "cargo publish", "poetry publish",
