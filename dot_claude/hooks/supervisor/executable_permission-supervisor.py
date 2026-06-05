@@ -109,6 +109,7 @@ DEFAULT_CONFIG = {
         r"\bchmod\s+-R\b",
         r"\bmkfs\b|\bdd\s+if=",
         r"(^|[^\w])~?/?\.ssh/",
+        r"/etc/ssh/",
         r"\.env(\b|[^\w])",
         r"id_rsa|id_ed25519|\.pem\b|credentials",
         # Common secret/credential files (so the broad Read allow above never
@@ -260,7 +261,7 @@ _BASH_GLOB_CHARS = re.compile(r"[*?~\[\]]")
 # the hard rules, which run before this; a `~`/glob arg is rejected below.
 _SAFE_READONLY_CMD = re.compile(
     r"^\s*(cd|cat|ls|head|tail|wc|file|stat|tree|pwd|grep|"
-    r"git\s+(status|log|diff|show|ls-files|rev-parse|config\s+--get))\b"
+    r"git\s+(status|log|ls-files|rev-parse|config\s+--get))\b"
 )
 
 

@@ -106,7 +106,7 @@ export CLAUDE_SUPERVISOR_STATE_FILE=~/.claude/hooks/supervisor/logs/state-shared
   読み取りなのでバックエンドを通さず許可。
 - Bash は **実際の `command` フィールドを構造的に検査**（直列化 JSON 文字列の正規表現
   マッチではない＝他フィールドの紛らわしい値で誤許可しない）。許可するのは
-  `cd`/`cat`/`ls`/`grep`/`git status|log|diff` 等で始まる **単一の単純コマンドのみ**。
+  `cd`/`cat`/`ls`/`grep`/`git status|log|ls-files|rev-parse` 等で始まる **単一の単純コマンドのみ**。
   パイプ `|`・連結 `&&`/`;`・リダイレクト `<>`・コマンド置換 `$()`/`` ` `` を1つでも
   含む複合コマンドは、この単一コマンド規則では許可しない。ただし**全構成コマンドが
   個別に自動許可される複合**は別途許可する（後述「複合コマンドの分解」）。
