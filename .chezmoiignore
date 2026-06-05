@@ -6,7 +6,7 @@
 /tasks/
 /.pre-commit-config.yaml
 /.secretlintrc.json
-.claude/hooks/supervisor/logs/
+/.claude/hooks/supervisor/logs/
 {{- if ne .chezmoi.os "darwin" }}
 /.config/karabiner/
 {{- end }}

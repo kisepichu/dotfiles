@@ -94,23 +94,33 @@ def latest_marker(owner: str, repo: str, pr: int, bot_login: str, marker: str) -
     return max(found, key=lambda m: m["ts"])
 
 
-def head_commit_time(owner: str, repo: str, pr: int) -> str:
-    """ISO timestamp of the PR's latest commit, or '' if unknown.
+def head_pushed_date(owner: str, repo: str, pr: int) -> str:
+    """Server-side pushed timestamp of the PR's head commit, or '' if unknown.
 
-    Used to reject a stale review: an existing marker from before the current
-    head (new commits pushed since) must not be reported as a fresh result.
+    Unlike commit.committer.date (which is author-controlled and can be older
+    than expected after rebases/cherry-picks), pushedDate is set by GitHub's
+    server and reliably reflects when the commit actually arrived.
     """
+    query = """query($owner: String!, $repo: String!, $pr: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pr) {
+          commits(last: 1) {
+            nodes { commit { pushedDate } }
+          }
+        }
+      }
+    }"""
     try:
-        pages = run_json([
-            "gh", "api", "--paginate", "--slurp",
-            f"repos/{owner}/{repo}/pulls/{pr}/commits?per_page=100",
+        data = run_json([
+            "gh", "api", "graphql",
+            "-f", f"query={query}",
+            "-f", f"owner={owner}",
+            "-f", f"repo={repo}",
+            "-F", f"pr={pr}",
         ])
+        return data["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["pushedDate"] or ""
     except Exception:
         return ""
-    commits = [c for page in pages for c in page]
-    if not commits:
-        return ""
-    return (((commits[-1].get("commit") or {}).get("committer") or {}).get("date")) or ""
 
 
 def post_trigger(owner: str, repo: str, pr: int, body: str) -> str:
@@ -166,7 +176,7 @@ def main() -> int:
     # triggering a fresh review rather than trusting a possibly-stale result.
     need_trigger = args.request or not before
     if before and not args.request:
-        head_ts = head_commit_time(args.owner, args.repo, args.pr)
+        head_ts = head_pushed_date(args.owner, args.repo, args.pr)
         if head_ts and before_ts >= head_ts:
             return emit(before, args.no_issues)
         need_trigger = True
