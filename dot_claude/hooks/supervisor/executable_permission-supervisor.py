@@ -110,6 +110,7 @@ DEFAULT_CONFIG = {
         r"\bmkfs\b|\bdd\s+if=",
         r"(^|[^\w])~?/?\.ssh/",
         r"/etc/ssh/",
+        r"/etc/(g?shadow|master\.passwd)\b",
         r"\.env(\b|[^\w])",
         r"id_rsa|id_ed25519|\.pem\b|credentials",
         # Common secret/credential files (so the broad Read allow above never

@@ -34,6 +34,7 @@
     "\\bmkfs\\b|\\bdd\\s+if=",
     "(^|[^\\w])~?/?\\.ssh/",
     "/etc/ssh/",
+    "/etc/(g?shadow|master\\.passwd)\\b",
     "\\.env(\\b|[^\\w])",
     "id_rsa|id_ed25519|\\.pem\\b|credentials",
     "\\.aws/|\\.netrc\\b|\\.git-credentials\\b|\\.npmrc\\b|\\.pgpass\\b|\\.kube/config\\b|\\.docker/config\\.json\\b",
