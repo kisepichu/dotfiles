@@ -1,5 +1,31 @@
 {
-  "theme": "dark",
+  "model": "opus[1m]",
+  "permissions": {
+    "allow": [
+      "Bash(python3 ~/.claude/skills/*/scripts/*.py:*)",
+      "Bash(bash ~/.claude/skills/*/scripts/*.sh:*)",
+      "Bash(sh ~/.claude/skills/*/scripts/*.sh:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(pwd:*)",
+      "Bash(file:*)",
+      "Bash(stat:*)",
+      "Bash(tree:*)",
+      "Bash(which:*)",
+      "Bash(realpath:*)",
+      "Bash(basename:*)",
+      "Bash(dirname:*)",
+      "Bash(echo:*)",
+      "Bash(date:*)",
+      "Bash(whoami:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git rev-parse:*)"
+    ],
+    "ask": [
+      "AskUserQuestion"
+    ]
+  },
   "hooks": {
     "PermissionRequest": [
       {
@@ -24,6 +50,22 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
+            "timeout": 30
+          }
+        ]
+      }
     ]
+  },
+  "theme": "dark",
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
   }
 }

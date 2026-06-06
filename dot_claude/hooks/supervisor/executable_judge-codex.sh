@@ -7,7 +7,6 @@
 set -uo pipefail
 
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-TEMPLATE="$HOOK_DIR/prompt-template.md"
 
 ask() {
   python3 -c "import json,sys; print(json.dumps({'decision':'ask','reason':sys.argv[1]}))" \
@@ -18,6 +17,15 @@ ask() {
 CONTEXT="$(cat)"
 [ -n "$CONTEXT" ] || ask "empty context"
 command -v codex >/dev/null 2>&1 || ask "codex not found"
+
+# Pick the template by mode: "answer" mode asks codex to answer a clarifying
+# question on the user's behalf; otherwise it judges a permission request.
+MODE="$(CONTEXT="$CONTEXT" python3 -c 'import json,os;print(json.loads(os.environ["CONTEXT"]).get("mode",""))' 2>/dev/null || echo "")"
+if [ "$MODE" = "answer" ]; then
+  TEMPLATE="$HOOK_DIR/prompt-answer-template.md"
+else
+  TEMPLATE="$HOOK_DIR/prompt-template.md"
+fi
 [ -f "$TEMPLATE" ] || ask "missing prompt template"
 
 # Build the prompt by substituting the context into the template.
@@ -40,8 +48,11 @@ for chunk in reversed(re.findall(r'\{[^{}]*"decision"[^{}]*\}', raw, re.DOTALL))
         obj = json.loads(chunk)
     except json.JSONDecodeError:
         continue
-    if isinstance(obj, dict) and obj.get("decision") in ("allow", "deny", "ask"):
-        print(json.dumps({"decision": obj["decision"], "reason": obj.get("reason", "")}))
+    if isinstance(obj, dict) and obj.get("decision") in ("allow", "deny", "ask", "answer"):
+        out = {"decision": obj["decision"], "reason": obj.get("reason", "")}
+        if obj["decision"] == "answer":
+            out["answer"] = obj.get("answer", "")
+        print(json.dumps(out))
         break
 else:
     print('{"decision":"ask","reason":"no parseable verdict from codex"}')
