@@ -4,3 +4,6 @@ dot_claude/hooks/supervisor/logs/
 
 # Claude Code per-repo runtime state (created when running Claude Code here).
 .claude/scheduled_tasks.lock
+
+
+tmp

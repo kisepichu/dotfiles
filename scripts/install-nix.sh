@@ -13,6 +13,10 @@ set -euo pipefail
 # Environment:
 #   NIX_INSTALL_NO_CONFIRM=1   pass --no-confirm to the installer (non-interactive)
 #   NIX_INSTALL_DETERMINATE=1  install Determinate Nix instead of upstream Nix
+#   NIX_INSTALLER_NIX_BUILD_GROUP_ID=N
+#       override nixbld group ID (macOS; auto-detected if unset)
+#   NIX_INSTALLER_NIX_BUILD_USER_ID_BASE=N
+#       override build-user UID base (macOS; auto-detected if unset)
 
 installer_url="https://install.determinate.systems/nix"
 
@@ -67,6 +71,101 @@ case "$os" in
     ;;
 esac
 
+# macOS: clean up leftover state from a previous failed install.
+# The Determinate installer reverts on failure but may leave /etc/nix behind.
+if [ "$os" = "Darwin" ] && [ -d /etc/nix ] && [ ! -d /nix/var/nix ]; then
+  echo "info: removing leftover /etc/nix from a previous failed install" >&2
+  sudo rm -rf /etc/nix
+fi
+
+# macOS: ensure the /nix mount point and APFS volume exist BEFORE the installer
+# runs. On managed Macs, security software (e.g., Digital Guardian) may register
+# a DiskArbitration dissenter that blocks the installer's volume creation. Pre-
+# creating the volume with diskutil works around this.
+if [ "$os" = "Darwin" ]; then
+  if [ ! -e /nix ]; then
+    if ! grep -qx 'nix' /etc/synthetic.conf 2>/dev/null; then
+      echo "info: adding 'nix' entry to /etc/synthetic.conf" >&2
+      printf 'nix\n' | sudo tee -a /etc/synthetic.conf >/dev/null
+    fi
+    sudo /System/Library/Filesystems/apfs.fs/Contents/Resources/apfs.util -t 2>/dev/null || true
+    if [ ! -e /nix ]; then
+      echo "error: /nix mount point does not exist and could not be created dynamically" >&2
+      echo "hint: synthetic.conf entry was added; reboot your Mac, then re-run this script" >&2
+      exit 1
+    fi
+  fi
+
+  if ! diskutil info "Nix Store" >/dev/null 2>&1; then
+    root_disk="$(diskutil info / 2>/dev/null | sed -n 's/.*Part of Whole: *//p' | tr -d '[:space:]')"
+    if [ -z "$root_disk" ]; then
+      echo "error: could not determine root APFS container for volume creation" >&2
+      exit 1
+    fi
+    echo "info: pre-creating 'Nix Store' APFS volume on $root_disk" >&2
+    if ! sudo diskutil apfs addVolume "$root_disk" "APFS" "Nix Store" -mountpoint /nix; then
+      echo "error: failed to create 'Nix Store' APFS volume" >&2
+      echo "hint: security software (e.g., Digital Guardian) may be blocking disk operations" >&2
+      echo "hint: try: (1) reboot and re-run, (2) contact IT to allow APFS volume creation" >&2
+      exit 1
+    fi
+  fi
+fi
+
+# macOS: resolve GID/UID for Nix build users.
+# On managed Macs (MDM / enterprise directory), the installer's default IDs may
+# collide with existing directory-service entries, causing eDSRecordAlreadyExists.
+# Auto-detect free IDs and pass them to the installer via its env-var interface.
+if [ "$os" = "Darwin" ]; then
+  nix_build_user_count=32
+
+  find_free_gid() {
+    local start="$1"
+    local used
+    used="$(dscl . -list /Groups PrimaryGroupID 2>/dev/null | awk '{print $NF}')"
+    local gid="$start"
+    while echo "$used" | grep -qw "$gid"; do
+      gid=$((gid + 1))
+    done
+    echo "$gid"
+  }
+
+  find_free_uid_base() {
+    local start="$1"
+    local used
+    used="$(dscl . -list /Users UniqueID 2>/dev/null | awk '{print $NF}')"
+    local base="$start"
+    while true; do
+      local conflict=0
+      local i=0
+      while [ "$i" -lt "$nix_build_user_count" ]; do
+        if echo "$used" | grep -qw "$((base + i))"; then
+          conflict=1
+          base=$((base + i + 1))
+          break
+        fi
+        i=$((i + 1))
+      done
+      if [ "$conflict" -eq 0 ]; then
+        echo "$base"
+        return
+      fi
+    done
+  }
+
+  if [ -z "${NIX_INSTALLER_NIX_BUILD_GROUP_ID:-}" ]; then
+    free_gid="$(find_free_gid 350)"
+    export NIX_INSTALLER_NIX_BUILD_GROUP_ID="$free_gid"
+    echo "info: using GID $free_gid for nixbld group (auto-detected free ID)" >&2
+  fi
+
+  if [ -z "${NIX_INSTALLER_NIX_BUILD_USER_ID_BASE:-}" ]; then
+    free_uid_base="$(find_free_uid_base 350)"
+    export NIX_INSTALLER_NIX_BUILD_USER_ID_BASE="$free_uid_base"
+    echo "info: using UID base $free_uid_base for nixbld users (auto-detected free range)" >&2
+  fi
+fi
+
 if [ "${NIX_INSTALL_DETERMINATE:-}" = "1" ]; then
   install_args+=(--determinate)
 fi
@@ -82,5 +181,24 @@ curl --proto '=https' --tlsv1.2 -fsSL "$installer_url" -o "$installer"
 echo "info: running Determinate Nix Installer: sh <installer> ${install_args[*]}" >&2
 sh "$installer" "${install_args[@]}"
 
+# macOS: work around Digital Guardian's extended attributes causing ACL errors.
+# DG sets xattrs (com.dgagent.*) on files that can trigger Nix ACL errors.
+# `ignored-acls` is supported by Lix but not upstream/Determinate Nix, so we
+# write it to nix.custom.conf (Determinate's user-override file) and only when
+# the running Nix version actually recognises the setting.
+if [ "$os" = "Darwin" ] && pgrep -qf dgdaemon >/dev/null 2>&1; then
+  nix_custom="/etc/nix/nix.custom.conf"
+  dg_acls="com.dgagent.entity com.dgagent.filedet com.dgagent.policyid com.dgagent.ruleid com.dgagent.tagname com.dgagent.xattrsize"
+  if /nix/var/nix/profiles/default/bin/nix show-config --json 2>/dev/null | grep -q '"ignored-acls"'; then
+    if ! grep -q 'ignored-acls' "$nix_custom" 2>/dev/null; then
+      echo "info: Digital Guardian detected; adding ignored-acls to $nix_custom" >&2
+      printf 'ignored-acls = %s\n' "$dg_acls" | sudo tee -a "$nix_custom" >/dev/null
+    fi
+  else
+    echo "info: Digital Guardian detected but this Nix version does not support ignored-acls" >&2
+    echo "hint: if you see ACL errors during nix build, consider switching to Lix or stripping xattrs manually" >&2
+  fi
+fi
+
 echo "info: nix installed; open a new shell so the nix profile is sourced" >&2
-echo "hint: conf.d/nix.fish sources ~/.nix-profile/etc/profile.d/nix.fish automatically" >&2
+echo "hint: conf.d/nix.fish sources nix-daemon.fish automatically" >&2
