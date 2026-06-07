@@ -73,7 +73,8 @@ esac
 
 # macOS: clean up leftover state from a previous failed install.
 # The Determinate installer reverts on failure but may leave /etc/nix behind.
-if [ "$os" = "Darwin" ] && [ -d /etc/nix ] && [ ! -d /nix/var/nix ]; then
+if [ "$os" = "Darwin" ] && [ -d /etc/nix ] && [ ! -d /nix/var/nix ] \
+   && ! diskutil info "Nix Store" >/dev/null 2>&1; then
   echo "info: removing leftover /etc/nix from a previous failed install" >&2
   sudo rm -rf /etc/nix
 fi
