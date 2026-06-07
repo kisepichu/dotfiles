@@ -96,7 +96,12 @@ if [ "$os" = "Darwin" ]; then
     fi
   fi
 
-  if ! diskutil info "Nix Store" >/dev/null 2>&1; then
+  if diskutil info "Nix Store" >/dev/null 2>&1; then
+    if ! mount | grep -q ' on /nix '; then
+      echo "info: 'Nix Store' volume exists but is not mounted at /nix; mounting" >&2
+      sudo diskutil mount -mountPoint /nix "Nix Store"
+    fi
+  else
     root_disk="$(diskutil info / 2>/dev/null | sed -n 's/.*Part of Whole: *//p' | tr -d '[:space:]')"
     if [ -z "$root_disk" ]; then
       echo "error: could not determine root APFS container for volume creation" >&2
