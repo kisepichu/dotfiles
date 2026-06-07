@@ -54,8 +54,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Keep cost down: a light model and a bounded turn budget.
-          claude_args: "--model claude-sonnet-4-6 --max-turns 20"
+          claude_args: "--model claude-sonnet-4-6 --max-turns 8"
           prompt: |
             You are reviewing this pull request.
 
