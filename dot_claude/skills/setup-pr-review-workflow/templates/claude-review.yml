@@ -17,11 +17,6 @@ on:
   pull_request_review_comment:
     types: [created]
 
-# Cancel a superseded review on the same PR.
-concurrency:
-  group: claude-review-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
   pull-requests: write
@@ -31,6 +26,12 @@ permissions:
 
 jobs:
   claude-review:
+    # Cancel a superseded review on the same PR. Must be at job level (not
+    # workflow level) so the `if` gate runs first — otherwise claude[bot]'s
+    # own inline comments trigger a new run that kills the in-progress review.
+    concurrency:
+      group: claude-review-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: true
     # Only react to "@claude review" on a PR, and only from trusted authors.
     # Matching the full command (not a bare "@claude" mention) avoids burning
     # the token when someone merely references @claude in another context. On a
