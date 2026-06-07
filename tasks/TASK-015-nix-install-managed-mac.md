@@ -21,7 +21,7 @@
 ### 副次的問題
 
 1. **GID/UID 衝突**: GID 350 (`_avectodaemon`), 351 (`_defendpoint`) が既に使用済み。auto-detection コードは TASK-011 後に追加済み (未コミット) で、GID 352 / UID base 352 を正しく検出。
-2. **Digital Guardian ACL エラー**: DG が `com.dgagent.*` xattr を付与し、Nix が未知の ACL としてエラーにする。`/etc/nix/nix.conf` に `ignored-acls` 設定が必要 (同僚の報告 `tmp/a.md` と一致)。
+2. **Digital Guardian ACL エラー**: DG が `com.dgagent.*` xattr を付与し、Nix が未知の ACL としてエラーにする。`ignored-acls` 設定が必要 (同僚の報告 `tmp/a.md` と一致)。ただし `ignored-acls` は Lix 固有で Determinate Nix では未サポート。
 
 ## 修正内容
 
@@ -29,7 +29,7 @@
 
 1. **前回失敗のクリーンアップ**: `/etc/nix` が残っているが `/nix/var/nix` が無い状態を検出し `sudo rm -rf /etc/nix`
 2. **synthetic.conf + APFS ボリューム事前作成**: インストーラ実行前に `diskutil apfs addVolume` でボリュームを作成。インストーラがボリューム検出してスキップすることで DiskArbitrationDissenter を回避
-3. **Digital Guardian ignored-acls**: インストール後に `dgdaemon` プロセスを検出し、`/etc/nix/nix.conf` に `ignored-acls` を自動追加
+3. **Digital Guardian ignored-acls**: インストール後に `dgdaemon` プロセスを検出し、`nix show-config` で `ignored-acls` 対応を確認した上で `/etc/nix/nix.custom.conf` に追記（Determinate Nix 未サポート時はヒントのみ）
 
 ## チェックリスト
 

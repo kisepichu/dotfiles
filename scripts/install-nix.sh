@@ -84,7 +84,7 @@ fi
 # creating the volume with diskutil works around this.
 if [ "$os" = "Darwin" ]; then
   if [ ! -e /nix ]; then
-    if ! grep -qx 'nix' /etc/synthetic.conf 2>/dev/null; then
+    if ! grep -q '^nix\b' /etc/synthetic.conf 2>/dev/null; then
       echo "info: adding 'nix' entry to /etc/synthetic.conf" >&2
       printf 'nix\n' | sudo tee -a /etc/synthetic.conf >/dev/null
     fi
