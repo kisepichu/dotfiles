@@ -59,10 +59,20 @@ jobs:
           claude_args: |
             --model claude-sonnet-4-6
             --max-turns 25
-            --allowedTools "Read,Bash(grep:*),Bash(find:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"
-          show_full_output: "true"
+            --allowedTools "Read,WebFetch,WebSearch,Bash(grep:*),Bash(find:*),Bash(cat:*),Bash(ls:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git status:*),Bash(git rev-parse:*),Bash(git branch:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"
+            --disallowedTools "Edit,Write,Agent"
           prompt: |
-            You are reviewing this pull request.
+            You are reviewing this pull request. This is a CI environment with
+            restricted tool access.
+
+            Available tools: Read, WebFetch, WebSearch,
+            Bash (grep/find/cat/ls/head/tail/wc),
+            Bash (git diff/log/show/status/rev-parse/branch),
+            Bash (gh pr list/diff/view/comment),
+            and mcp__github_inline_comment__create_inline_comment.
+            Do NOT use Edit, Write, or Agent.
+            If a tool call is denied, do NOT retry it or try workarounds — use
+            only your allowed tools.
 
             Focus, in priority order, on:
               1. Correctness bugs, logic errors, and data-loss / destructive risks.
