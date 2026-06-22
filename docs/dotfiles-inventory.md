@@ -42,7 +42,7 @@
 取り込み結果:
 
 - `config.fish`: `~/.bashrc` source を廃止し、fish native config に整理済み。
-- `fish_plugins`: `jorgebucaran/fisher` のみ管理。`bass` は不要化したため除外。
+- `fish_plugins`: `jorgebucaran/fisher` と `edc/bass` を管理。`bass` は bash 用 env スクリプトを fish から source するため再導入。
 - `conf.d/nix.fish`: Nix が存在する場合だけ source。
 - `conf.d/rustup.fish`: cargo env が存在する場合だけ source。
 
