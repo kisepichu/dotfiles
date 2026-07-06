@@ -18,6 +18,8 @@
 7. **fish plugin `bass`**: 再導入 (`edc/bass`)。
 8. **mac `C-f C-矢印` で pane swap にならない**: tmux 側は設定済み (dot_tmux.conf:40-43)。
    根本原因は macOS Mission Control が `Ctrl+←/→` を奪っていること。
+9. **全角括弧 `（）` で `da(` / `di(` が効かない**: nvim (mini.ai) の `(` テキスト
+   オブジェクトを全角 `（）` にも対応させ、`.md` 等の日本語文書で `da(` が使えるように。
 
 ## 調査結果
 
@@ -28,6 +30,12 @@
 - **C-f C-矢印 (項目 8)**: tmux 設定は正しい。macOS の Mission Control が標準で
   `Ctrl+←` (ID 79) / `Ctrl+→` (ID 81) を「スペース移動」に割り当てており、端末まで
   届かないのが原因。WezTerm はデフォルトで CSI を送出するため WezTerm 側の変更は不要。
+- **全角括弧テキストオブジェクト (項目 9)**: 標準の `(` テキストオブジェクトは ASCII
+  `()` しかマッチしない。LazyVim 既定の mini.ai を override し、`(` / `)` を
+  「ASCII `()` (balanced) または全角 `（）` (non-balanced)」の合成パターンにした。
+  mini.ai の `gen_spec.pair` はパターン配列を返す (関数ではない) 点、全角はマルチバイト
+  のため `%b`(balanced) が使えず non-balanced にする点が要注意。`{ { ascii, fullwidth } }`
+  と 1 段の代替パターンにすると cartesian_product が各々を展開して両対応になる。
 
 ## 修正内容
 
@@ -54,6 +62,7 @@
 - [x] nix-profile PATH フォールバック
 - [x] fish plugin `bass` 追加
 - [x] macOS Mission Control Ctrl+Arrow 無効化
+- [x] mini.ai で全角 `（）` の `da(` / `di(` 対応 (headless nvim で 4 ケース検証済み)
 - [x] docs / inventory 更新
 - [ ] 実機確認 (Mac: Ctrl+Shift+Space, C-f C-矢印, nvim pane zoom)
 
