@@ -18,20 +18,28 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 ## キーバインド
 
 - `Ctrl+Shift+Space`: QuickSelect (画面内の URL / ハッシュ / パスなどを素早く選択
-  ・コピー)。
+  ・コピー)。macOS では下記の通り OS 側の解放が必要。
 - `Ctrl+Arrow`: WezTerm 側では **あえてバインドしない**。デフォルトの CSI シーケン
   スをそのまま端末へ送り、tmux (prefix `C-f` のあと `C-Arrow`) で pane swap させる
   ため。
 
-### macOS で Ctrl+Arrow が tmux に届かない場合
+### macOS でキーが WezTerm / tmux に届かない場合
 
-macOS は標準で Mission Control が `Ctrl+←` / `Ctrl+→` を「スペースを左右に移動」に
-割り当てており、端末に届かない。`scripts/configure-macos-defaults.sh` がこの 2 つ
-(symbolichotkey ID 79 / 81) を無効化する。手動で行う場合:
+macOS は一部の Ctrl 系ショートカットを OS 側で先取りするため、そのままでは端末に
+届かない。`scripts/configure-macos-defaults.sh` が該当する symbolichotkey を無効化する:
+
+- `Ctrl+←` / `Ctrl+→` (ID 79 / 81): Mission Control「スペースを左右に移動」。
+  tmux の pane swap (prefix `C-f` のあと `C-Arrow`) に必要。
+- `Ctrl+Shift+Space` (ID 156): WezTerm の QuickSelect に必要。
+
+手動で行う場合:
 
 ```sh
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 79 "{ enabled = 0; }"
 defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 81 "{ enabled = 0; }"
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 156 "{ enabled = 0; }"
 ```
 
-反映にはログアウト、または `activateSettings -u` の実行が必要。
+反映にはログアウト、または `activateSettings -u` の実行が必要。無効化した項目は
+`{ enabled = 1; }` に戻すか、システム設定 > キーボード > キーボードショートカット
+から復帰できる。

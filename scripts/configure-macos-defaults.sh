@@ -27,11 +27,13 @@ defaults write com.apple.dock show-recents -bool false
 
 defaults write com.apple.screencapture location -string "$HOME/Desktop"
 
-# Free up Ctrl+Left / Ctrl+Right so they reach the terminal (tmux pane swap with
-# prefix C-f then C-Arrow). By default macOS Mission Control binds them to
-# "Move left/right a space". IDs 79/81 are the plain Ctrl+Arrow variants;
-# 80/82 (the Shift variants) are left untouched.
-for hotkey in 79 81; do
+# Free up some Ctrl-based combos so they reach the terminal instead of being
+# swallowed by macOS system shortcuts:
+#   * 79 / 81: Mission Control "Move left/right a space" (Ctrl+Left / Ctrl+Right)
+#              -> needed for tmux pane swap (prefix C-f then C-Arrow).
+#              80/82 (the Shift variants) are left untouched.
+#   * 156: Ctrl+Shift+Space -> needed for WezTerm QuickSelect (copy link/URL).
+for hotkey in 79 81 156; do
   defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$hotkey" "{ enabled = 0; }"
 done
 
