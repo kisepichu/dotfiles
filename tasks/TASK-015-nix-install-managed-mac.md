@@ -2,7 +2,7 @@
 
 ## 参照仕様
 
-- User report on 2026-06-07: `scripts/install-nix.sh` を実行しても Nix がインストールされない。会社 PC (managed Mac) が原因の疑い。同僚も別手段で同様の問題を報告。
+- User report on 2026-06-07: `scripts/install-nix.sh` を実行しても Nix がインストールされない。会社 PC (managed Mac) が原因の疑い。
 - 関連: TASK-011 (install-nix.sh の初期実装)
 
 ## 調査結果
@@ -14,6 +14,7 @@
 **Digital Guardian** (企業セキュリティソフト `/usr/local/dgagent/`) が DiskArbitration dissenter として登録されており、Nix 用 APFS ボリューム ("Nix Store") の作成をブロックしている。
 
 結果:
+
 - `/etc/nix/macos-keychain.crt` だけ残り (`2026-06-02 12:25`)、`/nix` ボリュームは未作成
 - LaunchDaemon・receipt はインストーラの revert で削除済み
 - `/etc/synthetic.conf` も存在しない
@@ -21,7 +22,7 @@
 ### 副次的問題
 
 1. **GID/UID 衝突**: GID 350 (`_avectodaemon`), 351 (`_defendpoint`) が既に使用済み。auto-detection コードは TASK-011 後に追加済み (未コミット) で、GID 352 / UID base 352 を正しく検出。
-2. **Digital Guardian ACL エラー**: DG が `com.dgagent.*` xattr を付与し、Nix が未知の ACL としてエラーにする。`ignored-acls` 設定が必要 (同僚の報告 `tmp/a.md` と一致)。ただし `ignored-acls` は Lix 固有で Determinate Nix では未サポート。
+2. **Digital Guardian ACL エラー**: DG が `com.dgagent.*` xattr を付与し、Nix が未知の ACL としてエラーにする。`ignored-acls` 設定が必要。ただし `ignored-acls` は Lix 固有で Determinate Nix では未サポート。
 
 ## 修正内容
 
