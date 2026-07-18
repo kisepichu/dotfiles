@@ -26,6 +26,11 @@ repos:
         entry: scripts/test-mise-config.sh
         language: system
         pass_filenames: false
+      - id: bootstrap-nixos
+        name: test NixOS bootstrap defaults
+        entry: scripts/test-bootstrap-nixos.sh
+        language: system
+        pass_filenames: false
       - id: secretlint
         name: secretlint
         entry: secretlint

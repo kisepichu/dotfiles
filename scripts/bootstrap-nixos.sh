@@ -6,6 +6,11 @@ if [ ! -e /etc/NIXOS ]; then
   exit 1
 fi
 
+if [ "${MISE_NODE_CONCURRENCY+x}" != x ]; then
+  MISE_NODE_CONCURRENCY=2
+fi
+export MISE_NODE_CONCURRENCY
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 command -v mise >/dev/null
