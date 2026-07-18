@@ -1,10 +1,10 @@
 # Current State
 
-Last updated: 2026-05-29
+Last updated: 2026-07-18
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with a separate first-pass macOS bootstrap path.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, applies the shared chezmoi source, and installs Codex and Claude Code at user level.
 
 Implemented and committed:
 
@@ -18,6 +18,7 @@ Implemented and committed:
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
+- NixOS development bootstrap script
 - Optional WSL Ubuntu Docker Engine install script
 - macOS bootstrap script and Windows-friendly Karabiner-Elements profile
 
@@ -120,6 +121,7 @@ Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
 - `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source, and runs conservative macOS defaults.
+- `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise, installs the declared mise tools, and installs Codex and Claude Code under `~/.local` without performing login.
 - `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, and trackpad tap-to-click.
 
 macOS:
@@ -161,6 +163,14 @@ Previously passed:
 Not yet done:
 
 - `scripts/bootstrap-macos.sh` on real macOS hardware.
+- `scripts/bootstrap-nixos.sh` and the resulting shell/editor environment on the target NixOS development server. Planned verification:
+
+  ```bash
+  bash -n scripts/bootstrap-nixos.sh
+  shellcheck scripts/bootstrap-nixos.sh
+  env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/dotfiles-nvim-state XDG_CACHE_HOME=/tmp/dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'
+  tmux -f dot_tmux.conf start-server \; source-file -n dot_tmux.conf
+  ```
 
 ## Next Steps
 

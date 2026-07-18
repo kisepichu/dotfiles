@@ -1,6 +1,50 @@
 # dotfiles
 
-Public chezmoi source for Windows + WSL Ubuntu dotfiles and agent workflows.
+Public chezmoi source for Windows, WSL Ubuntu, macOS, and NixOS dotfiles and agent workflows.
+
+## Fresh NixOS
+
+NixOS provides `git`, `curl`, and `mise` as system packages. Clone this repository over HTTPS, then run the NixOS-only bootstrap from the checkout:
+
+```bash
+mkdir -p ~/repos
+git clone https://github.com/kisepichu/dotfiles.git ~/repos/dotfiles
+cd ~/repos/dotfiles
+./scripts/bootstrap-nixos.sh
+```
+
+The bootstrap applies this chezmoi source, installs the declared mise tools, and installs Codex and Claude Code under `~/.local/bin`. It does not perform any login or create credentials.
+
+Create a dedicated GitHub key on the NixOS machine after the bootstrap:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github_glaceon
+cat ~/.ssh/id_ed25519_github_glaceon.pub
+```
+
+Register only the displayed public key in GitHub, then add this host entry to `~/.ssh/config`:
+
+```sshconfig
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_github_glaceon
+  IdentitiesOnly yes
+```
+
+```bash
+chmod 600 ~/.ssh/config
+ssh -T git@github.com
+```
+
+Complete the agent authentication manually on that machine:
+
+```bash
+codex login
+claude login
+```
 
 ## Fresh macOS
 

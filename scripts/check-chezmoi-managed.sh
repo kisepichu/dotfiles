@@ -68,6 +68,7 @@ require_managed=(
 
 require_source=(
   "dot_config/karabiner/karabiner.json"
+  "scripts/bootstrap-nixos.sh"
   "run_once_before_10-install-apt-packages.sh.tmpl"
   "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
