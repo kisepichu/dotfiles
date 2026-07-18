@@ -21,6 +21,7 @@ if [ -z "$ssh_bin" ]; then
 fi
 
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/cloudflared-access-ssh-proxy.XXXXXXXXXX")"
+chmod 700 "$tmpdir"
 client_prefix_file="$tmpdir/client-prefix.bin"
 ssh_prefix_file="$tmpdir/ssh-prefix.txt"
 ssh_version="$("$ssh_bin" -V 2>&1 | sed -n 's/^\(OpenSSH_[^,]*\),.*/\1/p')"

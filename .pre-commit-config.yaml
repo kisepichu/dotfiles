@@ -16,6 +16,11 @@ repos:
         entry: scripts/check-public-safety.sh
         language: system
         pass_filenames: false
+      - id: cloudflared-ssh-proxy
+        name: test cloudflared SSH proxy
+        entry: scripts/test-cloudflared-access-ssh-proxy.sh
+        language: system
+        pass_filenames: false
       - id: secretlint
         name: secretlint
         entry: secretlint
