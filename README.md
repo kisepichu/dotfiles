@@ -4,7 +4,7 @@ Public chezmoi source for Windows, WSL Ubuntu, macOS, and NixOS dotfiles and age
 
 ## Fresh NixOS
 
-NixOS provides `git`, `curl`, and `mise` as system packages. Clone this repository over HTTPS, then run the NixOS-only bootstrap from the checkout:
+NixOS provides `git`, `curl`, and `mise` as system packages and enables `programs.nix-ld` so mise's prebuilt Node binary can run. Clone this repository over HTTPS, then run the NixOS-only bootstrap from the checkout:
 
 ```bash
 mkdir -p ~/repos

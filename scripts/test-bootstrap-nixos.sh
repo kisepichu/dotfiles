@@ -14,7 +14,9 @@ sed "s#/etc/NIXOS#$test_tmp/NIXOS#" \
 cat >"$test_tmp/bin/mise" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' "${MISE_NODE_CONCURRENCY-<unset>}" >>"$MISE_LOG"
+printf 'compile=%s concurrency=%s\n' \
+  "${MISE_NODE_COMPILE-<unset>}" \
+  "${MISE_NODE_CONCURRENCY-<unset>}" >>"$MISE_LOG"
 EOF
 chmod +x "$test_tmp/bin/mise"
 
@@ -23,7 +25,7 @@ run_bootstrap() {
   shift
 
   : >"$test_tmp/mise.log"
-  env -u MISE_NODE_CONCURRENCY "$@" \
+  env -u MISE_NODE_COMPILE -u MISE_NODE_CONCURRENCY "$@" \
     HOME="$test_tmp/home" \
     MISE_LOG="$test_tmp/mise.log" \
     PATH="$test_tmp/bin:$PATH" \
@@ -35,13 +37,14 @@ run_bootstrap() {
   fi
 
   if grep -Fvxq "$expected" "$test_tmp/mise.log"; then
-    echo "expected every mise invocation to use Node concurrency $expected" >&2
+    echo "expected every mise invocation to use $expected" >&2
     cat "$test_tmp/mise.log" >&2
     exit 1
   fi
 }
 
-run_bootstrap 2
-run_bootstrap 7 MISE_NODE_CONCURRENCY=7
+run_bootstrap 'compile=0 concurrency=2'
+run_bootstrap 'compile=1 concurrency=7' \
+  MISE_NODE_COMPILE=1 MISE_NODE_CONCURRENCY=7
 
-printf 'ok - NixOS bootstrap bounds Node compilation unless overridden\n'
+printf 'ok - NixOS bootstrap uses prebuilt Node safely unless overridden\n'
