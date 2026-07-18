@@ -13,7 +13,7 @@ cd ~/repos/dotfiles
 ./scripts/bootstrap-nixos.sh
 ```
 
-The bootstrap applies this chezmoi source, installs the declared mise tools, and installs Codex and Claude Code under `~/.local/bin`. It does not perform any login or create credentials.
+The bootstrap applies this chezmoi source non-interactively, installs the declared mise tools, and installs Codex and Claude Code under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials.
 
 Create a dedicated GitHub key on the NixOS machine after the bootstrap:
 

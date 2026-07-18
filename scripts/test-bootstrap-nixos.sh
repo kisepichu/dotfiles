@@ -17,6 +17,8 @@ set -euo pipefail
 printf 'compile=%s concurrency=%s\n' \
   "${MISE_NODE_COMPILE-<unset>}" \
   "${MISE_NODE_CONCURRENCY-<unset>}" >>"$MISE_LOG"
+printf '%q ' "$@" >>"$MISE_ARGS_LOG"
+printf '\n' >>"$MISE_ARGS_LOG"
 EOF
 chmod +x "$test_tmp/bin/mise"
 
@@ -25,8 +27,10 @@ run_bootstrap() {
   shift
 
   : >"$test_tmp/mise.log"
+  : >"$test_tmp/mise-args.log"
   env -u MISE_NODE_COMPILE -u MISE_NODE_CONCURRENCY "$@" \
     HOME="$test_tmp/home" \
+    MISE_ARGS_LOG="$test_tmp/mise-args.log" \
     MISE_LOG="$test_tmp/mise.log" \
     PATH="$test_tmp/bin:$PATH" \
     bash "$test_tmp/bootstrap-nixos.sh"
@@ -39,6 +43,12 @@ run_bootstrap() {
   if grep -Fvxq "$expected" "$test_tmp/mise.log"; then
     echo "expected every mise invocation to use $expected" >&2
     cat "$test_tmp/mise.log" >&2
+    exit 1
+  fi
+
+  if ! grep -Fq -- '--force' "$test_tmp/mise-args.log"; then
+    echo 'bootstrap must apply chezmoi non-interactively' >&2
+    cat "$test_tmp/mise-args.log" >&2
     exit 1
   fi
 }
