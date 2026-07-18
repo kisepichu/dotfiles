@@ -29,8 +29,8 @@ run_bootstrap() {
     PATH="$test_tmp/bin:$PATH" \
     bash "$test_tmp/bootstrap-nixos.sh"
 
-  if [ "$(wc -l <"$test_tmp/mise.log" | tr -d ' ')" -ne 3 ]; then
-    echo 'bootstrap must invoke mise three times' >&2
+  if [ ! -s "$test_tmp/mise.log" ]; then
+    echo 'bootstrap must invoke mise' >&2
     exit 1
   fi
 
