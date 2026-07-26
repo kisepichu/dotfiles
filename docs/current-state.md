@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-07-18
+Last updated: 2026-07-26
 
 ## Summary
 
@@ -160,17 +160,16 @@ Previously passed:
 - rerun of `scripts/install-docker-engine-wsl.sh` on the test WSL distro with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
 - `docker run --rm hello-world` and `docker compose version` as the normal user on the test WSL distro
 
+Verified on `glaceon` (NixOS 25.11) on 2026-07-26:
+
+- `scripts/bootstrap-nixos.sh` completed successfully and completed again on rerun.
+- `nvim --headless` loaded the managed LazyVim configuration.
+- `tmux` loaded the managed configuration in an isolated server.
+- `codex --version` and `claude --version` both completed successfully.
+
 Not yet done:
 
 - `scripts/bootstrap-macos.sh` on real macOS hardware.
-- `scripts/bootstrap-nixos.sh` and the resulting shell/editor environment on the target NixOS development server. Planned verification:
-
-  ```bash
-  bash -n scripts/bootstrap-nixos.sh
-  shellcheck scripts/bootstrap-nixos.sh
-  env XDG_CONFIG_HOME="$PWD/dot_config" XDG_STATE_HOME=/tmp/dotfiles-nvim-state XDG_CACHE_HOME=/tmp/dotfiles-nvim-cache nvim --headless '+lua require("config.lazy")' '+quitall'
-  tmux -f dot_tmux.conf start-server \; source-file -n dot_tmux.conf
-  ```
 
 ## Next Steps
 
