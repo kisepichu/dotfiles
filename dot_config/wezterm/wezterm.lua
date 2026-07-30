@@ -42,6 +42,9 @@ config.audible_bell = "Disabled"
 if is_macos then
 	-- Treat the left Option key as a real Alt/Meta so tmux/nvim Meta bindings work.
 	config.send_composed_key_when_left_alt_is_pressed = false
+	-- Keep the macOS IME for plain / Shift-only typing, but stop it from
+	-- swallowing Ctrl+Shift combos like Ctrl+Shift+Space (QuickSelect).
+	config.macos_forward_to_ime_modifier_mask = "SHIFT"
 end
 
 if is_windows then
