@@ -36,7 +36,9 @@ sequence, while `set-clipboard=on` forwards it.
 
 Keep `default-terminal` as `screen-256color` for compatibility. Extend tmux's
 description of an outer `xterm-256color` client with the `RGB` feature so tmux
-does not quantize 24-bit color output.
+does not quantize 24-bit color output. Mark `screen-256color` clients with
+`RGB` and `clipboard` so a tmux nested inside another tmux preserves both
+truecolor and OSC 52.
 
 Set the server `set-clipboard` option to `on`. This makes tmux accept a plain
 OSC 52 write from applications in a pane and emit the corresponding clipboard
@@ -55,7 +57,8 @@ binary, while dotfiles owns interactive terminal behavior.
 ## Verification
 
 Add a shell integration test that starts an isolated tmux server with
-`dot_tmux.conf` and attaches an `xterm-256color` pseudo-terminal. It verifies:
+`dot_tmux.conf` and attaches both `xterm-256color` and `screen-256color`
+pseudo-terminals. It verifies:
 
 1. the attached client is classified with the `RGB` feature;
 2. an application-originated OSC 52 marker is present in the outer terminal

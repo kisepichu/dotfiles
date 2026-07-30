@@ -4,9 +4,9 @@
 
 **Goal:** Preserve Neovim truecolor and forward OSC 52 clipboard writes when tmux appears anywhere between Neovim and WezTerm.
 
-**Architecture:** Keep terminal behavior in the shared chezmoi tmux configuration. Describe direct WezTerm clients as RGB-capable and use tmux's native clipboard relay instead of adding platform-specific clipboard commands or custom Neovim escape wrapping. Exercise the loaded configuration through an isolated tmux server and pseudo-terminal.
+**Architecture:** Keep terminal behavior in the shared chezmoi tmux configuration. Describe direct WezTerm clients and nested tmux clients with their required RGB/clipboard capabilities, and use tmux's native clipboard relay instead of adding platform-specific clipboard commands or custom Neovim escape wrapping. Exercise the loaded configuration through an isolated tmux server and pseudo-terminal.
 
-**Tech Stack:** tmux 3.6a+, Bash, util-linux `script`, chezmoi, prek
+**Tech Stack:** tmux 3.6a+, Bash, util-linux/BSD `script`, chezmoi, prek
 
 ## Global Constraints
 
@@ -27,7 +27,7 @@
 
 **Interfaces:**
 - Consumes: tmux configuration through `tmux -L <socket> -f dot_tmux.conf`.
-- Produces: an outer `xterm-256color` client with the `RGB` feature and an OSC 52 sequence relayed from a pane to the outer pseudo-terminal.
+- Produces: direct `xterm-256color` and nested `screen-256color` clients with the `RGB` feature and an OSC 52 sequence relayed from a pane to each outer pseudo-terminal.
 
 - [ ] **Step 1: Write the failing integration test**
 
@@ -62,37 +62,45 @@ if [[ $terminal_features != *xterm-256color:RGB* ]]; then
   exit 1
 fi
 
-feature_file="$test_tmp/features"
-terminal_log="$test_tmp/terminal.log"
-marker='Z2xhY2Vvbi10bXV4LW9zYzUy'
+check_client() {
+  local client_term=$1
+  local label=$2
+  local feature_file="$test_tmp/features-$label"
+  local terminal_log="$test_tmp/terminal-$label.log"
+  local marker='Z2xhY2Vvbi10bXV4LW9zYzUy'
+  local wait_channel="terminal-client-attached-$label"
 
-tmux -L "$socket" set-hook -g client-attached \
-  'run-shell "tmux wait-for -S terminal-client-attached"'
-tmux -L "$socket" new-session -d -s behavior-check \
-  "tmux wait-for terminal-client-attached; tmux display-message -p '#{client_termfeatures}' > '$feature_file'; printf '\\033]52;c;$marker\\033\\\\'; sleep 1"
+  tmux -L "$socket" set-hook -g client-attached \
+    "run-shell \"tmux wait-for -S $wait_channel\""
+  tmux -L "$socket" new-session -d -s "behavior-$label" \
+    "tmux wait-for $wait_channel; tmux display-message -p '#{client_termfeatures}' > '$feature_file'; printf '\\033]52;c;$marker\\033\\\\'; sleep 1"
 
-if script --version 2>&1 | grep -Fq 'util-linux'; then
-  TERM=xterm-256color script -q -e \
-    -c "tmux -L $socket attach-session -t behavior-check" \
-    "$terminal_log" </dev/null >/dev/null
-elif [[ $(uname -s) == Darwin ]]; then
-  TERM=xterm-256color script -q "$terminal_log" \
-    tmux -L "$socket" attach-session -t behavior-check \
-    </dev/null >/dev/null
-else
-  printf 'unsupported script implementation on %s\n' "$(uname -s)" >&2
-  exit 1
-fi
+  if script --version 2>&1 | grep -Fq 'util-linux'; then
+    TERM="$client_term" script -q -e \
+      -c "tmux -L $socket attach-session -t behavior-$label" \
+      "$terminal_log" </dev/null >/dev/null
+  elif [[ $(uname -s) == Darwin ]]; then
+    TERM="$client_term" script -q "$terminal_log" \
+      tmux -L "$socket" attach-session -t "behavior-$label" \
+      </dev/null >/dev/null
+  else
+    printf 'unsupported script implementation on %s\n' "$(uname -s)" >&2
+    exit 1
+  fi
 
-if ! grep -Fqw RGB "$feature_file"; then
-  printf 'attached xterm-256color client did not receive RGB feature\n' >&2
-  exit 1
-fi
+  if ! grep -Fqw RGB "$feature_file"; then
+    printf 'attached %s client did not receive RGB feature\n' "$client_term" >&2
+    exit 1
+  fi
 
-if ! LC_ALL=C grep -aFq $'\033]52;c;'"$marker" "$terminal_log"; then
-  printf 'tmux did not relay application OSC 52 to the outer terminal\n' >&2
-  exit 1
-fi
+  if ! LC_ALL=C grep -aFq $'\033]52;c;'"$marker" "$terminal_log"; then
+    printf 'tmux did not relay application OSC 52 through %s\n' "$client_term" >&2
+    exit 1
+  fi
+}
+
+check_client xterm-256color direct
+check_client screen-256color nested
 
 printf 'ok - tmux preserves RGB and relays OSC 52\n'
 ```
@@ -125,7 +133,7 @@ After the existing `default-terminal` and `terminal-overrides` lines in
 `dot_tmux.conf`, add:
 
 ```tmux
-set -as terminal-features ',xterm-256color:RGB'
+set -as terminal-features ',xterm-256color:RGB,screen-256color:RGB:clipboard'
 set-option -s set-clipboard on
 ```
 
@@ -161,7 +169,7 @@ git commit --no-gpg-sign -m "fix: preserve truecolor and OSC 52 through tmux"
 
 **Interfaces:**
 - Consumes: the exact committed source tree from Task 1.
-- Produces: the active `glaceon` tmux server with `set-clipboard=on` and `xterm-256color:RGB`.
+- Produces: the active `glaceon` tmux server with `set-clipboard=on`, `xterm-256color:RGB`, and `screen-256color:RGB:clipboard`.
 
 - [ ] **Step 1: Transfer the committed source without local-only files**
 
@@ -214,6 +222,7 @@ Expected:
 ```text
 set-clipboard on
 terminal-features[...] xterm-256color:RGB
+terminal-features[...] screen-256color:RGB:clipboard
 ```
 
 The existing named sessions remain listed. Reattach the SSH client if
