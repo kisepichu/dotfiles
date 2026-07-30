@@ -56,13 +56,14 @@ binary, while dotfiles owns interactive terminal behavior.
 
 ## Verification
 
-Add a shell integration test that starts an isolated tmux server with
-`dot_tmux.conf` and attaches both `xterm-256color` and `screen-256color`
-pseudo-terminals. It verifies:
+Add a shell integration test that starts isolated tmux servers with
+`dot_tmux.conf`. It checks a direct `xterm-256color` client, then launches an
+inner tmux client with `screen-256color` inside an outer tmux server. It
+verifies:
 
 1. the attached client is classified with the `RGB` feature;
-2. an application-originated OSC 52 marker is present in the outer terminal
-   byte stream;
+2. an application-originated OSC 52 marker crosses both tmux servers and is
+   present in the outer terminal byte stream;
 3. the test server and temporary files are removed on exit.
 
 Run the repository hook suite and tmux config syntax check. On `glaceon`, apply
