@@ -34,3 +34,9 @@ repos:
         entry: scripts/check-git-diff.sh
         language: system
         pass_filenames: false
+      - id: tmux-terminal-capabilities
+        name: tmux terminal capabilities
+        entry: scripts/test-tmux-terminal.sh
+        language: system
+        files: ^(dot_tmux\.conf|scripts/test-tmux-terminal\.sh)$
+        pass_filenames: false
