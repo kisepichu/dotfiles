@@ -206,5 +206,13 @@ return {
       })
     end,
   },
-  { "wakatime/vim-wakatime", lazy = false },
+  {
+    "wakatime/vim-wakatime",
+    lazy = false,
+    config = function()
+      require("wakatime").setup({
+        plugin_name = "vim-wakatime",
+      })
+    end,
+  },
 }
