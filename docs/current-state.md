@@ -1,10 +1,10 @@
 # Current State
 
-Last updated: 2026-05-29
+Last updated: 2026-07-26
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with a separate first-pass macOS bootstrap path.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, applies the shared chezmoi source, and installs Codex and Claude Code at user level.
 
 Implemented and committed:
 
@@ -18,6 +18,7 @@ Implemented and committed:
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
 - WSL Ubuntu bootstrap scripts
+- NixOS development bootstrap script
 - Optional WSL Ubuntu Docker Engine install script
 - macOS bootstrap script and Windows-friendly Karabiner-Elements profile
 
@@ -120,6 +121,7 @@ Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
 - `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source, and runs conservative macOS defaults.
+- `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise, installs the declared mise tools, and installs Codex and Claude Code under `~/.local` without performing login.
 - `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, and trackpad tap-to-click.
 
 macOS:
@@ -157,6 +159,13 @@ Previously passed:
 - `scripts/install-docker-engine-wsl.sh` on a test WSL distro after enabling systemd
 - rerun of `scripts/install-docker-engine-wsl.sh` on the test WSL distro with `ADD_USER_TO_DOCKER_GROUP=1` after Docker was already installed
 - `docker run --rm hello-world` and `docker compose version` as the normal user on the test WSL distro
+
+Verified on `glaceon` (NixOS 25.11) on 2026-07-26:
+
+- `scripts/bootstrap-nixos.sh` completed successfully and completed again on rerun.
+- `nvim --headless` loaded the managed LazyVim configuration.
+- `tmux` loaded the managed configuration in an isolated server.
+- `codex --version` and `claude --version` both completed successfully.
 
 Not yet done:
 
