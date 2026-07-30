@@ -1,5 +1,4 @@
 {
-  "model": "opus[1m]",
   "permissions": {
     "allow": [
       "Bash(python3 ~/.claude/skills/*/scripts/*.py:*)",
@@ -22,8 +21,12 @@
       "Bash(git log:*)",
       "Bash(git rev-parse:*)"
     ],
-    "ask": [
-      "AskUserQuestion"
+    "ask": ["AskUserQuestion"]
+  },
+  "autoMode": {
+    "allow": [
+      "Bash: pnpm commands when the working directory is under ~/repos/working-thread",
+      "Bash: commands allowed in workdir/.claude/settings.local.json"
     ]
   },
   "hooks": {
@@ -66,6 +69,7 @@
   },
   "theme": "dark",
   "enabledPlugins": {
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
   }
 }

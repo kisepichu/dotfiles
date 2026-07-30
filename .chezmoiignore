@@ -9,4 +9,5 @@
 /.claude/hooks/supervisor/logs/
 {{- if ne .chezmoi.os "darwin" }}
 /.config/karabiner/
+/.config/wezterm/
 {{- end }}

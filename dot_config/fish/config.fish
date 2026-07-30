@@ -78,6 +78,10 @@ if not set -q STARSHIP_CONFIG; and test -f "$HOME/.config/starship.toml"
     set -gx STARSHIP_CONFIG "$HOME/.config/starship.toml"
 end
 
+if command -q nvim
+    set -gx EDITOR nvim
+end
+
 if status is-interactive
     alias reb="exec fish -l"
     alias python=python3
@@ -86,6 +90,10 @@ if status is-interactive
     alias la="ls -A"
     alias l="ls -CF"
     alias mtu="sudo ip link set eth0 mtu 1404"
+
+    if command -q nvim
+        alias vim=nvim
+    end
 
     if command -q pnpm
         alias npm=pnpm

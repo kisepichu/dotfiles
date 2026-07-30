@@ -27,13 +27,27 @@ defaults write com.apple.dock show-recents -bool false
 
 defaults write com.apple.screencapture location -string "$HOME/Desktop"
 
+# Free up Ctrl+Left / Ctrl+Right so they reach the terminal (tmux pane swap with
+# prefix C-f then C-Arrow). By default macOS Mission Control binds them to
+# "Move left/right a space". IDs 79/81 are the plain Ctrl+Arrow variants;
+# 80/82 (the Shift variants) are left untouched.
+for hotkey in 79 81; do
+  defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$hotkey" "{ enabled = 0; }"
+done
+
 if defaults read com.apple.AppleMultitouchTrackpad >/dev/null 2>&1; then
   defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 fi
 
-for app in Finder Dock SystemUIServer; do
+for app in Finder Dock SystemUIServer cfprefsd; do
   killall "$app" >/dev/null 2>&1 || true
 done
+
+# Reload symbolic hotkeys so the Mission Control changes apply without logout.
+activate_settings="/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings"
+if [ -x "$activate_settings" ]; then
+  "$activate_settings" -u >/dev/null 2>&1 || true
+fi
 
 echo "macOS defaults configured. Some settings may require logout or restart."
