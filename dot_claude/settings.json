@@ -23,6 +23,12 @@
     ],
     "ask": ["AskUserQuestion"]
   },
+  "autoMode": {
+    "allow": [
+      "Bash: pnpm commands when the working directory is under ~/repos/working-thread",
+      "Bash: commands allowed in workdir/.claude/settings.local.json"
+    ]
+  },
   "hooks": {
     "PermissionRequest": [
       {
