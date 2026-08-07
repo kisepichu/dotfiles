@@ -17,7 +17,16 @@ export MISE_NODE_COMPILE MISE_NODE_CONCURRENCY
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 command -v mise >/dev/null
-mise install --yes chezmoi@2.69.1
-mise exec chezmoi@2.69.1 -- chezmoi --source "$repo_dir" --force apply
+if [ ! -f "$repo_dir/mise.toml" ]; then
+  echo "error: missing $repo_dir/mise.toml (needed to activate bootstrap chezmoi)" >&2
+  exit 1
+fi
+(
+  cd "$repo_dir"
+  # Install/exec chezmoi from repo mise.toml (no CLI @version) to avoid mise's
+  # "installed but not activated" warning on ad-hoc tool@version installs.
+  mise install --yes chezmoi
+  mise exec -- chezmoi --source "$repo_dir" --force apply
+)
 mise exec node -- npm install --global --prefix "$HOME/.local" \
   @openai/codex@latest @anthropic-ai/claude-code@latest

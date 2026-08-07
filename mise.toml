@@ -1,0 +1,5 @@
+# Bootstrap-only tool pin for this repository.
+# Full user tooling lives in ~/.config/mise/config.toml (chezmoi-managed).
+# Ignored by chezmoi so this file is not deployed to $HOME.
+[tools]
+chezmoi = "2.69.1"
