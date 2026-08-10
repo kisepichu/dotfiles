@@ -81,8 +81,7 @@ gh pr view {num} -R {owner}/{repo} --json reviews --jq '.reviews'
 
 対応方針:
 
-- 妥当: コードまたは仕様を修正し、チェック系コマンドを実行。通ったら具体的なファイルだけ
-  `git add` し、`git commit --no-gpg-sign -m "..."`、必要なら `git push`、
+- 妥当: コードまたは仕様を修正し、`/commit` スキルで add / チェック / commit / push を実施し、
   コミットハッシュと理由を返信する。
 - 今対応不要: 設計意図・スコープ外・既知制限など、理由を必ず返信する。
 - 質問・確認: ユーザーに判断を仰ぐ。
