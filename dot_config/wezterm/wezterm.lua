@@ -57,9 +57,15 @@ end
 -- sequences to the terminal so tmux (prefix C-f then C-Arrow) can swap panes.
 -- On macOS this also requires disabling Mission Control's Ctrl+Left/Right space
 -- switching; see scripts/configure-macos-defaults.sh.
+--
+-- QuickSelect is bound to F13 (not Ctrl+Shift+Space) because on macOS 26 the
+-- HIToolbox input-source picker hard-consumes Ctrl+Shift+Space as "cycle
+-- backwards" whenever the Ctrl+Space picker was recently active, and there is
+-- no exposed setting to disable it. Karabiner translates the ergonomic
+-- fn+Shift+Space chord to F13 on macOS; see docs/wezterm.md.
 config.keys = {
 	-- QuickSelect: quickly select/copy on-screen text (URLs, hashes, paths).
-	{ key = "Space", mods = "CTRL|SHIFT", action = act.QuickSelect },
+	{ key = "F13", action = act.QuickSelect },
 }
 
 return config
