@@ -20,7 +20,9 @@ fi
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 expected_repo_dir="$HOME/repos/dotfiles"
-chezmoi_cmd=(mise exec chezmoi@2.69.1 -- chezmoi)
+# Install/exec chezmoi from repo mise.toml (no CLI @version) so mise does not
+# treat it as an inactive ad-hoc install.
+chezmoi_cmd=(mise exec -- chezmoi)
 mise_version="$(
   sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$repo_dir/.chezmoidata.toml" | head -n 1
 )"
@@ -50,5 +52,38 @@ if ! command -v mise >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-mise install --yes chezmoi@2.69.1
-"${chezmoi_cmd[@]}" --source "$repo_dir" apply
+if [ ! -f "$repo_dir/mise.toml" ]; then
+  echo "error: missing $repo_dir/mise.toml (needed to activate bootstrap chezmoi)" >&2
+  exit 1
+fi
+
+(
+  cd "$repo_dir"
+  mise install --yes chezmoi
+  "${chezmoi_cmd[@]}" --source "$repo_dir" --force apply
+)
+
+echo "WSL Ubuntu bootstrap completed."
+
+fish_path="$(command -v fish || true)"
+if [ -n "$fish_path" ]; then
+  current_shell=""
+  if command -v getent >/dev/null 2>&1 && command -v cut >/dev/null 2>&1; then
+    current_user="${USER:-$(id -un)}"
+    current_shell="$(getent passwd "$current_user" 2>/dev/null | cut -d: -f7 || true)"
+  fi
+  if [ -z "$current_shell" ]; then
+    current_shell="${SHELL:-}"
+  fi
+  if [ -z "$current_shell" ]; then
+    echo "hint: fish is available at $fish_path; if needed, run: chsh -s $fish_path" >&2
+    echo "hint: then open a new terminal so mise-managed tools are on PATH" >&2
+  elif [ "$current_shell" != "$fish_path" ]; then
+    echo "hint: default shell is $current_shell; run: chsh -s $fish_path" >&2
+    echo "hint: then open a new terminal so mise-managed tools are on PATH" >&2
+  else
+    echo "Open a new fish shell (or restart the terminal) if mise tools are not on PATH yet."
+  fi
+else
+  echo "hint: fish was not found on PATH after apply; re-run this script or install fish, then chsh" >&2
+fi

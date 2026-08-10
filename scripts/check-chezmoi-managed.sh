@@ -68,7 +68,9 @@ require_managed=(
 
 require_source=(
   "dot_config/karabiner/karabiner.json"
+  "mise.toml"
   "scripts/bootstrap-nixos.sh"
+  "scripts/bootstrap-wsl-ubuntu.sh"
   "run_once_before_10-install-apt-packages.sh.tmpl"
   "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
@@ -80,6 +82,7 @@ require_source=(
 require_ignored=(
   "AGENTS.md"
   "docs"
+  "mise.toml"
   "tasks"
   "scripts"
 )
@@ -89,6 +92,7 @@ forbidden_managed=(
   ".secretlintrc.json"
   "AGENTS.md"
   "docs/plan.md"
+  "mise.toml"
   "tasks/done/TASK-001-core-tools-import.md"
   "scripts/check-chezmoi-managed.sh"
 )
