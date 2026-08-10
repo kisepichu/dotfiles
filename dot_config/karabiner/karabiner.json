@@ -4,6 +4,25 @@
             "complex_modifications": {
                 "rules": [
                     {
+                        "description": "Route Ctrl+Shift+Space to F13 (wezterm QuickSelect; avoid macOS input-source cycling). Combined with the fn<->left_control simple_modification, physical fn+Shift+Space arrives here as control+shift+space and gets routed to F13.",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "spacebar",
+                                    "modifiers": {
+                                        "mandatory": ["control", "shift"]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "f13"
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Windows-style Home and End move by line",
                         "manipulators": [
                             {
