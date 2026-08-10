@@ -16,8 +16,8 @@ return {
   { "lewis6991/gitsigns.nvim", enabled = false },
 
   { "neovim/nvim-lspconfig", enabled = false },
-  { "williamboman/mason.nvim", enabled = false },
-  { "williamboman/mason-lspconfig.nvim", enabled = false },
+  { "mason-org/mason.nvim", enabled = false },
+  { "mason-org/mason-lspconfig.nvim", enabled = false },
   { "mfussenegger/nvim-lint", enabled = false },
 
   { "nvim-treesitter/nvim-treesitter", enabled = false },

@@ -16,6 +16,21 @@ repos:
         entry: scripts/check-public-safety.sh
         language: system
         pass_filenames: false
+      - id: cloudflared-ssh-proxy
+        name: test cloudflared SSH proxy
+        entry: scripts/test-cloudflared-access-ssh-proxy.sh
+        language: system
+        pass_filenames: false
+      - id: mise-config
+        name: validate mise tool backends
+        entry: scripts/test-mise-config.sh
+        language: system
+        pass_filenames: false
+      - id: bootstrap-nixos
+        name: test NixOS bootstrap defaults
+        entry: scripts/test-bootstrap-nixos.sh
+        language: system
+        pass_filenames: false
       - id: secretlint
         name: secretlint
         entry: secretlint
@@ -33,4 +48,10 @@ repos:
         name: reject whitespace errors in staged diff
         entry: scripts/check-git-diff.sh
         language: system
+        pass_filenames: false
+      - id: tmux-terminal-capabilities
+        name: tmux terminal capabilities
+        entry: scripts/test-tmux-terminal.sh
+        language: system
+        files: ^(dot_tmux\.conf|scripts/test-tmux-terminal\.sh)$
         pass_filenames: false

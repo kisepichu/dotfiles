@@ -1,5 +1,30 @@
+-- mini.ai (LazyVim default): extend the `(` / `)` text objects so they also
+-- match full-width parens （）. This lets `da(` / `di(` work in Japanese prose
+-- and Markdown docs where 全角括弧 are common.
+--
+-- Spec is a single composed pattern whose one step lists two alternatives
+-- (mini.ai flattens each via cartesian product):
+--   * balanced ASCII `()`  -> { '%b()', '^.().*().$' }
+--   * non-balanced full-width `（）` (multibyte, so `%b` cannot be used)
+local mini_ai = {
+  "nvim-mini/mini.ai",
+  opts = function(_, opts)
+    local ai = require("mini.ai")
+    local paren = {
+      {
+        ai.gen_spec.pair("(", ")", { type = "balanced" }),
+        ai.gen_spec.pair("（", "）", { type = "non-balanced" }),
+      },
+    }
+    opts.custom_textobjects = opts.custom_textobjects or {}
+    opts.custom_textobjects["("] = paren
+    opts.custom_textobjects[")"] = paren
+  end,
+}
+
 if vim.g.started_by_firenvim then
   return {
+    mini_ai,
     {
       "catppuccin/nvim",
       name = "catppuccin",
@@ -55,6 +80,7 @@ if vim.g.started_by_firenvim then
 end
 
 return {
+  mini_ai,
   {
     "catppuccin/nvim",
     name = "catppuccin",
@@ -177,6 +203,15 @@ return {
     config = function()
       require("goto-preview").setup({
         default_mappings = true,
+      })
+    end,
+  },
+  {
+    "wakatime/vim-wakatime",
+    lazy = false,
+    config = function()
+      require("wakatime").setup({
+        plugin_name = "vim-wakatime",
       })
     end,
   },

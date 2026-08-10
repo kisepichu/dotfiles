@@ -136,8 +136,18 @@ if ! command -v mise >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-mise install --quiet --yes chezmoi@2.69.1
+if [ ! -f "$repo_dir/mise.toml" ]; then
+  echo "error: missing $repo_dir/mise.toml (needed to activate bootstrap chezmoi)" >&2
+  exit 1
+fi
+
 "$repo_dir/scripts/configure-macos-defaults.sh"
-mise exec --quiet chezmoi@2.69.1 -- chezmoi --source "$repo_dir" apply
+(
+  cd "$repo_dir"
+  # Install/exec chezmoi from repo mise.toml (no CLI @version) to avoid mise's
+  # "installed but not activated" warning on ad-hoc tool@version installs.
+  mise install --quiet --yes chezmoi
+  mise exec --quiet -- chezmoi --source "$repo_dir" --force apply
+)
 
 echo "macOS bootstrap completed. Open Karabiner-Elements once and grant its macOS permissions."
