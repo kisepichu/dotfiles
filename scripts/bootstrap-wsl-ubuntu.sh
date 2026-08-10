@@ -67,9 +67,18 @@ echo "WSL Ubuntu bootstrap completed."
 
 fish_path="$(command -v fish || true)"
 if [ -n "$fish_path" ]; then
-  current_user="${USER:-$(id -un)}"
-  current_shell="$(getent passwd "$current_user" | cut -d: -f7)"
-  if [ "$current_shell" != "$fish_path" ]; then
+  current_shell=""
+  if command -v getent >/dev/null 2>&1 && command -v cut >/dev/null 2>&1; then
+    current_user="${USER:-$(id -un)}"
+    current_shell="$(getent passwd "$current_user" 2>/dev/null | cut -d: -f7 || true)"
+  fi
+  if [ -z "$current_shell" ]; then
+    current_shell="${SHELL:-}"
+  fi
+  if [ -z "$current_shell" ]; then
+    echo "hint: fish is available at $fish_path; if needed, run: chsh -s $fish_path" >&2
+    echo "hint: then open a new terminal so mise-managed tools are on PATH" >&2
+  elif [ "$current_shell" != "$fish_path" ]; then
     echo "hint: default shell is $current_shell; run: chsh -s $fish_path" >&2
     echo "hint: then open a new terminal so mise-managed tools are on PATH" >&2
   else
