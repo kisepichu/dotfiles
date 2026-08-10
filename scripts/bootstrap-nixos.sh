@@ -16,7 +16,11 @@ export MISE_NODE_COMPILE MISE_NODE_CONCURRENCY
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-command -v mise >/dev/null
+if ! command -v mise >/dev/null 2>&1; then
+  echo "error: mise is required but was not found on PATH" >&2
+  echo "hint: on NixOS, install/enable mise at the system level before running this script" >&2
+  exit 1
+fi
 if [ ! -f "$repo_dir/mise.toml" ]; then
   echo "error: missing $repo_dir/mise.toml (needed to activate bootstrap chezmoi)" >&2
   exit 1

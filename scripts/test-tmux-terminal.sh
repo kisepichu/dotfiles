@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 config="$repo_root/dot_tmux.conf"
-test_tmp=$(mktemp -d)
+test_tmp=$(mktemp -d "${TMPDIR:-/tmp}/tmux-terminal-test.XXXXXX")
 socket="tmux-terminal-test-$$"
 outer_socket="$socket-outer"
 inner_socket="$socket-inner"
