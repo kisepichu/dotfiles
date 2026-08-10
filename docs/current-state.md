@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-07-26
+Last updated: 2026-08-10
 
 ## Summary
 
@@ -13,22 +13,24 @@ Implemented and committed:
 - Tooling strategy and Nix adoption policy
 - Inventory of old/current dotfiles
 - Managed `fish` config
-- Managed `tmux` config
+- Managed `tmux` config (truecolor + OSC 52 clipboard pass-through, including nested tmux)
 - Managed LazyVim-based `nvim` config
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
-- WSL Ubuntu bootstrap scripts
-- NixOS development bootstrap script
+- Managed WezTerm config on macOS (`darwin` only via `.chezmoiignore`)
+- WSL Ubuntu / macOS / NixOS bootstrap scripts
+- Repo-root `mise.toml` so bootstrap activates `chezmoi` without mise's inactive-tool warning
 - Optional WSL Ubuntu Docker Engine install script
-- macOS bootstrap script and Windows-friendly Karabiner-Elements profile
+- Windows-friendly Karabiner-Elements profile (including fn+Shift+Space → F13 for WezTerm QuickSelect)
 
-Recent implementation commits before this handoff update include:
+Recent landed work (since 2026-07-26):
 
-- WSL bootstrap hardening for fresh Ubuntu and repo path handling
-- Managed `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
-- `mise` install rerun trigger when `dot_config/mise/config.toml` changes
-- Fish startup ordering so `mise` activation happens before `starship`/`zoxide` initialization
-- Public safety scan fixes from PR review
+- NixOS bootstrap hardening (repeatable apply, avoid Node source builds)
+- tmux terminal capability fixes and regression tests
+- WezTerm QuickSelect routed around macOS input-source interception via Karabiner F13
+- Bootstrap scripts install/exec `chezmoi` from repo `mise.toml` (no `chezmoi@VERSION`)
+- TASK-007..013 and TASK-015 moved under `tasks/done/`; open follow-ups remain in `tasks/` (TASK-014 e2e, TASK-016 Mac verification)
+- Session design/plans under `docs/superpowers/{specs,plans}/` are kept as history
 
 ## Important State
 
@@ -120,13 +122,15 @@ Run scripts:
 Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
-- `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source, and runs conservative macOS defaults.
+- `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
 - `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise, installs the declared mise tools, and installs Codex and Claude Code under `~/.local` without performing login.
-- `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, and trackpad tap-to-click.
+- `scripts/bootstrap-wsl-ubuntu.sh` installs mise if needed, applies this chezmoi source from repo `mise.toml`, and prints fish/`chsh` hints when possible.
+- `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, trackpad tap-to-click, and Mission Control Ctrl+Arrow hotkeys that steal tmux pane swaps.
 
 macOS:
 
 - `~/.config/karabiner/karabiner.json`
+- `~/.config/wezterm/wezterm.lua`
 
 ## Decisions
 
@@ -139,6 +143,7 @@ These are intentionally excluded by `.chezmoiignore`:
 
 - `AGENTS.md`
 - `README.md`
+- `mise.toml` (repo bootstrap pin; user tools live in `~/.config/mise/config.toml`)
 - `docs/`
 - `tasks/`
 - `scripts/`
@@ -169,7 +174,9 @@ Verified on `glaceon` (NixOS 25.11) on 2026-07-26:
 
 Not yet done:
 
-- `scripts/bootstrap-macos.sh` on real macOS hardware.
+- Full end-to-end verification for Claude PR-review Actions path (TASK-014).
+- Remaining Mac hardware checks for TASK-016 (pane swap / auto-zoom / QuickSelect after Karabiner F13 change).
+- Decide whether to keep `tasks/` long-term or standardize on superpowers plans/specs (see issue #31).
 
 ## Next Steps
 
@@ -185,3 +192,4 @@ Not yet done:
    - `mise ls starship zoxide`
 5. Consider adding `gitleaks` in addition to `secretlint`.
 6. Continue Phase 4 template/private config cleanup.
+7. Resolve issue #31 (task workflow vs superpowers).
