@@ -21,6 +21,14 @@ PR レビューコメント取得、対応、返信、Resolve まで行う。修
 
 ## 手順
 
+### 0. 実行主体の確認
+
+**このスキルを spawn された subagent 内で実行しない**。手順 2 と 9 の待ちスクリプトは
+`run_in_background: true` で起動→ターン終了→完了通知待ちで動くが、live な子を持たない
+subagent は harness に完了扱いされ、背景の待ちが破棄されてレビューループが途中で止まる。
+現在が subagent なら、スキルを実行せず親エージェントに報告してハンドオフする。実装を
+subagent に委譲した場合も、push まで終えたら top-level agent が PR-review ループを引き取る。
+
 ### 1. PR と環境を確認
 
 PR 番号と repo はカレントブランチから取得する。指定があればそれを使う。
@@ -30,7 +38,7 @@ gh pr view --json number,url,headRefOid,reviewRequests,latestReviews
 gh --version
 ```
 
-Copilot 再レビュー依頼には `gh >= 2.88.0` が必要。
+Copilot 再レビュー依頼には `gh >= 2.88.0` が必要。スキル内でコミットする時は /commit スキルを使用。
 
 ### 2. レビューを待つ
 
@@ -72,8 +80,9 @@ gh pr view {num} -R {owner}/{repo} --json reviews --jq '.reviews'
 - **非本質 (nit)**: スタイル・命名・軽微な可読性・文言・主観的好みなど。
 
 対応方針:
-- 妥当: コードまたは仕様を修正し、チェック系コマンドを実行。通ったら具体的なファイルだけ
-  `git add` し、`git commit --no-gpg-sign -m "..."`、必要なら `git push`。
+
+- 妥当: コードまたは仕様を修正し、`/commit` スキルで add / チェック / commit / push を実施し、
+  コミットハッシュと理由を返信する。
 - 今対応不要: 設計意図・スコープ外・既知制限など、理由を必ず返信する。
 - 質問・確認: ユーザーに判断を仰ぐ。
 
