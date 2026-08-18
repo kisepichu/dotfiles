@@ -7,3 +7,6 @@ dot_claude/hooks/supervisor/logs/
 
 
 tmp
+
+# Local git worktrees for isolated feature work.
+.worktrees/
