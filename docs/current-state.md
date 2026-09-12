@@ -1,10 +1,10 @@
 # Current State
 
-Last updated: 2026-08-10
+Last updated: 2026-09-12
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, applies the shared chezmoi source, and installs Codex and Claude Code at user level.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, then applies the shared chezmoi source. Applying the source installs the agent CLIs at user level on every platform: Codex through `mise`, omp and Claude Code through their upstream installers.
 
 Implemented and committed:
 
@@ -31,6 +31,7 @@ Recent landed work (since 2026-07-26):
 - Bootstrap scripts install/exec `chezmoi` from repo `mise.toml` (no `chezmoi@VERSION`)
 - TASK-007..013 and TASK-015 moved under `tasks/done/`; open follow-ups remain in `tasks/` (TASK-014 e2e, TASK-016 Mac verification)
 - Session design/plans under `docs/superpowers/{specs,plans}/` are kept as history
+- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp and Claude Code via `run_once_after_50-install-agent-clis.sh` (first install only; both self-update)
 
 ## Important State
 
@@ -118,12 +119,13 @@ Run scripts:
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_40-mise-install.sh.tmpl`
+- `run_once_after_50-install-agent-clis.sh`
 
 Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
 - `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
-- `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise, installs the declared mise tools, and installs Codex and Claude Code under `~/.local` without performing login.
+- `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise and installs the declared mise tools; the agent CLIs come from the shared chezmoi run scripts, and no login is performed.
 - `scripts/bootstrap-wsl-ubuntu.sh` installs mise if needed, applies this chezmoi source from repo `mise.toml`, and prints fish/`chsh` hints when possible.
 - `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, trackpad tap-to-click, and Mission Control Ctrl+Arrow hotkeys that steal tmux pane swaps.
 

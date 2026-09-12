@@ -14,6 +14,11 @@ if grep -Eq '^[[:space:]]*pnpm[[:space:]]*=' "$mise_config"; then
   exit 1
 fi
 
+if ! grep -Eq '^[[:space:]]*codex[[:space:]]*=' "$mise_config"; then
+  echo 'mise must install codex (aqua backend) so every machine gets the Codex CLI' >&2
+  exit 1
+fi
+
 if [ ! -f "$repo_mise_toml" ]; then
   echo 'repo mise.toml is required so bootstrap can activate chezmoi without mise use' >&2
   exit 1
