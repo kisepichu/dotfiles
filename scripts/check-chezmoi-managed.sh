@@ -75,6 +75,7 @@ require_source=(
   "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
   "run_once_before_20-install-tmux-plugin-manager.sh"
+  "run_onchange_after_25-install-tmux-plugins.sh.tmpl"
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_40-mise-install.sh.tmpl"
 )
