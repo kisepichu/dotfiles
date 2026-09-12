@@ -1,5 +1,6 @@
 [tools]
 chezmoi = "2.69.1"
+codex = "latest"
 deno = "latest"
 go = "latest"
 neovim = "latest"
