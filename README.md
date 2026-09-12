@@ -186,7 +186,14 @@ Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `che
 
 That script runs on every apply and skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
 
-Machines set up before this layout may hold a second copy from another channel: remove the Homebrew cask on macOS (`brew uninstall --cask codex`) and the npm globals installed by the old NixOS bootstrap (`npm --prefix ~/.local uninstall -g @openai/codex @anthropic-ai/claude-code`), so each CLI has exactly one install.
+Machines set up before this layout may hold a copy from an older channel. Remove it **before** the first apply, because the npm-installed `claude` occupies the same `~/.local/bin/claude` path the installer would create: the script sees it, skips the install, and the later `npm uninstall` then leaves Claude Code absent. If the cleanup already ran after an apply, just run `chezmoi apply` again.
+
+```bash
+# macOS
+brew uninstall --cask codex
+# NixOS (installed by the old bootstrap)
+npm --prefix ~/.local uninstall -g @openai/codex @anthropic-ai/claude-code
+```
 
 Authenticate once per machine; this repository stores no credentials.
 
