@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# First install only. omp and Claude Code ship self-updating binaries
-# (`omp update`, Claude Code's own version manager), so pinning or reinstalling
-# them here would fight their updaters: skip whenever the command already
-# exists. Codex has no upstream install script and is declared in
-# ~/.config/mise/config.toml instead.
+# Runs on every `chezmoi apply`, and is a no-op once both commands exist. omp
+# and Claude Code ship self-updating binaries (`omp update`, Claude Code's own
+# version manager), so pinning or reinstalling them here would fight their
+# updaters: install only what is missing. Codex has no upstream install script
+# and is declared in ~/.config/mise/config.toml instead.
 #
 # Failures stay non-fatal so a network problem cannot abort `chezmoi apply`.
+# This must not be a `run_once_` script: chezmoi would record the run after a
+# warned-but-successful exit and never retry the failed download.
 
 export PATH="$HOME/.local/bin:$PATH"
 

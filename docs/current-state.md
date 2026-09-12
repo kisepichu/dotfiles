@@ -31,7 +31,7 @@ Recent landed work (since 2026-07-26):
 - Bootstrap scripts install/exec `chezmoi` from repo `mise.toml` (no `chezmoi@VERSION`)
 - TASK-007..013 and TASK-015 moved under `tasks/done/`; open follow-ups remain in `tasks/` (TASK-014 e2e, TASK-016 Mac verification)
 - Session design/plans under `docs/superpowers/{specs,plans}/` are kept as history
-- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp and Claude Code via `run_once_after_50-install-agent-clis.sh` (first install only; both self-update)
+- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp and Claude Code via `run_after_50-install-agent-clis.sh` (installs only what is missing; both self-update)
 
 ## Important State
 
@@ -119,7 +119,7 @@ Run scripts:
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_40-mise-install.sh.tmpl`
-- `run_once_after_50-install-agent-clis.sh`
+- `run_after_50-install-agent-clis.sh`
 
 Optional scripts:
 

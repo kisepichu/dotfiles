@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-install_script="$repo_root/run_once_after_50-install-agent-clis.sh"
+install_script="$repo_root/run_after_50-install-agent-clis.sh"
 test_tmp=$(mktemp -d "${TMPDIR:-/tmp}/agent-cli-install-test.XXXXXX")
 trap 'rm -rf "$test_tmp"' EXIT
 
@@ -116,4 +116,35 @@ if ! grep -Fq 'failed to download' "$test_tmp/stderr.log"; then
   exit 1
 fi
 
-printf 'ok - agent CLI install script is first-install only and non-fatal\n'
+# A warned-but-successful exit must not retire the script: chezmoi has to run it
+# again on the next apply so a transient download failure is retried. This is
+# what a `run_once_` script would get wrong.
+chezmoi_bin="$(command -v chezmoi || true)"
+if [ -z "$chezmoi_bin" ]; then
+  echo 'chezmoi is required for this check' >&2
+  exit 1
+fi
+
+mkdir -p "$test_tmp/source" "$test_tmp/dest"
+cp "$install_script" "$test_tmp/source/$(basename "$install_script")"
+
+: >"$test_tmp/curl.log"
+for _ in 1 2; do
+  env -i \
+    HOME="$test_tmp/dest" \
+    PATH="$test_tmp/absent-bin:$test_tmp/bin:/usr/bin:/bin" \
+    CURL_LOG="$test_tmp/curl.log" \
+    INSTALLER_LOG="$test_tmp/installer.log" \
+    CURL_FAIL=1 \
+    "$chezmoi_bin" --source "$test_tmp/source" --destination "$test_tmp/dest" apply \
+    2>>"$test_tmp/apply-stderr.log"
+done
+
+attempts="$(wc -l <"$test_tmp/curl.log" | tr -d ' ')"
+if [ "$attempts" -ne 4 ]; then
+  echo "chezmoi must rerun the install script on every apply (expected 4 download attempts, got $attempts)" >&2
+  cat "$test_tmp/curl.log" >&2
+  exit 1
+fi
+
+printf 'ok - agent CLI install script installs what is missing, warns instead of failing, and stays retriable\n'

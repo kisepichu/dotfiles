@@ -78,7 +78,7 @@ require_source=(
   "run_onchange_after_25-install-tmux-plugins.sh.tmpl"
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_40-mise-install.sh.tmpl"
-  "run_once_after_50-install-agent-clis.sh"
+  "run_after_50-install-agent-clis.sh"
 )
 
 require_ignored=(

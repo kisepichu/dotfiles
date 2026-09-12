@@ -182,9 +182,9 @@ Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `che
 `codex`, `claude`, and `omp` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
 
 - `codex` is declared in the `mise` tool list (`~/.config/mise/config.toml`) and resolves to the `aqua:openai/codex` prebuilt release binary. Upgrade it with `mise up codex`.
-- `omp` and `claude` are installed by `run_once_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`) into `~/.local/bin`.
+- `omp` and `claude` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`) into `~/.local/bin`.
 
-That script is first-install only: it skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`.
+That script runs on every apply and skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
 
 Machines set up before this layout may hold a second copy from another channel: remove the Homebrew cask on macOS (`brew uninstall --cask codex`) and the npm globals installed by the old NixOS bootstrap (`npm --prefix ~/.local uninstall -g @openai/codex @anthropic-ai/claude-code`), so each CLI has exactly one install.
 

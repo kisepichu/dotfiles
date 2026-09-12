@@ -51,9 +51,9 @@
 `codex`, `claude`, `omp` は macOS / WSL Ubuntu / NixOS で同じチャンネルに揃える。
 
 - `codex` は `mise` 管理 (`aqua:openai/codex` の prebuilt binary)。公式 install script が無く、mise registry 経由なら全 OS で同じ入れ方にできる。macOS の Homebrew cask `codex` は重複するので併用しない。
-- `claude` と `omp` は upstream の install script (`https://claude.ai/install.sh`, `https://omp.sh/install`) を `run_once_after_50-install-agent-clis.sh` から実行し、`~/.local/bin` に入れる。どちらも macOS / glibc / musl 向けの binary を配布している。
+- `claude` と `omp` は upstream の install script (`https://claude.ai/install.sh`, `https://omp.sh/install`) を `run_after_50-install-agent-clis.sh` から実行し、`~/.local/bin` に入れる。どちらも macOS / glibc / musl 向けの binary を配布している。
 - この 2 つは自己更新する (`omp update`、Claude Code 内蔵の updater) ため version は pin せず、既に `PATH` にあるなら再インストールしない。`mise` で pin すると自己更新と衝突する。
-- ダウンロード失敗は warning に留め、`chezmoi apply` 全体を失敗させない。
+- ダウンロード失敗は warning に留め、`chezmoi apply` 全体を失敗させない。失敗しても毎回の apply で再試行されるよう、`run_once_` ではなく `run_` (毎回実行) にしている。`run_once_` だと warning 付き exit 0 が成功として記録され、CLI が入らないまま二度と再試行されない。
 - 認証情報はこの repo で管理しない。`codex login` / `claude login` / omp の `/login` を各マシンで手動実行する。
 
 ### Project-specific development
