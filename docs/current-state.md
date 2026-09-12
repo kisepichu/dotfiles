@@ -51,7 +51,7 @@ Both were fixed before the fresh WSL confirmation.
 Expected `chezmoi --source . status` differences:
 
 - `~/.claude/skills/commit/SKILL.md` if the local installed skill has not been reapplied after source updates
-- run script sources: `run_once_before_10-install-apt-packages.sh.tmpl`, `run_once_before_15-install-mise.sh.tmpl`, `run_once_before_20-install-tmux-plugin-manager.sh`, `run_onchange_after_40-mise-install.sh.tmpl`
+- run script sources: `run_once_before_10-install-apt-packages.sh.tmpl`, `run_once_before_15-install-mise.sh.tmpl`, `run_once_before_20-install-tmux-plugin-manager.sh`, `run_onchange_after_40-mise-install.sh.tmpl`, `run_after_50-install-agent-clis.sh`
 - `~/.config/fish/*`
 - `~/.config/mise/config.toml`
 - `~/.config/nvim/*`

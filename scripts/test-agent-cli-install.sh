@@ -6,7 +6,19 @@ install_script="$repo_root/run_after_50-install-agent-clis.sh"
 test_tmp=$(mktemp -d "${TMPDIR:-/tmp}/agent-cli-install-test.XXXXXX")
 trap 'rm -rf "$test_tmp"' EXIT
 
-mkdir -p "$test_tmp/bin" "$test_tmp/absent-bin" "$test_tmp/present-bin" "$test_tmp/home"
+mkdir -p "$test_tmp/bin" "$test_tmp/absent-bin" "$test_tmp/present-bin" "$test_tmp/home" "$test_tmp/tools"
+
+# The isolated PATH below must not expose omp/claude, but it still needs the
+# utilities the installer and the stubs use. Resolve them from the host instead
+# of assuming /usr/bin and /bin, which hold almost nothing on NixOS.
+for tool in bash sh cat printf mktemp rm; do
+  tool_path="$(command -v "$tool" || true)"
+  if [ -z "$tool_path" ]; then
+    echo "missing test utility: $tool" >&2
+    exit 1
+  fi
+  ln -sf "$tool_path" "$test_tmp/tools/$tool"
+done
 
 cat >"$test_tmp/bin/curl" <<'EOF'
 #!/usr/bin/env bash
@@ -58,7 +70,7 @@ run_install() {
 
   env -i \
     HOME="$test_tmp/home" \
-    PATH="$path_dir:$test_tmp/bin:/usr/bin:/bin" \
+    PATH="$path_dir:$test_tmp/bin:$test_tmp/tools" \
     CURL_LOG="$test_tmp/curl.log" \
     INSTALLER_LOG="$test_tmp/installer.log" \
     CURL_FAIL="$curl_fail" \
@@ -132,7 +144,7 @@ cp "$install_script" "$test_tmp/source/$(basename "$install_script")"
 for _ in 1 2; do
   env -i \
     HOME="$test_tmp/dest" \
-    PATH="$test_tmp/absent-bin:$test_tmp/bin:/usr/bin:/bin" \
+    PATH="$test_tmp/absent-bin:$test_tmp/bin:$test_tmp/tools" \
     CURL_LOG="$test_tmp/curl.log" \
     INSTALLER_LOG="$test_tmp/installer.log" \
     CURL_FAIL=1 \
