@@ -35,14 +35,16 @@
 - `~/.config/fish/functions/fisher.fish`
 - `~/.config/fish/functions/bass.fish`
 - `~/.config/fish/functions/__bass.py`
+- `~/.config/fish/functions/loadenv.fish`
 - `~/.config/fish/conf.d/nix.fish`
 - `~/.config/fish/conf.d/rustup.fish`
 - `~/.config/fish/fish_variables`
 
 取り込み結果:
 
-- `config.fish`: `~/.bashrc` source を廃止し、fish native config に整理済み。
-- `fish_plugins`: `jorgebucaran/fisher` と `edc/bass` を管理。`bass` は bash 用 env スクリプトを fish から source するため再導入。
+- `config.fish`: `~/.bashrc` source を廃止し、fish native config に整理済み。`PNPM_HOME` は `pnpm setup` と同じ OS 別 default (macOS `~/Library/pnpm`、他 `~/.local/share/pnpm`) を使い、pnpm 11+ の `$PNPM_HOME/bin` も PATH に載せる。`pnpm setup` が追記する host 固有 block は取り込まない。
+- `fish_plugins`: `jorgebucaran/fisher` と `edc/bass` を管理。`bass` は bash 用 env スクリプトを fish から source するため再導入。fisher 本体と plugin は vendor せず、`run_onchange_after_27-install-fish-plugins.sh.tmpl` が `fish_plugins` 変更時に fisher を bootstrap して `fisher update` する。
+- `functions/loadenv.fish`: `loadenv [file]` で `.env` (default) を bass 経由で export する。`bass source .env` は `export` 付きの行しか取り込まないため、`set -a` を付けて source する。
 - `conf.d/nix.fish`: Nix が存在する場合だけ source。
 - `conf.d/rustup.fish`: cargo env が存在する場合だけ source。
 

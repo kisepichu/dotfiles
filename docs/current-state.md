@@ -101,6 +101,7 @@ Core tools:
 - `~/.config/fish/fish_plugins`
 - `~/.config/fish/conf.d/nix.fish`
 - `~/.config/fish/conf.d/rustup.fish`
+- `~/.config/fish/functions/loadenv.fish`
 - `~/.tmux.conf`
 - `~/.tmux/new-session`
 - `~/.config/nvim/init.lua`
@@ -118,6 +119,7 @@ Run scripts:
 - `run_once_before_10-install-apt-packages.sh.tmpl`
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
+- `run_onchange_after_27-install-fish-plugins.sh.tmpl`
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`
 
