@@ -1,10 +1,10 @@
 # Current State
 
-Last updated: 2026-09-12
+Last updated: 2026-10-06
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, then applies the shared chezmoi source. Applying the source installs the agent CLIs at user level on every platform: Codex through `mise`, omp and Claude Code through their upstream installers.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, then applies the shared chezmoi source. Applying the source installs the agent CLIs at user level on every platform: Codex through `mise`, omp, Claude Code, and Cursor Agent through their upstream installers.
 
 Implemented and committed:
 
@@ -31,7 +31,10 @@ Recent landed work (since 2026-07-26):
 - Bootstrap scripts install/exec `chezmoi` from repo `mise.toml` (no `chezmoi@VERSION`)
 - TASK-007..013 and TASK-015 moved under `tasks/done/`; open follow-ups remain in `tasks/` (TASK-014 e2e, TASK-016 Mac verification)
 - Session design/plans under `docs/superpowers/{specs,plans}/` are kept as history
-- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp and Claude Code via `run_after_50-install-agent-clis.sh` (installs only what is missing; both self-update)
+- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp, Claude Code, and Cursor Agent via `run_after_50-install-agent-clis.sh` (installs only what is missing; all self-update)
+- macOS Homebrew packages consolidated into the repo-root `Brewfile`, applied with `brew bundle` by both `scripts/bootstrap-macos.sh` and `run_onchange_before_12-install-homebrew-packages.sh.tmpl` (re-runs when `Brewfile` changes)
+- macOS Docker runs on colima with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; `run_after_28-link-docker-cli-plugins.sh.tmpl` links the plugins where the docker CLI finds them
+- Managed `~/.gitconfig` (macOS only) that includes the unmanaged `~/.gitconfig.local`, and a shared global ignore at `~/.config/git/ignore`
 
 ## Important State
 
@@ -113,20 +116,23 @@ Core tools:
 - `~/.config/nvim/lua/plugins/*.lua`
 - `~/.config/mise/config.toml`
 - `~/.config/starship.toml`
+- `~/.config/git/ignore`
 
 Run scripts:
 
 - `run_once_before_10-install-apt-packages.sh.tmpl`
+- `run_onchange_before_12-install-homebrew-packages.sh.tmpl` (macOS, `brew bundle` from `Brewfile`)
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
+- `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`
 
 Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
-- `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
+- `scripts/bootstrap-macos.sh` installs Homebrew and the `Brewfile` packages, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
 - `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise and installs the declared mise tools; the agent CLIs come from the shared chezmoi run scripts, and no login is performed.
 - `scripts/bootstrap-wsl-ubuntu.sh` installs mise if needed, applies this chezmoi source from repo `mise.toml`, and prints fish/`chsh` hints when possible.
 - `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, trackpad tap-to-click, and Mission Control Ctrl+Arrow hotkeys that steal tmux pane swaps.
@@ -135,6 +141,7 @@ macOS:
 
 - `~/.config/karabiner/karabiner.json`
 - `~/.config/wezterm/wezterm.lua`
+- `~/.gitconfig` (machine-specific settings go in the unmanaged `~/.gitconfig.local`)
 
 ## Decisions
 
