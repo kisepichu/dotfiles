@@ -1,0 +1,13 @@
+[user]
+	name = Takashi Sugiyama
+	email = kisepichu@gmail.com
+	signingkey = BA446B3312E0D3B8
+[commit]
+	gpgsign = true
+[tag]
+	gpgSign = true
+# Machine- and work-specific settings (includeIf identities, credential
+# helpers, URL rewrites) live in this unmanaged file. Keep this include last
+# so its values override the defaults above.
+[include]
+	path = ~/.gitconfig.local

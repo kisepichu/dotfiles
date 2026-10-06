@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Runs on every `chezmoi apply`, and is a no-op once both commands exist. omp
-# and Claude Code ship self-updating binaries (`omp update`, Claude Code's own
-# version manager), so pinning or reinstalling them here would fight their
-# updaters: install only what is missing. Codex has no upstream install script
-# and is declared in ~/.config/mise/config.toml instead.
+# Runs on every `chezmoi apply`, and is a no-op once every command exists. omp,
+# Claude Code, and Cursor Agent ship self-updating binaries (`omp update`,
+# Claude Code's own version manager, `cursor-agent update`), so pinning or
+# reinstalling them here would fight their updaters: install only what is
+# missing. Codex has no upstream install script and is declared in
+# ~/.config/mise/config.toml instead.
 #
 # Failures stay non-fatal so a network problem cannot abort `chezmoi apply`.
 # This must not be a `run_once_` script: chezmoi would record the run after a
@@ -44,3 +45,4 @@ install_agent_cli() {
 
 install_agent_cli omp https://omp.sh/install sh
 install_agent_cli claude https://claude.ai/install.sh bash
+install_agent_cli cursor-agent https://cursor.com/install bash

@@ -8,7 +8,7 @@ trap 'rm -rf "$test_tmp"' EXIT
 
 mkdir -p "$test_tmp/bin" "$test_tmp/absent-bin" "$test_tmp/present-bin" "$test_tmp/home" "$test_tmp/tools"
 
-# The isolated PATH below must not expose omp/claude, but it still needs the
+# The isolated PATH below must not expose omp/claude/cursor-agent, but it still needs the
 # utilities the installer and the stubs use. Resolve them from the host instead
 # of assuming /usr/bin and /bin, which hold almost nothing on NixOS.
 for tool in bash sh cat printf mktemp rm; do
@@ -55,7 +55,7 @@ STUB
 EOF
 chmod +x "$test_tmp/bin/curl"
 
-for stub in omp claude; do
+for stub in omp claude cursor-agent; do
   printf '%s\n' '#!/bin/sh' 'exit 0' >"$test_tmp/present-bin/$stub"
   chmod +x "$test_tmp/present-bin/$stub"
 done
@@ -92,7 +92,13 @@ if ! grep -Fxq 'https://claude.ai/install.sh' "$test_tmp/curl.log"; then
   exit 1
 fi
 
-for expected in omp-install.sh claude-install.sh; do
+if ! grep -Fxq 'https://cursor.com/install' "$test_tmp/curl.log"; then
+  echo 'install script must fetch the Cursor Agent installer when cursor-agent is missing' >&2
+  cat "$test_tmp/curl.log" >&2
+  exit 1
+fi
+
+for expected in omp-install.sh claude-install.sh cursor-agent-install.sh; do
   if ! grep -Fq "$expected" "$test_tmp/installer.log"; then
     echo "install script must run the downloaded $expected" >&2
     cat "$test_tmp/installer.log" >&2
@@ -153,8 +159,8 @@ for _ in 1 2; do
 done
 
 attempts="$(wc -l <"$test_tmp/curl.log" | tr -d ' ')"
-if [ "$attempts" -ne 4 ]; then
-  echo "chezmoi must rerun the install script on every apply (expected 4 download attempts, got $attempts)" >&2
+if [ "$attempts" -ne 6 ]; then
+  echo "chezmoi must rerun the install script on every apply (expected 6 download attempts, got $attempts)" >&2
   cat "$test_tmp/curl.log" >&2
   exit 1
 fi
