@@ -22,12 +22,18 @@ __path_prepend "$HOME/.local/bin"
 __path_prepend "$HOME/.cargo/bin"
 __path_prepend "$HOME/.elan/bin"
 __path_prepend "$HOME/gems/bin"
-__path_prepend "$HOME/.local/share/pnpm"
 
+# Same default PNPM_HOME as `pnpm setup`; pnpm 11+ links global binaries into $PNPM_HOME/bin.
+set -l pnpm_home "$HOME/.local/share/pnpm"
+if __is_macos
+    set pnpm_home "$HOME/Library/pnpm"
+end
 if test -n "$PNPM_HOME"
-    __path_prepend "$PNPM_HOME"
-else if test -d "$HOME/.local/share/pnpm"
-    set -gx PNPM_HOME "$HOME/.local/share/pnpm"
+    set pnpm_home "$PNPM_HOME"
+end
+if test -d "$pnpm_home"
+    set -gx PNPM_HOME "$pnpm_home"
+    __path_prepend "$PNPM_HOME" "$PNPM_HOME/bin"
 end
 
 if test -d "$HOME/.dotnet"

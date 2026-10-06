@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Re-run whenever the plugin list in dot_config/fish/fish_plugins changes.
+# fish_plugins hash: {{ include "dot_config/fish/fish_plugins" | sha256sum }}
+set -euo pipefail
+
+if ! command -v fish >/dev/null 2>&1; then
+  echo "warning: fish is not installed; skipping fish plugin install" >&2
+  exit 0
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "warning: curl is not installed; skipping fish plugin install" >&2
+  exit 0
+fi
+
+# fisher is not vendored: on first run download it to a temp file (never pipe
+# into source, so a truncated download cannot run), then `fisher update`
+# installs and prunes plugins to match ~/.config/fish/fish_plugins. That list
+# includes fisher itself, so the temporary copy gets installed properly.
+# A failure exits non-zero so chezmoi does not record the hash and retries.
+if fish -c 'functions -q fisher'; then
+  fish -c 'fisher update'
+else
+  bootstrap="$(mktemp)"
+  trap 'rm -f "$bootstrap"' EXIT
+  curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish -o "$bootstrap"
+  fish -c 'source $argv[1]; and fisher update' "$bootstrap"
+fi
