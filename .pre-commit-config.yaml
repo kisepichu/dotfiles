@@ -31,6 +31,11 @@ repos:
         entry: scripts/test-bootstrap-nixos.sh
         language: system
         pass_filenames: false
+      - id: agent-cli-install
+        name: test agent CLI install script
+        entry: scripts/test-agent-cli-install.sh
+        language: system
+        pass_filenames: false
       - id: secretlint
         name: secretlint
         entry: secretlint

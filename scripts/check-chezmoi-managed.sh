@@ -54,6 +54,9 @@ require_managed=(
   ".config/fish/fish_plugins"
   ".config/fish/conf.d/nix.fish"
   ".config/fish/conf.d/rustup.fish"
+  ".config/fish/functions/dcnvim.fish"
+  ".config/fish/functions/dcup.fish"
+  ".config/fish/functions/loadenv.fish"
   ".config/mise/config.toml"
   ".config/starship.toml"
   ".config/nvim/.neoconf.json"
@@ -71,12 +74,16 @@ require_source=(
   "mise.toml"
   "scripts/bootstrap-nixos.sh"
   "scripts/bootstrap-wsl-ubuntu.sh"
+  "scripts/install-devcontainer-neovim.sh"
   "run_once_before_10-install-apt-packages.sh.tmpl"
   "run_once_before_12-install-homebrew-packages.sh.tmpl"
   "run_once_before_15-install-mise.sh.tmpl"
   "run_once_before_20-install-tmux-plugin-manager.sh"
+  "run_onchange_after_25-install-tmux-plugins.sh.tmpl"
+  "run_onchange_after_27-install-fish-plugins.sh.tmpl"
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_40-mise-install.sh.tmpl"
+  "run_after_50-install-agent-clis.sh"
 )
 
 require_ignored=(

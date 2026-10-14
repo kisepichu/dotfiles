@@ -13,7 +13,7 @@ cd ~/repos/dotfiles
 ./scripts/bootstrap-nixos.sh
 ```
 
-The bootstrap applies this chezmoi source non-interactively, installs the declared mise tools, and installs Codex and Claude Code under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials.
+The bootstrap applies this chezmoi source non-interactively, which installs the declared mise tools (including Codex) and the omp and Claude Code CLIs under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials.
 
 Create a dedicated GitHub key on the NixOS machine after the bootstrap:
 
@@ -44,6 +44,7 @@ Complete the agent authentication manually on that machine:
 ```bash
 codex login
 claude login
+# omp: start `omp`, then run /login
 ```
 
 ## Fresh macOS
@@ -175,6 +176,54 @@ Open a new shell after installing; `conf.d/nix.fish` sources the nix profile aut
 ## Rust
 
 Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `chezmoi apply`, `mise install` installs the toolchain and `run_onchange_after_45-rust-components.sh.tmpl` adds the `rust-analyzer` and `rust-src` components that neovim (rustaceanvim) needs. No manual step is required; open neovim in a Rust project and the LSP starts.
+
+## Agent CLIs
+
+`codex`, `claude`, and `omp` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
+
+- `codex` is declared in the `mise` tool list (`~/.config/mise/config.toml`) and resolves to the `aqua:openai/codex` prebuilt release binary. Upgrade it with `mise up codex`.
+- `omp` and `claude` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`) into `~/.local/bin`.
+
+That script runs on every apply and skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
+
+Machines set up before this layout may hold a copy from an older channel. Remove it **before** the first apply, because the npm-installed `claude` occupies the same `~/.local/bin/claude` path the installer would create: the script sees it, skips the install, and the later `npm uninstall` then leaves Claude Code absent. If the cleanup already ran after an apply, just run `chezmoi apply` again.
+
+```bash
+# macOS
+brew uninstall --cask codex
+# NixOS (installed by the old bootstrap)
+npm --prefix ~/.local uninstall -g @openai/codex @anthropic-ai/claude-code
+```
+
+Authenticate once per machine; this repository stores no credentials.
+
+```bash
+codex login
+claude login
+# omp: start `omp`, then run /login
+```
+
+## Neovim In Dev Containers
+
+Use Neovim and this repository's Neovim config inside a project's dev container without changing the project. `dcup` (fish) runs `devcontainer up` with this repository as the dotfiles repository; the Dev Container CLI clones it into the container and runs `scripts/install-devcontainer-neovim.sh` once per container.
+
+```fish
+dcup                               # in the project directory
+dcnvim                             # open Neovim in the container
+dcup --remove-existing-container   # recreate the container to pick up dotfiles changes
+```
+
+The script installs Neovim, the tree-sitter CLI, Deno, ripgrep, fd, and the SKK dictionary, applies only `~/.config/nvim` with chezmoi (no `run_` scripts), and restores the plugins to `lazy-lock.json`. It supports apt-based (Debian/Ubuntu) glibc images, as root or with sudo. When the image moves `XDG_CONFIG_HOME` away from `~/.config`, it links `$XDG_CONFIG_HOME/nvim` to the applied config.
+
+`devcontainer up` still succeeds when the install script fails, so check its output for `Neovim is ready in the dev container.` Plugin download errors (for example, a dropped connection to GitHub) do not fail the script either. The script is safe to run again inside the container; it puts `lazy-lock.json` back and restores the plugins to it:
+
+```bash
+~/dotfiles/scripts/install-devcontainer-neovim.sh
+```
+
+The container gets the pushed config; edits made inside it stay in the container. To try unmerged changes, mount a local checkout into the container from the project side and point `dcup` at the container path, for example `DCUP_DOTFILES_REPOSITORY=/path/in/container dcup`. The CLI clones the checked-out branch of that path.
+
+Project-specific settings, such as publishing the UI port that the CLI does not forward or mounting credentials (`~/.wakatime.cfg`), stay in the project's local, git-ignored configuration.
 
 ## Validation
 

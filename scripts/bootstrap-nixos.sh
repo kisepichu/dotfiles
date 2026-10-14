@@ -32,5 +32,3 @@ fi
   mise install --yes chezmoi
   mise exec -- chezmoi --source "$repo_dir" --force apply
 )
-mise exec node -- npm install --global --prefix "$HOME/.local" \
-  @openai/codex@latest @anthropic-ai/claude-code@latest
