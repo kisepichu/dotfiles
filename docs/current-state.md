@@ -101,6 +101,8 @@ Core tools:
 - `~/.config/fish/fish_plugins`
 - `~/.config/fish/conf.d/nix.fish`
 - `~/.config/fish/conf.d/rustup.fish`
+- `~/.config/fish/functions/dcnvim.fish`
+- `~/.config/fish/functions/dcup.fish`
 - `~/.config/fish/functions/loadenv.fish`
 - `~/.tmux.conf`
 - `~/.tmux/new-session`
@@ -126,6 +128,7 @@ Run scripts:
 Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
+- `scripts/install-devcontainer-neovim.sh` installs Neovim and applies this repository's Neovim config inside a dev container; `dcup` passes it to `devcontainer up` as the dotfiles install command.
 - `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
 - `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise and installs the declared mise tools; the agent CLIs come from the shared chezmoi run scripts, and no login is performed.
 - `scripts/bootstrap-wsl-ubuntu.sh` installs mise if needed, applies this chezmoi source from repo `mise.toml`, and prints fish/`chsh` hints when possible.
