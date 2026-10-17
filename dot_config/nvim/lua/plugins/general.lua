@@ -195,7 +195,64 @@ return {
   { "glacambre/firenvim", build = ":call firenvim#install(0)" },
   "tacroe/unite-mark",
   "djoshea/vim-autoread",
-  "sindrets/diffview.nvim",
+  {
+    -- <leader>gd: local changes (working tree + staged) / close the view.
+    -- <leader>gD: PR-style diff. merge-base(<base>, HEAD) vs local files;
+    -- --imply-local keeps the right side editable with LSP attached.
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewFileHistory" },
+    keys = {
+      {
+        "<leader>gd",
+        function()
+          if require("diffview.lib").get_current_view() then
+            vim.cmd.DiffviewClose()
+          else
+            vim.cmd.DiffviewOpen()
+          end
+        end,
+        desc = "Diffview Local Changes (toggle)",
+      },
+      {
+        "<leader>gD",
+        function()
+          local default =
+            vim.trim(vim.fn.system({ "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }))
+          if vim.v.shell_error ~= 0 then
+            default = ""
+          end
+          vim.ui.input({ prompt = "Diff HEAD against merge base of: ", default = default }, function(base)
+            if base and base ~= "" then
+              vim.cmd.DiffviewOpen({ args = { base .. "...HEAD", "--imply-local" } })
+            end
+          end)
+        end,
+        desc = "Diffview Branch vs Base (PR)",
+      },
+    },
+  },
+  {
+    -- Default adapter is GitHub Copilot, reusing the copilot.lua sign-in.
+    "olimorris/codecompanion.nvim",
+    version = "^19.0.0",
+    cmd = {
+      "CodeCompanion",
+      "CodeCompanionChat",
+      "CodeCompanionActions",
+      "CodeCompanionCmd",
+      "CodeCompanionCodeReview",
+    },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    keys = {
+      { "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", mode = { "n", "x" }, desc = "CodeCompanion Chat (toggle)" },
+      { "<leader>ap", "<cmd>CodeCompanionActions<cr>", mode = { "n", "x" }, desc = "CodeCompanion Actions" },
+      { "<leader>ac", "<cmd>CodeCompanionChat Add<cr>", mode = "x", desc = "CodeCompanion Add Selection to Chat" },
+    },
+    opts = {},
+  },
   {
     "rmagatti/goto-preview",
     dependencies = { "rmagatti/logger.nvim" },
