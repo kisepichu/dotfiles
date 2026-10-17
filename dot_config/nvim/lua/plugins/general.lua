@@ -195,7 +195,42 @@ return {
   { "glacambre/firenvim", build = ":call firenvim#install(0)" },
   "tacroe/unite-mark",
   "djoshea/vim-autoread",
-  "sindrets/diffview.nvim",
+  {
+    -- <leader>gd: local changes (working tree + staged) / close the view.
+    -- <leader>gD: PR-style diff. merge-base(<base>, HEAD) vs local files;
+    -- --imply-local keeps the right side editable with LSP attached.
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewFileHistory" },
+    keys = {
+      {
+        "<leader>gd",
+        function()
+          if require("diffview.lib").get_current_view() then
+            vim.cmd.DiffviewClose()
+          else
+            vim.cmd.DiffviewOpen()
+          end
+        end,
+        desc = "Diffview Local Changes (toggle)",
+      },
+      {
+        "<leader>gD",
+        function()
+          local default =
+            vim.trim(vim.fn.system({ "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }))
+          if vim.v.shell_error ~= 0 then
+            default = ""
+          end
+          vim.ui.input({ prompt = "Diff HEAD against merge base of: ", default = default }, function(base)
+            if base and base ~= "" then
+              vim.cmd.DiffviewOpen({ args = { base .. "...HEAD", "--imply-local" } })
+            end
+          end)
+        end,
+        desc = "Diffview Branch vs Base (PR)",
+      },
+    },
+  },
   {
     "rmagatti/goto-preview",
     dependencies = { "rmagatti/logger.nvim" },
