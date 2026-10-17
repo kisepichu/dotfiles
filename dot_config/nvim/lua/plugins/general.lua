@@ -232,6 +232,28 @@ return {
     },
   },
   {
+    -- Default adapter is GitHub Copilot, reusing the copilot.lua sign-in.
+    "olimorris/codecompanion.nvim",
+    version = "^19.0.0",
+    cmd = {
+      "CodeCompanion",
+      "CodeCompanionChat",
+      "CodeCompanionActions",
+      "CodeCompanionCmd",
+      "CodeCompanionCodeReview",
+    },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    keys = {
+      { "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", mode = { "n", "x" }, desc = "CodeCompanion Chat (toggle)" },
+      { "<leader>ap", "<cmd>CodeCompanionActions<cr>", mode = { "n", "x" }, desc = "CodeCompanion Actions" },
+      { "<leader>ac", "<cmd>CodeCompanionChat Add<cr>", mode = "x", desc = "CodeCompanion Add Selection to Chat" },
+    },
+    opts = {},
+  },
+  {
     "rmagatti/goto-preview",
     dependencies = { "rmagatti/logger.nvim" },
     event = "BufEnter",
