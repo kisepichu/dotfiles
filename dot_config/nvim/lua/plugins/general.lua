@@ -195,7 +195,73 @@ return {
   { "glacambre/firenvim", build = ":call firenvim#install(0)" },
   "tacroe/unite-mark",
   "djoshea/vim-autoread",
-  "sindrets/diffview.nvim",
+  {
+    -- <leader>gd: local changes (working tree + staged) / close the view.
+    -- <leader>gD: PR-style diff. merge-base(<base>, HEAD) vs local files;
+    -- --imply-local keeps the right side editable with LSP attached.
+    "sindrets/diffview.nvim",
+    cmd = { "DiffviewOpen", "DiffviewFileHistory" },
+    opts = {
+      keymaps = {
+        file_panel = {
+          -- <CR> keeps the default (cursor stays in the file panel). l opens the
+          -- entry and moves to the left side of its diff, like l in neo-tree.
+          {
+            "n",
+            "l",
+            function()
+              local view = require("diffview.lib").get_current_view()
+              local item = view and view.panel:get_item_at_cursor()
+              if not item then
+                return
+              end
+              if type(item.collapsed) == "boolean" then
+                view.panel:toggle_item_fold(item)
+                return
+              end
+              local async = require("diffview.async")
+              async.void(function()
+                async.await(view:set_file(item, false))
+                -- diff1_plain (merge tool layout cycle) has no left window.
+                local win = view.cur_layout.a or view.cur_layout:get_main_win()
+                win:focus()
+              end)()
+            end,
+            { desc = "Open the diff for the selected entry and focus its left side" },
+          },
+        },
+      },
+    },
+    keys = {
+      {
+        "<leader>gd",
+        function()
+          if require("diffview.lib").get_current_view() then
+            vim.cmd.DiffviewClose()
+          else
+            vim.cmd.DiffviewOpen()
+          end
+        end,
+        desc = "Diffview Local Changes (toggle)",
+      },
+      {
+        "<leader>gD",
+        function()
+          local default =
+            vim.trim(vim.fn.system({ "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }))
+          if vim.v.shell_error ~= 0 then
+            default = ""
+          end
+          vim.ui.input({ prompt = "Diff HEAD against merge base of: ", default = default }, function(base)
+            if base and base ~= "" then
+              vim.cmd.DiffviewOpen({ args = { base .. "...HEAD", "--imply-local" } })
+            end
+          end)
+        end,
+        desc = "Diffview Branch vs Base (PR)",
+      },
+    },
+  },
   {
     "rmagatti/goto-preview",
     dependencies = { "rmagatti/logger.nvim" },
