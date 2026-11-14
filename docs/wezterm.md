@@ -9,12 +9,14 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 - **macOS**: chezmoi が `~/.config/wezterm/wezterm.lua` に展開する
   (`.chezmoiignore` で darwin 以外では無視)。
 - **Windows (WSL のメイン環境)**: WSL の WezTerm は Windows ホスト側で動くため
-  chezmoi (WSL/macOS の home で動作) からは配置できない。`default_domain` は
-  `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。Windows 側で次のいずれか:
-  - このリポジトリの `dot_config/wezterm/wezterm.lua` を
-    `C:\Users\<user>\.config\wezterm\wezterm.lua` または
-    `C:\Users\<user>\.wezterm.lua` にコピー、または
-  - 1 行だけの `.wezterm.lua` を置いて本体を `dofile` で読み込む。
+  chezmoi の home 外にある。WSL で `chezmoi apply` すると
+  `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` が
+  `%USERPROFILE%\.wezterm.lua` にコピーする (このファイルが変わったときだけ再実行)。
+  WezTerm は `~/.wezterm.lua` を最優先で読む (`config/src/config.rs`。公式ドキュメン
+  トの図は `~/.config/wezterm` 優先と書いているが実装は逆)。初回に既存の手書き設定が
+  あれば `.wezterm.lua.pre-dotfiles` に退避する。Windows 側で直接編集しても次のコピー
+  で上書きされるので、変更は repo 側で行う。
+  `default_domain` は `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
 
 ## キーバインド
 

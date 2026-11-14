@@ -2,10 +2,10 @@
 --
 -- Deployment:
 --   * macOS: chezmoi places this at ~/.config/wezterm/wezterm.lua.
---   * Windows: WSL's WezTerm runs on the Windows host, which chezmoi (running
---     inside WSL/macOS home) cannot reach. Copy or point a Windows-side
---     ~/.wezterm.lua / ~/.config/wezterm/wezterm.lua at this file.
---     See docs/wezterm.md for details.
+--   * Windows: WSL's WezTerm runs on the Windows host, outside chezmoi's home.
+--     run_onchange_after_35-install-windows-wezterm-config.sh copies this file
+--     to %USERPROFILE%\.wezterm.lua when `chezmoi apply` runs in WSL and this
+--     file changed. See docs/wezterm.md for details.
 --
 -- The config branches on wezterm.target_triple so a single source works on
 -- both macOS and Windows.
@@ -30,7 +30,7 @@ config.font = wezterm.font_with_fallback({
 	"Menlo",
 	"Consolas",
 })
-config.font_size = is_macos and 13.0 or 11.0
+config.font_size = is_macos and 13.0 or 12.0
 config.hide_tab_bar_if_only_one_tab = true
 config.use_fancy_tab_bar = false
 config.window_decorations = "RESIZE"
@@ -94,5 +94,11 @@ config.keys = {
 	-- QuickSelect: quickly select/copy on-screen text (URLs, hashes, paths).
 	{ key = "F13", action = act.QuickSelect },
 }
+
+if is_windows then
+	-- Carried over from the previous hand-maintained Windows config.
+	table.insert(config.keys, { key = "f", mods = "SHIFT|META", action = act.ToggleFullScreen })
+	table.insert(config.keys, { key = "[", mods = "CTRL", action = act.SendKey({ key = "n", mods = "CTRL" }) })
+end
 
 return config
