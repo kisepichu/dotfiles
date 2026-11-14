@@ -16,6 +16,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# tpm reads ~/.tmux.conf, and tmux-resurrect / tmux-continuum would restore and
+# save real sessions under the real HOME. Run every server with a throwaway
+# HOME whose .tmux.conf is this repository's config.
+mkdir -p "$test_tmp/home/.tmux"
+ln -s "$config" "$test_tmp/home/.tmux.conf"
+if [[ -d $HOME/.tmux/plugins ]]; then
+  ln -s "$HOME/.tmux/plugins" "$test_tmp/home/.tmux/plugins"
+fi
+export HOME="$test_tmp/home"
+
 tmux -L "$socket" -f "$config" new-session -d -s config-check 'sleep 30'
 
 clipboard_mode=$(tmux -L "$socket" show-options -sv set-clipboard)
