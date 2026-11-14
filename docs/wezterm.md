@@ -9,17 +9,28 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 - **macOS**: chezmoi が `~/.config/wezterm/wezterm.lua` に展開する
   (`.chezmoiignore` で darwin 以外では無視)。
 - **Windows (WSL のメイン環境)**: WSL の WezTerm は Windows ホスト側で動くため
-  chezmoi (WSL/macOS の home で動作) からは配置できない。Windows 側で次のいずれか:
-  - このリポジトリの `dot_config/wezterm/wezterm.lua` を
-    `C:\Users\<user>\.config\wezterm\wezterm.lua` または
-    `C:\Users\<user>\.wezterm.lua` にコピー、または
-  - 1 行だけの `.wezterm.lua` を置いて本体を `dofile` で読み込む。
+  chezmoi の home 外にある。WSL で `chezmoi apply` すると
+  `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` が
+  `%USERPROFILE%\.wezterm.lua` にコピーする (このファイルが変わったときだけ再実行)。
+  WezTerm は `~/.wezterm.lua` を最優先で読む (`config/src/config.rs`。公式ドキュメン
+  トの図は `~/.config/wezterm` 優先と書いているが実装は逆)。初回に既存の手書き設定が
+  あれば `.wezterm.lua.pre-dotfiles` に退避する。Windows 側で直接編集しても次のコピー
+  で上書きされるので、変更は repo 側で行う。
+  `default_domain` は `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
 
 ## キーバインド
 
-- QuickSelect (画面内の URL / ハッシュ / パスなどを素早く選択・コピー):
-  WezTerm 側は **`F13`** にバインド。macOS では Karabiner が
-  **物理 `fn` + `Shift` + `Space`** を `F13` に写す (下記参照)。
+- QuickSelect (画面内の URL / ハッシュ / パス / UUID などを素早く選択・コピー):
+  Windows は WezTerm 既定の **`Ctrl+Shift+Space`**。macOS では WezTerm 側を
+  **`F13`** にバインドし、Karabiner が **物理 `fn` + `Shift` + `Space`** を
+  `F13` に写す (下記参照)。
+  - URL は独自パターン (`quick_select_patterns`) を既定より優先させている。
+    既定の `scheme://\S+` は `(https://…)` の `)` や文末の `.` `,`、直後の日本語まで
+    取り込むため。URL 内の対応した `(...)` は残す。パス / ハッシュ / UUID 等は既定の
+    まま。
+  - 制限: WezTerm は画面上の行単位で探すので、tmux pane 内で折り返された URL や
+    隣の pane の文字と同じ行に並んだものはまとめて選べない (tmux 側の再描画で
+    ソフト折り返し情報が失われるため)。
 - `Ctrl+Arrow`: WezTerm 側では **あえてバインドしない**。デフォルトの CSI シーケン
   スをそのまま端末へ送り、tmux (prefix `C-f` のあと `C-Arrow`) で pane swap させる
   ため。

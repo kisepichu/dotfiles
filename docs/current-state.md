@@ -17,7 +17,7 @@ Implemented and committed:
 - Managed LazyVim-based `nvim` config
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
-- Managed WezTerm config on macOS (`darwin` only via `.chezmoiignore`)
+- Managed WezTerm config: chezmoi target on macOS (`darwin` only via `.chezmoiignore`), copied to `%USERPROFILE%\.wezterm.lua` from WSL
 - WSL Ubuntu / macOS / NixOS bootstrap scripts
 - Repo-root `mise.toml` so bootstrap activates `chezmoi` without mise's inactive-tool warning
 - Optional WSL Ubuntu Docker Engine install script
@@ -36,6 +36,9 @@ Recent landed work (since 2026-07-26):
 - macOS Docker runs on colima with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; `run_after_28-link-docker-cli-plugins.sh.tmpl` links the plugins where the docker CLI finds them
 - Managed `~/.gitconfig` (macOS only) that includes the unmanaged `~/.gitconfig.local`, and a shared global ignore at `~/.config/git/ignore`
 - yazi file manager on every platform via `mise`: fish `y` (cd on quit), yazi.nvim next to neo-tree, OS openers that use `wslview` on WSL, and tmux passthrough for image previews
+- tmux copy mode yanks via OSC 52 only (tmux-yank and the `clip.exe` pipe removed: clip.exe garbled UTF-8 on WSL), vim-like text objects (`viw`, `vi"`, `va(`, ...), regression test `scripts/test-tmux-copy-mode.sh`
+- WezTerm QuickSelect URL pattern no longer swallows a closing `)` / trailing punctuation; Windows WezTerm config is now repo-managed (WSL `chezmoi apply` copies it to `%USERPROFILE%\.wezterm.lua`) and `default_domain` follows the default WSL distro
+- tmux test scripts run the server with a throwaway HOME so tpm / resurrect / continuum never touch real session data
 
 ## Important State
 
@@ -130,6 +133,7 @@ Run scripts:
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
+- `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` (WSL, copies the WezTerm config to the Windows host)
 - `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`

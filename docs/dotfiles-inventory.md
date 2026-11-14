@@ -96,7 +96,7 @@
 
 取り込み結果:
 
-- `.tmux.conf`: keybind, layout, mouse, copy-mode, popup, WSL clipboard integration を取り込み済み。
+- `.tmux.conf`: keybind, layout, mouse, copy-mode, popup を取り込み済み。クリップボードは OSC 52 (`set-clipboard on`) に一本化。
 - `.tmux/new-session`: 初期 pane layout を取り込み済み。
 
 除外:
@@ -109,7 +109,7 @@
 
 - TPM は `run_once_before_20-install-tmux-plugin-manager.sh` で clone する。repo に vendor しない。
 - `wifi`, `battery` command は削除済み。
-- `clip.exe` copy は WSL 判定付きで残した。
+- `clip.exe` copy は削除した (UTF-8 を ANSI コードページとして読むため日本語が化ける。OSC 52 で WezTerm が書き込む)。
 - CRLF は LF に正規化済み。
 
 ## nvim
