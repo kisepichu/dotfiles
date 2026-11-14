@@ -61,7 +61,7 @@ check_client() {
   tmux -L "$socket" set-hook -g client-attached \
     "run-shell \"tmux wait-for -S $wait_channel\""
   tmux -L "$socket" new-session -d -s "behavior-$label" \
-    "tmux wait-for $wait_channel; tmux display-message -p '#{client_termfeatures}' > '$feature_file'; printf '\\033]52;c;$marker\\033\\\\'; sleep 1"
+    "tmux wait-for $wait_channel; tmux display-message -p '#{client_termfeatures}' > '$feature_file'; printf '\\033]52;c;$marker\\033\\\\'; printf '\\033Ptmux;\\033\\033]1337;SetUserVar=passthrough=$marker\\007\\033\\\\'; sleep 1"
 
   record_session "$client_term" "$socket" "behavior-$label" "$terminal_log"
 
@@ -72,6 +72,12 @@ check_client() {
 
   if ! LC_ALL=C grep -aFq $'\033]52;c;'"$marker" "$terminal_log"; then
     printf 'tmux did not relay application OSC 52 through %s\n' "$client_term" >&2
+    exit 1
+  fi
+
+  # yazi wraps inline-image sequences in DCS passthrough when it runs in tmux.
+  if ! LC_ALL=C grep -aFq $'\033]1337;SetUserVar=passthrough='"$marker" "$terminal_log"; then
+    printf 'tmux did not unwrap DCS passthrough for %s (yazi image previews need allow-passthrough)\n' "$client_term" >&2
     exit 1
   fi
 }
@@ -107,4 +113,4 @@ check_nested() {
 check_client xterm-256color direct
 check_nested
 
-printf 'ok - tmux preserves RGB and relays OSC 52\n'
+printf 'ok - tmux preserves RGB and relays OSC 52 and DCS passthrough\n'

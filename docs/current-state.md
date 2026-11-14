@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-10-06
+Last updated: 2026-11-14
 
 ## Summary
 
@@ -35,6 +35,7 @@ Recent landed work (since 2026-07-26):
 - macOS Homebrew packages consolidated into the repo-root `Brewfile`, applied with `brew bundle` by both `scripts/bootstrap-macos.sh` and `run_onchange_before_12-install-homebrew-packages.sh.tmpl` (re-runs when `Brewfile` changes)
 - macOS Docker runs on colima with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; `run_after_28-link-docker-cli-plugins.sh.tmpl` links the plugins where the docker CLI finds them
 - Managed `~/.gitconfig` (macOS only) that includes the unmanaged `~/.gitconfig.local`, and a shared global ignore at `~/.config/git/ignore`
+- yazi file manager on every platform via `mise`: fish `y` (cd on quit), yazi.nvim next to neo-tree, OS openers that use `wslview` on WSL, and tmux passthrough for image previews
 
 ## Important State
 
@@ -107,6 +108,7 @@ Core tools:
 - `~/.config/fish/functions/dcnvim.fish`
 - `~/.config/fish/functions/dcup.fish`
 - `~/.config/fish/functions/loadenv.fish`
+- `~/.config/fish/functions/y.fish`
 - `~/.tmux.conf`
 - `~/.tmux/new-session`
 - `~/.config/nvim/init.lua`
@@ -119,6 +121,7 @@ Core tools:
 - `~/.config/mise/config.toml`
 - `~/.config/starship.toml`
 - `~/.config/git/ignore`
+- `~/.config/yazi/yazi.toml`
 
 Run scripts:
 

@@ -214,6 +214,25 @@ cursor-agent login
 # omp: start `omp`, then run /login
 ```
 
+## yazi
+
+[yazi](https://yazi-rs.github.io/) is the terminal file manager on every platform. It is in the `mise` tool list and resolves to the `aqua:sxyazi/yazi` prebuilt release, which also ships `ya`.
+
+- Shell: `y` (fish) starts yazi; quitting with `q` moves the shell to the directory yazi was in, `Q` quits without moving.
+- Neovim: `<leader>fy` opens yazi at the current file and `<leader>fY` at the working directory (yazi.nvim). neo-tree stays on `<leader>e`.
+- Inside yazi: `z` jumps to a directory with fzf, `Z` with zoxide, `s` searches file names with fd, `S` searches contents with rg, `o` opens with the OS default app.
+- OS default app (`~/.config/yazi/yazi.toml`): macOS uses `open`; Linux uses `wslview` when it exists (WSL, from `wslu`) and `xdg-open` otherwise.
+
+Image previews go through WezTerm's inline images protocol. Inside tmux they need `allow-passthrough` and the outer `TERM` / `TERM_PROGRAM`, which `~/.tmux.conf` sets. A running tmux server picks this up after a reload and a reattach:
+
+```bash
+tmux source-file ~/.tmux.conf
+# detach (prefix d), then
+tmux attach
+```
+
+Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, yazi documents image previews only through `wezterm ssh` into WSL.
+
 ## Neovim PHP And Diffview
 
 phpactor does not support Diffview's `diffview:` URI scheme. Its LSP activation excludes those virtual buffers, including editable Git index buffers whose `buftype` is empty. Normal PHP files and real working-tree files displayed inside Diffview keep their LSP support and existing workspace root detection.
