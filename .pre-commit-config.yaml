@@ -60,3 +60,9 @@ repos:
         language: system
         files: ^(dot_tmux\.conf|scripts/test-tmux-terminal\.sh)$
         pass_filenames: false
+      - id: tmux-copy-mode
+        name: tmux copy mode (UTF-8 yank via OSC 52, text objects)
+        entry: scripts/test-tmux-copy-mode.sh
+        language: system
+        files: ^(dot_tmux\.conf|scripts/test-tmux-copy-mode\.sh)$
+        pass_filenames: false
