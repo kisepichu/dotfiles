@@ -48,9 +48,36 @@ if is_macos then
 end
 
 if is_windows then
-	-- Launch into WSL by default on Windows.
-	config.default_domain = "WSL:Ubuntu"
+	-- Launch into WSL by default on Windows. Use the first WSL domain (WezTerm
+	-- keeps `wsl -l -v` order, which lists the default distro first) instead of
+	-- hard-coding a distro name that differs per machine.
+	local wsl_domains = wezterm.default_wsl_domains()
+	if #wsl_domains > 0 then
+		config.default_domain = wsl_domains[1].name
+	end
 end
+
+-- QuickSelect ----------------------------------------------------------------
+-- User patterns are tried before WezTerm's built-ins (paths, hashes, UUIDs,
+-- IPs, ... stay enabled). The built-in URL pattern is `scheme://\S+`, which
+-- swallows a closing `)` / trailing punctuation and runs into adjacent
+-- Japanese text. This one keeps ASCII URL characters only, allows balanced
+-- `(...)` inside the URL (Wikipedia-style), and never ends on `.,;:!?`.
+-- Non-capturing groups only: QuickSelect copies the last matching capture.
+local url_chars = [[A-Za-z0-9\-._~:/?#@!$&*+,;=%]]
+local url_last_chars = [[A-Za-z0-9\-_~/#@$&*+=%]]
+local url_parens = [[\([]] .. url_chars .. [[]*\)]]
+config.quick_select_patterns = {
+	"(?:(?:https?|ftp|file|ssh|git)://|git@)(?:["
+		.. url_chars
+		.. "]|"
+		.. url_parens
+		.. ")*(?:["
+		.. url_last_chars
+		.. "]|"
+		.. url_parens
+		.. ")",
+}
 
 -- Key bindings ---------------------------------------------------------------
 -- Ctrl+Arrow is intentionally NOT bound here: WezTerm forwards the default CSI

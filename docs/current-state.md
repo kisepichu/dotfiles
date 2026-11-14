@@ -36,6 +36,8 @@ Recent landed work (since 2026-07-26):
 - macOS Docker runs on colima with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; `run_after_28-link-docker-cli-plugins.sh.tmpl` links the plugins where the docker CLI finds them
 - Managed `~/.gitconfig` (macOS only) that includes the unmanaged `~/.gitconfig.local`, and a shared global ignore at `~/.config/git/ignore`
 - yazi file manager on every platform via `mise`: fish `y` (cd on quit), yazi.nvim next to neo-tree, OS openers that use `wslview` on WSL, and tmux passthrough for image previews
+- tmux copy mode yanks via OSC 52 only (tmux-yank and the `clip.exe` pipe removed: clip.exe garbled UTF-8 on WSL), vim-like text objects (`viw`, `vi"`, `va(`, ...), regression test `scripts/test-tmux-copy-mode.sh`
+- WezTerm QuickSelect URL pattern no longer swallows a closing `)` / trailing punctuation; Windows `default_domain` follows the default WSL distro
 
 ## Important State
 
