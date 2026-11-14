@@ -54,6 +54,8 @@
   "neo-tree.nvim": { "branch": "main", "commit": "19d20a99bf0061a5ecc4343d2f09fa713306c965" },
   "neotest": { "branch": "master", "commit": "fd0b7986dd0ae04e38ec7dc0c78a432e3820839c" },
   "neotest-haskell": { "branch": "main", "commit": "29d8a818ca5a98498e092be4d6868954d18f1b1a" },
+  "neotest-pest": { "branch": "main", "commit": "3388a5f00001303020ce885e18007ccd1835212c" },
+  "neotest-phpunit": { "branch": "main", "commit": "40e53c4294726a16f34f1a383a94c570553c6d46" },
   "noice.nvim": { "branch": "main", "commit": "7bfd942445fb63089b59f97ca487d605e715f155" },
   "nui.nvim": { "branch": "main", "commit": "de740991c12411b663994b2860f1a4fd0937c130" },
   "numb.nvim": { "branch": "master", "commit": "12ef3913dea8727d4632c6f2ed47957a993de627" },
