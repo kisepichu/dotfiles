@@ -133,7 +133,22 @@ return {
   -- "windwp/nvim-ts-autotag",
   "tpope/vim-fugitive",
   "lewis6991/gitsigns.nvim",
-  "neovim/nvim-lspconfig",
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        phpactor = {
+          root_dir = function(bufnr, on_dir)
+            -- Diffview index buffers are editable but phpactor cannot handle their URI.
+            if vim.uri_from_bufnr(bufnr):match("^diffview:") then
+              return
+            end
+            on_dir(vim.fs.root(bufnr, vim.lsp.config.phpactor.root_markers))
+          end,
+        },
+      },
+    },
+  },
   "lukas-reineke/lsp-format.nvim",
   "lambdalisue/vim-kensaku",
   "lambdalisue/vim-kensaku-search",
