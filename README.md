@@ -203,6 +203,10 @@ claude login
 # omp: start `omp`, then run /login
 ```
 
+## Neovim PHP And Diffview
+
+phpactor does not support Diffview's `diffview:` URI scheme. Its LSP activation excludes those virtual buffers, including editable Git index buffers whose `buftype` is empty. Normal PHP files and real working-tree files displayed inside Diffview keep their LSP support and existing workspace root detection.
+
 ## Neovim In Dev Containers
 
 Use Neovim and this repository's Neovim config inside a project's dev container without changing the project. `dcup` (fish) runs `devcontainer up` with this repository as the dotfiles repository; the Dev Container CLI clones it into the container and runs `scripts/install-devcontainer-neovim.sh` once per container.
@@ -237,4 +241,10 @@ If `prek` is not available, run:
 
 ```bash
 pre-commit run --all-files
+```
+
+Run the PHP/Diffview LSP regression test with Neovim 0.11+; it does not require installed plugins or phpactor:
+
+```bash
+nvim --headless -u NONE -i NONE -n -l scripts/test-nvim-phpactor.lua
 ```
