@@ -28,7 +28,6 @@ brew "xz"
 brew "ykman"
 
 cask "anki"
-cask "brave-browser"
 cask "font-comic-shanns-mono-nerd-font"
 cask "google-chrome"
 cask "google-japanese-ime"
