@@ -1,8 +1,16 @@
 [tools]
+bun = "latest"
+"cargo:cargo-equip" = "latest"
+"cargo:cargo-udeps" = "latest"
+# sqlx 0.6 offline data (sqlx-data.json) needs the matching 0.6 CLI.
+"cargo:sqlx-cli" = "0.6.3"
 chezmoi = "2.69.1"
 codex = "latest"
 deno = "latest"
+fzf = "latest"
+"github:slackapi/slack-cli" = "latest"
 go = "latest"
+lazygit = "latest"
 neovim = "latest"
 node = "latest"
 "npm:@aikidosec/safe-chain" = "latest"

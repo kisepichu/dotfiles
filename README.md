@@ -59,6 +59,10 @@ cd ~/repos/dotfiles
 ./scripts/bootstrap-macos.sh
 ```
 
+The bootstrap installs everything in the repo-root `Brewfile` with `brew bundle`; edit that file to add or remove Homebrew packages. `chezmoi apply` re-runs `brew bundle` whenever `Brewfile` changes. Docker runs on colima (`colima start`) with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; Docker Desktop is not used.
+
+The managed `~/.gitconfig` sets the personal identity and commit signing, then includes the unmanaged `~/.gitconfig.local` for machine- or work-specific settings such as `includeIf` identities and credential helpers.
+
 After the script completes, open Karabiner-Elements once and grant the permissions requested by macOS.
 
 Detailed notes: `docs/macos-initial-setup.md`
@@ -173,18 +177,24 @@ Open a new shell after installing; `conf.d/nix.fish` sources the nix profile aut
 /nix/nix-installer uninstall
 ```
 
+On macOS, `agenix` (used to edit secrets in the NixOS configuration) is installed into the Nix profile:
+
+```bash
+nix profile install github:ryantm/agenix
+```
+
 ## Rust
 
 Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `chezmoi apply`, `mise install` installs the toolchain and `run_onchange_after_45-rust-components.sh.tmpl` adds the `rust-analyzer` and `rust-src` components that neovim (rustaceanvim) needs. No manual step is required; open neovim in a Rust project and the LSP starts.
 
 ## Agent CLIs
 
-`codex`, `claude`, and `omp` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
+`codex`, `claude`, `omp`, and `cursor-agent` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
 
 - `codex` is declared in the `mise` tool list (`~/.config/mise/config.toml`) and resolves to the `aqua:openai/codex` prebuilt release binary. Upgrade it with `mise up codex`.
-- `omp` and `claude` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`) into `~/.local/bin`.
+- `omp`, `claude`, and `cursor-agent` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`, `https://cursor.com/install`) into `~/.local/bin`.
 
-That script runs on every apply and skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
+That script runs on every apply and skips any CLI already on `PATH`, because these binaries update themselves (`omp update`, Claude Code's built-in updater, `cursor-agent update`). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
 
 Machines set up before this layout may hold a copy from an older channel. Remove it **before** the first apply, because the npm-installed `claude` occupies the same `~/.local/bin/claude` path the installer would create: the script sees it, skips the install, and the later `npm uninstall` then leaves Claude Code absent. If the cleanup already ran after an apply, just run `chezmoi apply` again.
 
@@ -200,6 +210,7 @@ Authenticate once per machine; this repository stores no credentials.
 ```bash
 codex login
 claude login
+cursor-agent login
 # omp: start `omp`, then run /login
 ```
 
