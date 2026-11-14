@@ -214,6 +214,32 @@ cursor-agent login
 # omp: start `omp`, then run /login
 ```
 
+## Neovim PHP And Diffview
+
+phpactor does not support Diffview's `diffview:` URI scheme. Its LSP activation excludes those virtual buffers, including editable Git index buffers whose `buftype` is empty. Normal PHP files and real working-tree files displayed inside Diffview keep their LSP support and existing workspace root detection.
+
+## Neovim In Dev Containers
+
+Use Neovim and this repository's Neovim config inside a project's dev container without changing the project. `dcup` (fish) runs `devcontainer up` with this repository as the dotfiles repository; the Dev Container CLI clones it into the container and runs `scripts/install-devcontainer-neovim.sh` once per container.
+
+```fish
+dcup                               # in the project directory
+dcnvim                             # open Neovim in the container
+dcup --remove-existing-container   # recreate the container to pick up dotfiles changes
+```
+
+The script installs Neovim, the tree-sitter CLI, Deno, ripgrep, fd, and the SKK dictionary, applies only `~/.config/nvim` with chezmoi (no `run_` scripts), and restores the plugins to `lazy-lock.json`. It supports apt-based (Debian/Ubuntu) glibc images, as root or with sudo. When the image moves `XDG_CONFIG_HOME` away from `~/.config`, it links `$XDG_CONFIG_HOME/nvim` to the applied config.
+
+`devcontainer up` still succeeds when the install script fails, so check its output for `Neovim is ready in the dev container.` Plugin download errors (for example, a dropped connection to GitHub) do not fail the script either. The script is safe to run again inside the container; it puts `lazy-lock.json` back and restores the plugins to it:
+
+```bash
+~/dotfiles/scripts/install-devcontainer-neovim.sh
+```
+
+The container gets the pushed config; edits made inside it stay in the container. To try unmerged changes, mount a local checkout into the container from the project side and point `dcup` at the container path, for example `DCUP_DOTFILES_REPOSITORY=/path/in/container dcup`. The CLI clones the checked-out branch of that path.
+
+Project-specific settings, such as publishing the UI port that the CLI does not forward or mounting credentials (`~/.wakatime.cfg`), stay in the project's local, git-ignored configuration.
+
 ## Validation
 
 Before committing, run:
@@ -226,4 +252,10 @@ If `prek` is not available, run:
 
 ```bash
 pre-commit run --all-files
+```
+
+Run the PHP/Diffview LSP regression test with Neovim 0.11+; it does not require installed plugins or phpactor:
+
+```bash
+nvim --headless -u NONE -i NONE -n -l scripts/test-nvim-phpactor.lua
 ```
