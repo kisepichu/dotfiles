@@ -99,5 +99,6 @@
   "vim-slime": { "branch": "main", "commit": "2cfdc3b24e7ebaa64f5a1a04b00555600c622b79" },
   "vim-wakatime": { "branch": "master", "commit": "9f8a1d3b9c6f3a948988a0896b3227c1e1f74a58" },
   "vim_current_word": { "branch": "master", "commit": "967c73804e38e5b2ceaa536328a4f76f1157a482" },
-  "which-key.nvim": { "branch": "main", "commit": "3aab2147e74890957785941f0c1ad87d0a44c15a" }
+  "which-key.nvim": { "branch": "main", "commit": "3aab2147e74890957785941f0c1ad87d0a44c15a" },
+  "yazi.nvim": { "branch": "main", "commit": "d8bd4cc258fdbe2bad71a383d390a96c80ecb628" }
 }
