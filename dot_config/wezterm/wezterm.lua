@@ -98,7 +98,6 @@ config.keys = {
 if is_windows then
 	-- Carried over from the previous hand-maintained Windows config.
 	table.insert(config.keys, { key = "f", mods = "SHIFT|META", action = act.ToggleFullScreen })
-	table.insert(config.keys, { key = "[", mods = "CTRL", action = act.SendKey({ key = "n", mods = "CTRL" }) })
 end
 
 return config
