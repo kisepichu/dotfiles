@@ -1,151 +1,38 @@
 ---
 name: pr-review
-description: PR についたレビューコメントを取得し、修正・返信・Resolve し、必要なら再レビュー依頼して完了までループする。レビュアーは Copilot（既定）か Claude（`/pr-review claude`）。「PR コメント対応して」「レビュー対応」などのリクエストで使用。
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log:*), Bash(git diff:*), Bash(git rev-parse HEAD:*), Bash(git rev-parse --short HEAD:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(gh --version:*), Bash(gh pr view:*), Bash(gh pr edit:*), Bash(python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/wait-claude-review.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py:*), Bash(python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py:*), Bash(cargo:*), Bash(pnpm:*)
+description: PR のレビューコメントを取得し、修正・返信・Resolve し、再レビューを依頼して完了までループする。レビュアーは Copilot（既定）か Claude（`pr-review claude`）。「PR コメント対応して」「レビュー対応」などで使用。
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git log:*), Bash(git diff:*), Bash(git rev-parse:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(gh --version:*), Bash(gh pr view:*), Bash(python3 ~/.claude/skills/pr-review/scripts/*), Bash(cargo:*), Bash(pnpm:*)
 ---
 
-# PR コメント対応スキル
+# PR レビュー対応
 
-PR レビューコメント取得、対応、返信、Resolve まで行う。修正を push したら再レビュー依頼し、
-レビュアーが「指摘なし」を返すか、**早期終了条件**（後述）を満たすまで繰り返す。
+スクリプトは `~/.claude/skills/pr-review/scripts/`（以下 `S`）。Claude Code / Codex / omp の skill はすべてここへの symlink。引数はすべて `{owner} {repo} {num}` で始まる。PR はカレントブランチから `gh pr view --json number,url` で特定する（指定があればそれ）。
 
-## レビュアー backend の選択
+## レビュアー
 
-- 引数に `claude` がある（`/pr-review claude`）→ **Claude backend**: `wait-claude-review.py` を使う。
-  発火は `@claude review` コメント、投稿主体は `claude[bot]`。事前に対象リポへ
-  `setup-pr-review-workflow` スキルで CI を入れておくこと。
-- それ以外（既定）→ **Copilot backend**: `wait-copilot-review.py` を使う。
+| | 待ち | 前提 |
+|---|---|---|
+| Copilot（既定） | `S/wait-copilot-review.py` | `gh >= 2.88.0` |
+| Claude（引数 `claude`） | `S/wait-claude-review.py` | 対象リポに `@claude review` CI。未導入なら [references/claude-review-setup.md](references/claude-review-setup.md) |
 
-両 backend で待ちスクリプトの exit code 契約は共通: **0 = 指摘なしで完了 / 20 = 対応すべき
-コメントあり / 1 = タイムアウト**。以下の手順の `{waiter}` は選んだ backend のスクリプトに読み替える。
+片方が利用量制限などで動かなければ、もう片方に切り替えてよい。
 
-## 手順
+待ちスクリプトは最大 15 分ブロックし、JSON 1 行を出して終了する。exit code: **0** 指摘なし / **20** 対応すべきコメントあり / **1** タイムアウト。`--request` を付けると先に（再）レビューを依頼する。付けない初回は既存レビューを使い、無ければ依頼する。
 
-### 0. 実行主体の確認
+**待ち方**: シェルのタイムアウトで切られないよう、バックグラウンド実行できる harness では背景で起動して完了通知を待つ（ポーリングや二重起動はしない）。できない harness では timeout 20 分以上で前景実行する。背景ジョブを待てない subagent 内では実行せず、親に引き継ぐ。
 
-**このスキルを spawn された subagent 内で実行しない**。手順 2 と 9 の待ちスクリプトは
-`run_in_background: true` で起動→ターン終了→完了通知待ちで動くが、live な子を持たない
-subagent は harness に完了扱いされ、背景の待ちが破棄されてレビューループが途中で止まる。
-現在が subagent なら、スキルを実行せず親エージェントに報告してハンドオフする。実装を
-subagent に委譲した場合も、push まで終えたら top-level agent が PR-review ループを引き取る。
+## ループ
 
-### 1. PR と環境を確認
+1. `python3 S/wait-{copilot,claude}-review.py {owner} {repo} {num}`。0 なら終了、1 なら原因（未起動・token 失効など）を確認してユーザーに報告。
+2. `python3 S/get-review-comments.py {owner} {repo} {num}` でコメント取得。`in_reply_to_id == null` がスレッド起点で、自分の返信が付いていない起点が未対応。
+3. 未対応を **本質**（バグ・正しさ・セキュリティ・データ損失）か **nit**（スタイル・命名・文言・好み）に分けて対応する。
+   - 妥当: 修正して commit skill の手順でコミット・push し、コミットハッシュと理由を返信する。
+   - 不要: 設計意図・スコープ外などの理由を返信する。
+   - 判断に迷う: ユーザーに確認する。
+4. 返信は本文を `/tmp/pr-review-reply.md` に書いてから `python3 S/reply-review-comment.py {owner} {repo} {num} {comment_id} /tmp/pr-review-reply.md`。本文に command substitution は使わず、ハッシュは `git rev-parse --short HEAD` の結果を文字列で書く。
+5. 返信したスレッドだけ `python3 S/resolve-review-threads.py {owner} {repo} {num} {comment_id}...` で Resolve する。失敗したらユーザーに手動 Resolve を依頼する。
+6. 継続判定。次のどれかなら再レビューを依頼せず終了する。
+   - このラウンドが nit 1 件だけ
+   - nit のみのラウンドが 2 回続いた
 
-PR 番号と repo はカレントブランチから取得する。指定があればそれを使う。
-
-```bash
-gh pr view --json number,url,headRefOid,reviewRequests,latestReviews
-gh --version
-```
-
-Copilot 再レビュー依頼には `gh >= 2.88.0` が必要。スキル内でコミットする時は /commit スキルを使用。
-
-### 2. レビューを待つ
-
-レビュー取得前に必ず次を実行する。既存レビューがあればそれを使い、無ければ依頼して待つ。
-
-**必ず `run_in_background: true` で起動する**。最大15分ポーリングして exit する。前景実行は
-シェルタイムアウトで誤動作（途中で再実行・並列待ち）の原因になる。
-
-```bash
-# Copilot backend
-python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num}
-# Claude backend（/pr-review claude）
-python3 ~/.claude/skills/pr-review/scripts/wait-claude-review.py {owner} {repo} {num}
-```
-
-起動したらこのターンを終え、**完了通知が来るまで待つ。ポーリングや並列の wait はしない**。
-完了したら stdout（JSON 1行）と exit code を確認: **0** なら指摘なし→完了。**20** なら新規
-コメントあり→手順 3。**1** ならタイムアウト→状況確認（失効/未起動などを疑う）。
-
-### 3. コメント全件取得
-
-```bash
-python3 ~/.claude/skills/pr-review/scripts/get-review-comments.py {owner} {repo} {num}
-gh pr view {num} -R {owner}/{repo} --json reviews --jq '.reviews'
-```
-
-`get-review-comments.py` は投稿者非依存で inline コメントを返す（`claude[bot]` も含む）。
-
-### 4. 未返信コメントを特定する
-
-`in_reply_to_id == null` がスレッド起点。起点のうち自分の返信（`in_reply_to_id == 起点 id`）が
-ないものを未対応とする。
-
-### 5. 未対応コメントを分類・対応
-
-各コメントを **本質 / 非本質** に分類する（後述の早期終了判定にも使う）。
-
-- **本質**: バグ・正しさ・セキュリティ・データ損失・ロジック誤りなど。
-- **非本質 (nit)**: スタイル・命名・軽微な可読性・文言・主観的好みなど。
-
-対応方針:
-
-- 妥当: コードまたは仕様を修正し、`/commit` スキルで add / チェック / commit / push を実施し、
-  コミットハッシュと理由を返信する。
-- 今対応不要: 設計意図・スコープ外・既知制限など、理由を必ず返信する。
-- 質問・確認: ユーザーに判断を仰ぐ。
-
-### 6. 返信
-
-返信本文を `/tmp/pr-review-reply.md` に `Write` してから送る。`$SHA=$(...)` のような代入や
-command substitution は使わず、必要なら `git rev-parse HEAD` を単独実行して結果を文字列で書く。
-
-```bash
-python3 ~/.claude/skills/pr-review/scripts/reply-review-comment.py {owner} {repo} {num} {comment_id} /tmp/pr-review-reply.md
-```
-
-### 7. 返信済みスレッドのみ Resolve
-
-全未解決を一括 Resolve せず、返信済みスレッドだけ Resolve する。
-
-```bash
-python3 ~/.claude/skills/pr-review/scripts/resolve-review-threads.py {owner} {repo} {num} {comment_id}...
-```
-
-### 8. 継続判定（早期終了ロジック）
-
-このラウンドの新規コメントの分類（手順 5）をもとに、再レビューするか終了するかを決める:
-
-1. **指摘なし**（waiter が exit 0）→ 終了。
-2. このラウンドが **非本質のみ かつ 1 件だけ** → 終了（その 1 件は対応 or 見送り理由を返信して締める）。
-3. このラウンドが **非本質のみ で、直前ラウンドも非本質のみ**（= 非本質のみ 2 連続）→ 終了。
-4. それ以外（**本質が 1 件でもある**、または非本質のみだが初回・複数件）→ 修正/返信/Resolve して
-   **手順 9 へ（再レビュー継続）**。
-
-終了する場合は、残った nit を対応 or「軽微につき今回は見送り」を返信して Resolve し、
-**再レビュー要求はしない**。`generated no comments` を待たずこの規則で切り上げてよい。
-
-### 9. push 後に再レビュー依頼して待つ
-
-修正を commit / push したら、再レビューを依頼して待つ。手順 2 と同様 **必ず
-`run_in_background: true` で起動し、完了通知まで待つ。ポーリング・並列待ちはしない**。
-
-```bash
-# Copilot backend
-python3 ~/.claude/skills/pr-review/scripts/wait-copilot-review.py {owner} {repo} {num} --request
-# Claude backend
-python3 ~/.claude/skills/pr-review/scripts/wait-claude-review.py {owner} {repo} {num} --request
-```
-
-完了したら exit code を確認: **0** なら完了。**20** なら手順 3 に戻り、新規コメントを分類して
-手順 8 の継続判定にかける。**1** ならタイムアウト。
-
-## 注意
-
-- 待ちスクリプトは必ず `run_in_background: true` で起動。完了通知まで待ち、ポーリングや並列の
-  wait 再起動はしない。レビューは数分〜十数分かかることがあり、前景実行はシェルタイムアウトで
-  誤動作の原因になる。
-- 早期終了ロジック（手順 8）で、非本質 nit が続く場合は早めに切り上げる。本質的な指摘がある間は
-  続ける。
-- review comment 一覧・返信・thread resolve はスキル配下 script を使う（投稿者非依存で
-  Copilot/Claude どちらの inline コメントにも効く）。
-- Resolve 不可ならユーザーに手動依頼する。「対応不要」判断が難しい場合はユーザーに確認する。
-- コミットは適宜分ける。
-- Claude backend で waiter が exit 1（タイムアウト）を繰り返すときは、リポに
-  `setup-pr-review-workflow` の CI が入っているか、Claude GitHub App が認可済みか、
-  `CLAUDE_CODE_OAUTH_TOKEN` が有効（未失効）かを確認する。
-- `wait-claude-review.py` は投稿主体を `claude[bot]`（Bot タイプ）に**厳格一致**で照合する
-  （なりすまし `claude-*` による偽マーカーでループを誤終了させないため）。実際の login が
-  異なる場合のみ `--bot-login <login>` で指定する。`--request` 無しの初回確認では、現在の
-  head コミットより古いレビューは stale として無視し新規レビューを依頼する。
+   それ以外は `--request` を付けて手順 1 に戻る。
