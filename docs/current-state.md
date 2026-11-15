@@ -100,6 +100,7 @@ Agent workflow:
 - `~/.codex/skills/review`
 - `~/.codex/skills/spec-setup`
 - `~/.codex/skills/skill-improvement`
+- `~/.omp/agent/skills/{commit,pr,pr-review,review,setup-pr-review-workflow,spec-setup}` as symlinks to the matching `~/.claude/skills/*` (omp's user-level native skill root; it does not read `~/.claude/skills` unless the `claude` provider is enabled)
 - `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 
 Core tools:
