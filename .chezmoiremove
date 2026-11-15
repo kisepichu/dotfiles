@@ -1,0 +1,16 @@
+.claude/commands/spec-do.md
+.claude/commands/spec-review.md
+.claude/commands/spec-update.md
+.claude/skills/pr
+.claude/skills/pr-review/scripts/validate-gh-api.py
+.claude/skills/review
+.claude/skills/setup-pr-review-workflow
+.claude/skills/spec-setup
+.codex/skills/pr
+.codex/skills/review
+.codex/skills/skill-improvement
+.codex/skills/spec-setup
+.omp/agent/skills/pr
+.omp/agent/skills/review
+.omp/agent/skills/setup-pr-review-workflow
+.omp/agent/skills/spec-setup
