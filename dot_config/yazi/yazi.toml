@@ -1,0 +1,19 @@
+# Only the OS openers differ from yazi's defaults. On Linux they prefer wslview,
+# so WSL hands files to the Windows default app (xdg-open has no desktop there);
+# NixOS and other Linux fall back to xdg-open like the defaults.
+
+[opener]
+open = [
+	{ run = "if command -v wslview >/dev/null 2>&1; then wslview %s1; else xdg-open %s1; fi", desc = "Open", for = "linux" },
+	{ run = "open %s", desc = "Open", for = "macos" },
+]
+play = [
+	{ run = "if command -v wslview >/dev/null 2>&1; then wslview %s1; else xdg-open %s1; fi", desc = "Play", for = "linux", orphan = true },
+	{ run = "open %s", desc = "Play", for = "macos" },
+	{ run = "mediainfo %s1; echo 'Press enter to exit'; read _", block = true, desc = "Show media info", for = "unix" },
+]
+reveal = [
+	{ run = "if command -v wslview >/dev/null 2>&1; then wslview %d1; else xdg-open %d1; fi", desc = "Reveal", for = "linux" },
+	{ run = "open -R %s1", desc = "Reveal", for = "macos" },
+	{ run = "clear; exiftool %s1; echo 'Press enter to exit'; read _", desc = "Show EXIF", for = "unix", block = true },
+]

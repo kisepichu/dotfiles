@@ -31,7 +31,7 @@ This is the first-pass macOS setup path for a Windows/WSL-first workflow. It kee
    ./scripts/bootstrap-macos.sh
    ```
 
-The script installs Homebrew when missing, installs base CLI packages, installs Karabiner-Elements and WezTerm, installs the pinned mise bootstrap version, applies this chezmoi source, and applies conservative macOS defaults.
+The script installs Homebrew when missing, installs the packages and apps listed in the repo-root `Brewfile` (including Karabiner-Elements and WezTerm), installs the pinned mise bootstrap version, applies this chezmoi source, and applies conservative macOS defaults.
 
 ## Keyboard Policy
 
@@ -58,7 +58,8 @@ The parts that should stay Mac-like:
    - Input Monitoring
    - Driver Extension
 3. Confirm the selected profile is `Windows-friendly`.
-4. Log out and back in if key repeat, shell, or permission changes do not apply immediately.
+4. Create `~/.gitconfig.local` for machine- or work-specific git settings (`includeIf` identities, credential helpers). The managed `~/.gitconfig` includes it last.
+5. Log out and back in if key repeat, shell, or permission changes do not apply immediately.
 
 ## Validation
 

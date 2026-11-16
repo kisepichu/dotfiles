@@ -1,0 +1,46 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Homebrew's docker CLI does not search Homebrew's plugin directory, so
+# `docker compose` / `docker buildx` fail with colima unless the plugins are
+# linked into the per-user plugin directory. Existing entries (for example
+# Docker Desktop's own links) are left alone; links left dangling by an
+# uninstalled Docker Desktop are replaced. Runs on every apply because the
+# plugins may be installed after this script last ran.
+
+plugin_source_dir=""
+for candidate in /opt/homebrew/lib/docker/cli-plugins /usr/local/lib/docker/cli-plugins; do
+  if [ -d "$candidate" ]; then
+    plugin_source_dir="$candidate"
+    break
+  fi
+done
+
+if [ -z "$plugin_source_dir" ]; then
+  exit 0
+fi
+
+plugin_dir="$HOME/.docker/cli-plugins"
+
+for plugin in docker-compose docker-buildx; do
+  source_path="$plugin_source_dir/$plugin"
+  target_path="$plugin_dir/$plugin"
+
+  if [ ! -x "$source_path" ]; then
+    continue
+  fi
+
+  if [ -L "$target_path" ] && [ ! -e "$target_path" ]; then
+    rm "$target_path"
+  fi
+
+  if [ ! -e "$target_path" ]; then
+    mkdir -p "$plugin_dir"
+    ln -s "$source_path" "$target_path"
+  fi
+done
+{{- else -}}
+#!/usr/bin/env bash
+exit 0
+{{- end }}

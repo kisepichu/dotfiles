@@ -1,0 +1,39 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# WSL: WezTerm runs on the Windows host, outside chezmoi's home, so copy the
+# shared config to %USERPROFILE%\.wezterm.lua, the first path WezTerm tries
+# (config/src/config.rs; it wins over %USERPROFILE%\.config\wezterm). Symlinks
+# into WSL are not usable from Windows. Re-runs whenever the source changes.
+# wezterm.lua hash: {{ include "dot_config/wezterm/wezterm.lua" | sha256sum }}
+set -euo pipefail
+
+if ! grep -qi microsoft /proc/version 2>/dev/null; then
+  exit 0
+fi
+
+if ! command -v wslvar >/dev/null 2>&1 || ! command -v wslpath >/dev/null 2>&1; then
+  echo "warning: wslvar/wslpath (wslu) not found; skipping Windows WezTerm config" >&2
+  exit 0
+fi
+
+# wslvar runs powershell.exe, which drains stdin unless it is redirected.
+windows_profile=$(wslvar USERPROFILE </dev/null 2>/dev/null || true)
+if [ -z "$windows_profile" ]; then
+  echo "warning: could not resolve %USERPROFILE%; skipping Windows WezTerm config" >&2
+  exit 0
+fi
+windows_home=$(wslpath "$windows_profile")
+
+source_config={{ joinPath .chezmoi.sourceDir "dot_config/wezterm/wezterm.lua" | quote }}
+target="$windows_home/.wezterm.lua"
+backup="$windows_home/.wezterm.lua.pre-dotfiles"
+
+# Keep a hand-maintained config from before this script took over, once.
+if [ -f "$target" ] && [ ! -e "$backup" ] && ! cmp -s "$source_config" "$target"; then
+  cp "$target" "$backup"
+  echo "info: backed up existing $target to $backup"
+fi
+
+cp "$source_config" "$target"
+echo "info: installed WezTerm config to $target"
+{{ end -}}

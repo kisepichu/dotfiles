@@ -1,5 +1,7 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/usr/bin/env bash
+# Re-run whenever the package list in Brewfile changes.
+# Brewfile hash: {{ include "Brewfile" | sha256sum }}
 set -euo pipefail
 
 setup_homebrew_path() {
@@ -22,33 +24,7 @@ if ! command -v brew >/dev/null 2>&1; then
   exit 1
 fi
 
-brew_formulae=(
-  ca-certificates
-  curl
-  fd
-  fish
-  git
-  jq
-  pandoc
-  pkg-config
-  ripgrep
-  tmux
-  unzip
-  xz
-)
-
-for formula in "${brew_formulae[@]}"; do
-  brew list --formula "$formula" >/dev/null 2>&1 || brew install "$formula"
-done
-
-brew_casks=(
-  karabiner-elements
-  wezterm
-)
-
-for cask in "${brew_casks[@]}"; do
-  brew list --cask "$cask" >/dev/null 2>&1 || brew install --cask "$cask"
-done
+brew bundle install --no-upgrade --file {{ joinPath .chezmoi.sourceDir "Brewfile" | quote }}
 {{- else -}}
 #!/usr/bin/env bash
 set -euo pipefail

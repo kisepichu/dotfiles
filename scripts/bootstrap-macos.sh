@@ -60,32 +60,7 @@ if ! command -v brew >/dev/null 2>&1; then
   exit 1
 fi
 
-brew_formulae=(
-  ca-certificates
-  curl
-  fd
-  fish
-  git
-  jq
-  pkg-config
-  ripgrep
-  tmux
-  unzip
-  xz
-)
-
-for formula in "${brew_formulae[@]}"; do
-  brew list --formula "$formula" >/dev/null 2>&1 || brew install "$formula"
-done
-
-brew_casks=(
-  karabiner-elements
-  wezterm
-)
-
-for cask in "${brew_casks[@]}"; do
-  brew list --cask "$cask" >/dev/null 2>&1 || brew install --cask "$cask"
-done
+brew bundle install --no-upgrade --file "$repo_dir/Brewfile"
 
 fish_path="$(command -v fish || true)"
 fish_shell_available=0

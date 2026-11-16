@@ -1,10 +1,10 @@
 # Current State
 
-Last updated: 2026-09-12
+Last updated: 2026-11-14
 
 ## Summary
 
-This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, then applies the shared chezmoi source. Applying the source installs the agent CLIs at user level on every platform: Codex through `mise`, omp and Claude Code through their upstream installers.
+This repository is a public chezmoi source tree for a new Windows PC with WSL Ubuntu, with separate macOS and NixOS bootstrap paths. The NixOS path consumes system-provided `git`, `curl`, and `mise`, then applies the shared chezmoi source. Applying the source installs the agent CLIs at user level on every platform: Codex through `mise`, omp, Claude Code, and Cursor Agent through their upstream installers.
 
 Implemented and committed:
 
@@ -17,7 +17,7 @@ Implemented and committed:
 - Managed LazyVim-based `nvim` config
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
-- Managed WezTerm config on macOS (`darwin` only via `.chezmoiignore`)
+- Managed WezTerm config: chezmoi target on macOS (`darwin` only via `.chezmoiignore`), copied to `%USERPROFILE%\.wezterm.lua` from WSL
 - WSL Ubuntu / macOS / NixOS bootstrap scripts
 - Repo-root `mise.toml` so bootstrap activates `chezmoi` without mise's inactive-tool warning
 - Optional WSL Ubuntu Docker Engine install script
@@ -31,7 +31,15 @@ Recent landed work (since 2026-07-26):
 - Bootstrap scripts install/exec `chezmoi` from repo `mise.toml` (no `chezmoi@VERSION`)
 - TASK-007..013 and TASK-015 moved under `tasks/done/`; open follow-ups remain in `tasks/` (TASK-014 e2e, TASK-016 Mac verification)
 - Session design/plans under `docs/superpowers/{specs,plans}/` are kept as history
-- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp and Claude Code via `run_after_50-install-agent-clis.sh` (installs only what is missing; both self-update)
+- Agent CLIs unified across platforms: Codex via the `mise` tool list, omp, Claude Code, and Cursor Agent via `run_after_50-install-agent-clis.sh` (installs only what is missing; all self-update)
+- macOS Homebrew packages consolidated into the repo-root `Brewfile`, applied with `brew bundle` by both `scripts/bootstrap-macos.sh` and `run_onchange_before_12-install-homebrew-packages.sh.tmpl` (re-runs when `Brewfile` changes)
+- macOS Docker runs on colima with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; `run_after_28-link-docker-cli-plugins.sh.tmpl` links the plugins where the docker CLI finds them
+- Managed `~/.gitconfig` (macOS only) that includes the unmanaged `~/.gitconfig.local`, and a shared global ignore at `~/.config/git/ignore`
+- yazi file manager on every platform via `mise`: fish `y` (cd on quit), yazi.nvim next to neo-tree, OS openers that use `wslview` on WSL, and tmux passthrough for image previews
+- tmux copy mode yanks via OSC 52 only (tmux-yank and the `clip.exe` pipe removed: clip.exe garbled UTF-8 on WSL), vim-like text objects (`viw`, `vi"`, `va(`, ...), regression test `scripts/test-tmux-copy-mode.sh`
+- WezTerm QuickSelect URL pattern no longer swallows a closing `)` / trailing punctuation; Windows WezTerm config is now repo-managed (WSL `chezmoi apply` copies it to `%USERPROFILE%\.wezterm.lua`) and `default_domain` follows the default WSL distro
+- tmux test scripts run the server with a throwaway HOME so tpm / resurrect / continuum never touch real session data
+- omp inside tmux on macOS draws images as SIXEL (`PI_FORCE_IMAGE_PROTOCOL` in `~/.tmux.conf`) until omp fixes misplaced Kitty images under tmux ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396))
 
 ## Important State
 
@@ -76,23 +84,10 @@ Do not run `chezmoi --source . apply` casually if you do not want apt/mise chang
 
 Agent workflow:
 
-- `~/.claude/commands/spec-do.md`
-- `~/.claude/commands/spec-review.md`
-- `~/.claude/commands/spec-update.md`
-- `~/.claude/skills/commit/SKILL.md`
-- `~/.claude/skills/pr-review/SKILL.md`
-- `~/.claude/skills/pr/SKILL.md`
-- `~/.claude/skills/review/SKILL.md`
-- `~/.claude/skills/spec-setup/SKILL.md`
-- `~/.claude/skills/spec-setup/templates/spec-do.md`
-- `~/.claude/skills/spec-setup/templates/spec-review.md`
-- `~/.claude/skills/spec-setup/templates/spec-update.md`
-- `~/.codex/skills/commit`
-- `~/.codex/skills/pr`
-- `~/.codex/skills/pr-review`
-- `~/.codex/skills/review`
-- `~/.codex/skills/spec-setup`
-- `~/.codex/skills/skill-improvement`
+- `~/.claude/skills/commit/SKILL.md` (usable only when `origin` is under `kisepichu/`, or the repo sets `git config agent.commitSkill true`; `false` always disables it)
+- `~/.claude/skills/pr-review/` (Copilot or Claude reviewer; the Claude review CI setup lives in `references/claude-review-setup.md` and `templates/claude-review.yml`)
+- `~/.codex/skills/{commit,pr-review}` and `~/.omp/agent/skills/{commit,pr-review}` as symlinks to the matching `~/.claude/skills/*` (omp's user-level native skill root; it does not read `~/.claude/skills` unless the `claude` provider is enabled)
+- `.chezmoiremove` deletes the retired `pr`, `review`, `spec-setup`, `setup-pr-review-workflow`, `skill-improvement` skills and the `spec-*` Claude commands from existing machines
 - `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 
 Core tools:
@@ -104,6 +99,7 @@ Core tools:
 - `~/.config/fish/functions/dcnvim.fish`
 - `~/.config/fish/functions/dcup.fish`
 - `~/.config/fish/functions/loadenv.fish`
+- `~/.config/fish/functions/y.fish`
 - `~/.tmux.conf`
 - `~/.tmux/new-session`
 - `~/.config/nvim/init.lua`
@@ -115,13 +111,18 @@ Core tools:
 - `~/.config/nvim/lua/plugins/*.lua`
 - `~/.config/mise/config.toml`
 - `~/.config/starship.toml`
+- `~/.config/git/ignore`
+- `~/.config/yazi/yazi.toml`
 
 Run scripts:
 
 - `run_once_before_10-install-apt-packages.sh.tmpl`
+- `run_onchange_before_12-install-homebrew-packages.sh.tmpl` (macOS, `brew bundle` from `Brewfile`)
 - `run_once_before_15-install-mise.sh.tmpl`
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
+- `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` (WSL, copies the WezTerm config to the Windows host)
+- `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`
 
@@ -129,7 +130,7 @@ Optional scripts:
 
 - `scripts/install-docker-engine-wsl.sh` installs Docker Engine inside WSL Ubuntu from Docker's official apt repository.
 - `scripts/install-devcontainer-neovim.sh` installs Neovim and applies this repository's Neovim config inside a dev container; `dcup` passes it to `devcontainer up` as the dotfiles install command.
-- `scripts/bootstrap-macos.sh` installs Homebrew packages, Karabiner-Elements, WezTerm, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
+- `scripts/bootstrap-macos.sh` installs Homebrew and the `Brewfile` packages, mise, applies this chezmoi source (via repo `mise.toml` + `--force`), and runs conservative macOS defaults.
 - `scripts/bootstrap-nixos.sh` applies this chezmoi source on NixOS using system-provided mise and installs the declared mise tools; the agent CLIs come from the shared chezmoi run scripts, and no login is performed.
 - `scripts/bootstrap-wsl-ubuntu.sh` installs mise if needed, applies this chezmoi source from repo `mise.toml`, and prints fish/`chsh` hints when possible.
 - `scripts/configure-macos-defaults.sh` applies macOS defaults for key repeat, Finder, Dock, trackpad tap-to-click, and Mission Control Ctrl+Arrow hotkeys that steal tmux pane swaps.
@@ -138,6 +139,7 @@ macOS:
 
 - `~/.config/karabiner/karabiner.json`
 - `~/.config/wezterm/wezterm.lua`
+- `~/.gitconfig` (machine-specific settings go in the unmanaged `~/.gitconfig.local`)
 
 ## Decisions
 

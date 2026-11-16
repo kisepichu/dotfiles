@@ -48,13 +48,13 @@
 
 ### Agent CLI
 
-`codex`, `claude`, `omp` は macOS / WSL Ubuntu / NixOS で同じチャンネルに揃える。
+`codex`, `claude`, `omp`, `cursor-agent` は macOS / WSL Ubuntu / NixOS で同じチャンネルに揃える。
 
 - `codex` は `mise` 管理 (`aqua:openai/codex` の prebuilt binary)。公式 install script が無く、mise registry 経由なら全 OS で同じ入れ方にできる。macOS の Homebrew cask `codex` は重複するので併用しない。
-- `claude` と `omp` は upstream の install script (`https://claude.ai/install.sh`, `https://omp.sh/install`) を `run_after_50-install-agent-clis.sh` から実行し、`~/.local/bin` に入れる。どちらも macOS / glibc / musl 向けの binary を配布している。
-- この 2 つは自己更新する (`omp update`、Claude Code 内蔵の updater) ため version は pin せず、既に `PATH` にあるなら再インストールしない。`mise` で pin すると自己更新と衝突する。
+- `claude`, `omp`, `cursor-agent` は upstream の install script (`https://claude.ai/install.sh`, `https://omp.sh/install`, `https://cursor.com/install`) を `run_after_50-install-agent-clis.sh` から実行し、`~/.local/bin` に入れる。いずれも macOS / Linux 向けの binary を配布している。
+- この 3 つは自己更新する (`omp update`、Claude Code 内蔵の updater、`cursor-agent update`) ため version は pin せず、既に `PATH` にあるなら再インストールしない。`mise` で pin すると自己更新と衝突する。
 - ダウンロード失敗は warning に留め、`chezmoi apply` 全体を失敗させない。失敗しても毎回の apply で再試行されるよう、`run_once_` ではなく `run_` (毎回実行) にしている。`run_once_` だと warning 付き exit 0 が成功として記録され、CLI が入らないまま二度と再試行されない。
-- 認証情報はこの repo で管理しない。`codex login` / `claude login` / omp の `/login` を各マシンで手動実行する。
+- 認証情報はこの repo で管理しない。`codex login` / `claude login` / omp の `/login` / `cursor-agent login` を各マシンで手動実行する。
 
 ### Project-specific development
 
@@ -71,7 +71,7 @@
 - project 固有の LSP, formatter, compiler version
 - 一時的な検証用 toolchain
 
-Docker 自体の導入は core dotfiles bootstrap には含めない。必要になった時点で WSL Ubuntu 内に Docker Engine を導入する。
+Docker 自体の導入は WSL の core dotfiles bootstrap には含めない。必要になった時点で WSL Ubuntu 内に Docker Engine を導入する。macOS は `Brewfile` の colima + Homebrew `docker` CLI を使い、Docker Desktop は使わない。
 
 導入方法:
 
@@ -95,8 +95,9 @@ Windows GUI tool は WSL とは別に扱う。
 
 macOS は WSL bootstrap と分離し、`scripts/bootstrap-macos.sh` から Homebrew と user-level tools を入れる。
 
-- Homebrew formula: `git`, `curl`, `fish`, `tmux`, `jq`, `ripgrep`, `fd` などの基礎 CLI
-- Homebrew cask: `karabiner-elements`, `wezterm`
+- Homebrew formula / cask: repo 直下の `Brewfile` に集約し、`brew bundle install --no-upgrade` で入れる。bootstrap と `run_onchange_before_12-install-homebrew-packages.sh.tmpl` が同じ `Brewfile` を使い、後者は `Brewfile` の変更で再実行される。
+- `Brewfile` には複数プロジェクトで使う CLI と常用 GUI app だけを置く。特定プロジェクト専用の toolchain (third-party tap の PHP など) はそのプロジェクトの手順に任せる。
+- Docker: colima + `docker` / `docker-compose` / `docker-buildx`。Homebrew の docker CLI は Homebrew の plugin dir を探さないため、`run_after_28-link-docker-cli-plugins.sh.tmpl` が `~/.docker/cli-plugins` に link する。
 - user-level common tools: WSL と同じく `mise` で `chezmoi`, `neovim`, `starship`, `zoxide` などを入れる
 - keyboard customization: `~/.config/karabiner/karabiner.json`
 

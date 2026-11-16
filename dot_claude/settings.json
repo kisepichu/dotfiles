@@ -28,47 +28,10 @@
       "Bash: commands allowed in workdir/.claude/settings.local.json"
     ]
   },
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
-            "timeout": 600
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
-            "timeout": 600
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/.claude/hooks/supervisor/permission-supervisor.py\"",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
   "theme": "dark",
   "enabledPlugins": {
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": true
   }
 }

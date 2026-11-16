@@ -59,6 +59,10 @@ cd ~/repos/dotfiles
 ./scripts/bootstrap-macos.sh
 ```
 
+The bootstrap installs everything in the repo-root `Brewfile` with `brew bundle`; edit that file to add or remove Homebrew packages. `chezmoi apply` re-runs `brew bundle` whenever `Brewfile` changes. Docker runs on colima (`colima start`) with Homebrew's `docker`, `docker-compose`, and `docker-buildx`; Docker Desktop is not used.
+
+The managed `~/.gitconfig` sets the personal identity and commit signing, then includes the unmanaged `~/.gitconfig.local` for machine- or work-specific settings such as `includeIf` identities and credential helpers.
+
 After the script completes, open Karabiner-Elements once and grant the permissions requested by macOS.
 
 Detailed notes: `docs/macos-initial-setup.md`
@@ -173,18 +177,24 @@ Open a new shell after installing; `conf.d/nix.fish` sources the nix profile aut
 /nix/nix-installer uninstall
 ```
 
+On macOS, `agenix` (used to edit secrets in the NixOS configuration) is installed into the Nix profile:
+
+```bash
+nix profile install github:ryantm/agenix
+```
+
 ## Rust
 
 Rust is managed by `mise` (declared in `~/.config/mise/config.toml`). After `chezmoi apply`, `mise install` installs the toolchain and `run_onchange_after_45-rust-components.sh.tmpl` adds the `rust-analyzer` and `rust-src` components that neovim (rustaceanvim) needs. No manual step is required; open neovim in a Rust project and the LSP starts.
 
 ## Agent CLIs
 
-`codex`, `claude`, and `omp` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
+`codex`, `claude`, `omp`, and `cursor-agent` are installed on every platform (macOS, WSL Ubuntu, NixOS) by `chezmoi apply`:
 
 - `codex` is declared in the `mise` tool list (`~/.config/mise/config.toml`) and resolves to the `aqua:openai/codex` prebuilt release binary. Upgrade it with `mise up codex`.
-- `omp` and `claude` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`) into `~/.local/bin`.
+- `omp`, `claude`, and `cursor-agent` are installed by `run_after_50-install-agent-clis.sh` from their upstream installers (`https://omp.sh/install`, `https://claude.ai/install.sh`, `https://cursor.com/install`) into `~/.local/bin`.
 
-That script runs on every apply and skips any CLI already on `PATH`, because both binaries update themselves (`omp update`, Claude Code's built-in updater). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
+That script runs on every apply and skips any CLI already on `PATH`, because these binaries update themselves (`omp update`, Claude Code's built-in updater, `cursor-agent update`). Their versions are deliberately not pinned here. A failed download warns instead of aborting `chezmoi apply`, and the next apply retries it — which is why this is not a `run_once_` script.
 
 Machines set up before this layout may hold a copy from an older channel. Remove it **before** the first apply, because the npm-installed `claude` occupies the same `~/.local/bin/claude` path the installer would create: the script sees it, skips the install, and the later `npm uninstall` then leaves Claude Code absent. If the cleanup already ran after an apply, just run `chezmoi apply` again.
 
@@ -200,8 +210,34 @@ Authenticate once per machine; this repository stores no credentials.
 ```bash
 codex login
 claude login
+cursor-agent login
 # omp: start `omp`, then run /login
 ```
+
+On macOS, `~/.tmux.conf` sets `PI_FORCE_IMAGE_PROTOCOL=sixel` for everything started inside tmux. omp's default there (Kitty images through tmux passthrough) puts images at the top-left of the screen and leaves pieces behind ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396)); tmux draws SIXEL itself. New panes pick it up after `tmux source-file ~/.tmux.conf`. Remove the setting once omp chooses SIXEL inside tmux by itself.
+
+## yazi
+
+[yazi](https://yazi-rs.github.io/) is the terminal file manager on every platform. It is in the `mise` tool list and resolves to the `aqua:sxyazi/yazi` prebuilt release, which also ships `ya`.
+
+- Shell: `y` (fish) starts yazi; quitting with `q` moves the shell to the directory yazi was in, `Q` quits without moving.
+- Neovim: `<leader>fy` opens yazi at the current file and `<leader>fY` at the working directory (yazi.nvim). neo-tree stays on `<leader>e`.
+- Inside yazi: `z` jumps to a directory with fzf, `Z` with zoxide, `s` searches file names with fd, `S` searches contents with rg, `o` opens with the OS default app.
+- OS default app (`~/.config/yazi/yazi.toml`): macOS uses `open`; Linux uses `wslview` when it exists (WSL, from `wslu`) and `xdg-open` otherwise.
+
+Image previews go through WezTerm's inline images protocol. Inside tmux they need `allow-passthrough` and the outer `TERM` / `TERM_PROGRAM`, which `~/.tmux.conf` sets. A running tmux server picks this up after a reload and a reattach:
+
+```bash
+tmux source-file ~/.tmux.conf
+# detach (prefix d), then
+tmux attach
+```
+
+Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, yazi documents image previews only through `wezterm ssh` into WSL.
+
+## Neovim PHP And Diffview
+
+phpactor does not support Diffview's `diffview:` URI scheme. Its LSP activation excludes those virtual buffers, including editable Git index buffers whose `buftype` is empty. Normal PHP files and real working-tree files displayed inside Diffview keep their LSP support and existing workspace root detection.
 
 ## Neovim In Dev Containers
 
@@ -237,4 +273,10 @@ If `prek` is not available, run:
 
 ```bash
 pre-commit run --all-files
+```
+
+Run the PHP/Diffview LSP regression test with Neovim 0.11+; it does not require installed plugins or phpactor:
+
+```bash
+nvim --headless -u NONE -i NONE -n -l scripts/test-nvim-phpactor.lua
 ```
