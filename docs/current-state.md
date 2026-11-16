@@ -40,6 +40,7 @@ Recent landed work (since 2026-07-26):
 - WezTerm QuickSelect URL pattern no longer swallows a closing `)` / trailing punctuation; Windows WezTerm config is now repo-managed (WSL `chezmoi apply` copies it to `%USERPROFILE%\.wezterm.lua`) and `default_domain` follows the default WSL distro
 - tmux test scripts run the server with a throwaway HOME so tpm / resurrect / continuum never touch real session data
 - omp inside tmux on macOS draws images as SIXEL (`PI_FORCE_IMAGE_PROTOCOL` in `~/.tmux.conf`) until omp fixes misplaced Kitty images under tmux ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396))
+- `develop` retired after the last release (#57): feature branches merge into `main` directly
 
 ## Important State
 
