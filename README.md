@@ -214,6 +214,8 @@ cursor-agent login
 # omp: start `omp`, then run /login
 ```
 
+On macOS, `~/.tmux.conf` sets `PI_FORCE_IMAGE_PROTOCOL=sixel` for everything started inside tmux. omp's default there (Kitty images through tmux passthrough) puts images at the top-left of the screen and leaves pieces behind ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396)); tmux draws SIXEL itself. New panes pick it up after `tmux source-file ~/.tmux.conf`. Remove the setting once omp chooses SIXEL inside tmux by itself.
+
 ## yazi
 
 [yazi](https://yazi-rs.github.io/) is the terminal file manager on every platform. It is in the `mise` tool list and resolves to the `aqua:sxyazi/yazi` prebuilt release, which also ships `ya`.

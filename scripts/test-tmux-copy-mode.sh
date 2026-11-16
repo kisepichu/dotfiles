@@ -39,7 +39,9 @@ done
 line='foo bar-baz.qux say "hi there" call(a, b) [x y] {k v} <t a> done'
 printf '%s\n' "$line" >"$test_tmp/content"
 
-HOME="$test_tmp/home" PATH="$test_tmp/bin:$PATH" tmux -L "$socket" -f "$config" \
+# SHELL=/bin/sh: tmux runs pane commands with the login shell, and fish under
+# the throwaway HOME prints mise warnings above the test line.
+HOME="$test_tmp/home" PATH="$test_tmp/bin:$PATH" SHELL=/bin/sh tmux -L "$socket" -f "$config" \
   new-session -d -s copy-check -x 120 -y 10 "cat '$test_tmp/content'; sleep 600"
 
 # Flush the terminal log on every write (-f / -F) so OSC 52 can be checked
