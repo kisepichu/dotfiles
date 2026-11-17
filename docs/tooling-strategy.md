@@ -46,6 +46,8 @@
 
 `rust` は `mise` 管理にする。mise の rust は rustup ベースなので、neovim (rustaceanvim) が必要とする `rust-analyzer` と `rust-src` component は `run_onchange_after_45-rust-components.sh.tmpl` が `chezmoi apply` 時に冪等に追加する。`~/.cargo/bin/rust-analyzer` proxy は component 未導入だと起動に失敗するため、この補完が必要。
 
+cargo backend で source build する CLI (`cargo-equip`, `cargo-udeps`, `sqlx-cli`) は OpenSSL を link する。macOS は Homebrew の OpenSSL で build できるが、NixOS と WSL Ubuntu の bootstrap は OpenSSL の開発ファイル (`openssl.pc` / `libssl-dev`) を入れないため、`dot_config/mise/config.toml.tmpl` で macOS のみに限定している。他 OS でも必要になったら OS 側で OpenSSL を用意してから外す。
+
 ### Agent CLI
 
 `codex`, `claude`, `omp`, `cursor-agent` は macOS / WSL Ubuntu / NixOS で同じチャンネルに揃える。

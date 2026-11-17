@@ -1,9 +1,13 @@
 [tools]
 bun = "latest"
+{{- if eq .chezmoi.os "darwin" }}
+# These build from source and link OpenSSL, which macOS gets from Homebrew but
+# the NixOS and WSL Ubuntu bootstraps do not provide (no openssl.pc / libssl-dev).
 "cargo:cargo-equip" = "latest"
 "cargo:cargo-udeps" = "latest"
 # sqlx 0.6 offline data (sqlx-data.json) needs the matching 0.6 CLI.
 "cargo:sqlx-cli" = "0.6.3"
+{{- end }}
 chezmoi = "2.69.1"
 codex = "latest"
 deno = "latest"

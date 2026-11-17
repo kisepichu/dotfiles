@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mise_config="dot_config/mise/config.toml"
+mise_config="dot_config/mise/config.toml.tmpl"
 repo_mise_toml="mise.toml"
 
 if ! grep -Fxq '"npm:pnpm" = "latest"' "$mise_config"; then
