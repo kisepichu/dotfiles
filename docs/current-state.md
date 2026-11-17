@@ -114,6 +114,7 @@ Core tools:
 - `~/.config/starship.toml`
 - `~/.config/git/ignore`
 - `~/.config/yazi/yazi.toml`
+- `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir; see nixos-config-private `docs/runbooks/leafeon-matrix-bridges.md`)
 
 Run scripts:
 
