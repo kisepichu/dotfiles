@@ -33,6 +33,7 @@ require_managed=(
   ".config/fish/functions/loadenv.fish"
   ".config/fish/functions/y.fish"
   ".config/git/ignore"
+  ".config/iamb/config.toml"
   ".config/mise/config.toml"
   ".config/starship.toml"
   ".config/yazi/yazi.toml"

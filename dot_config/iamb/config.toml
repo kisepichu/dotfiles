@@ -1,0 +1,25 @@
+# iamb (Matrix TUI client) signed in to Beeper. The Discord bridge it talks to runs on leafeon
+# (nixos-config-private: docs/runbooks/leafeon-matrix-bridges.md). A new machine still has to log in
+# and run `:verify recover "<Recovery Code>"`; the bridge ignores devices that are not cross-signed.
+default_profile = "beeper"
+
+[profiles.beeper]
+user_id = "@kisenone:beeper.com"
+
+[settings]
+# Bridged users have IDs like @sh-discord_123…:beeper.local, so show display names instead.
+username_display = "displayname"
+
+# The leader is `\` because `<Space>` already moves right in Normal mode, and iamb runs a mapped key
+# at once instead of waiting for a longer macro. A macro cannot open a room from `:unreads` either:
+# the list fills on the next redraw, after every key of the macro has run. Use `\u` then <Enter>.
+[macros.normal]
+"<Bslash>u" = ":unreads<Enter>"
+"<Bslash>m" = ":mentions<Enter>"
+"<Bslash>c" = ":chats<Enter>"
+"<Bslash>i" = ":message<Enter>"
+"<Bslash>p" = ":replied<Enter>"
+
+[dirs]
+# WSL has no XDG download dir, so `:download` / `:open` need an explicit one; macOS uses the same path.
+downloads = "~/Downloads"
