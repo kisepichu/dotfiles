@@ -10,6 +10,15 @@ user_id = "@kisenone:beeper.com"
 # Bridged users have IDs like @sh-discord_123…:beeper.local, so show display names instead.
 username_display = "displayname"
 
+# ratatui-image spots WezTerm only by WEZTERM_EXECUTABLE, which ssh does not forward, so iamb on an
+# ssh host picks Kitty. Its Kitty images are drawn with Unicode placeholders, which WezTerm does not
+# support yet (wezterm/wezterm#7924), so they show up as boxes. iTerm2 images work in WezTerm both
+# directly and through tmux passthrough, and macOS already picks iTerm2 on its own. In a tmux session
+# that two terminals are attached to, the cell size comes from whichever answers first, so images
+# can come out the wrong size.
+[settings.image_preview.protocol]
+type = "iterm2"
+
 # The leader is `\` because `<Space>` already moves right in Normal mode, and iamb runs a mapped key
 # at once instead of waiting for a longer macro. A macro cannot open a room from `:unreads` either:
 # the list fills on the next redraw, after every key of the macro has run. Use `\u` then <Enter>.
