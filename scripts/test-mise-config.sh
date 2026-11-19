@@ -19,6 +19,29 @@ if ! grep -Eq '^[[:space:]]*codex[[:space:]]*=' "$mise_config"; then
   exit 1
 fi
 
+# Render the template as another host would: --override-data replaces .chezmoi.* values.
+render_mise_config() {
+  chezmoi --source . --override-data "$1" execute-template <"$mise_config"
+}
+
+# NixOS gets mxt from its system configuration; every other host installs it with mise.
+# macOS has no .chezmoi.osRelease, so the condition must not read it there.
+mxt_tool='"github:kisepichu/mxt" = "latest"'
+rendered=$(render_mise_config '{"chezmoi":{"os":"linux","osRelease":{"id":"nixos"}}}')
+if grep -Fxq "$mxt_tool" <<<"$rendered"; then
+  echo 'mise must not install mxt on NixOS; the system configuration provides it' >&2
+  exit 1
+fi
+for data in \
+  '{"chezmoi":{"os":"linux","osRelease":{"id":"ubuntu"}}}' \
+  '{"chezmoi":{"os":"darwin","osRelease":null}}'; do
+  rendered=$(render_mise_config "$data")
+  if ! grep -Fxq "$mxt_tool" <<<"$rendered"; then
+    echo "mise must install mxt on hosts other than NixOS (data: $data)" >&2
+    exit 1
+  fi
+done
+
 if [ ! -f "$repo_mise_toml" ]; then
   echo 'repo mise.toml is required so bootstrap can activate chezmoi without mise use' >&2
   exit 1

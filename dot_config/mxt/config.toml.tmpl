@@ -1,0 +1,16 @@
+# mxt (Matrix TUI client) signed in to Beeper. The Discord bridge it talks to runs on leafeon
+# (nixos-config-private: docs/runbooks/leafeon-matrix-bridges.md). A new machine still has to log in
+# with `mxt` and then run `:recover`; the bridge ignores devices that are not cross-signed.
+# Only settings that differ from mxt's defaults are here, plus read_receipts.
+[account]
+user_id = "@kisenone:beeper.com"
+
+[ui]
+# The default, written out because it is a choice: other users see what this account has read.
+read_receipts = "public"
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+
+[files]
+# WSL has no desktop for xdg-open (mxt's Linux default), so hand files and links to Windows (wslu).
+opener = ["wslview"]
+{{- end }}
