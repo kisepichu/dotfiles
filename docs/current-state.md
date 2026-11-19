@@ -85,7 +85,7 @@ Do not run `chezmoi --source . apply` casually if you do not want apt/mise chang
 
 Agent workflow:
 
-- `~/.claude/skills/commit/SKILL.md` (usable only when `origin` is under `kisepichu/`, or the repo sets `git config agent.commitSkill true`; `false` always disables it)
+- `~/.claude/skills/commit/SKILL.md` (staging with `git add` is allowed in any repo; committing and pushing only when `origin` is under `kisepichu/` or the repo sets `git config agent.commitSkill true`, and `false` always forbids them)
 - `~/.claude/skills/pr-review/` (Copilot or Claude reviewer; the Claude review CI setup lives in `references/claude-review-setup.md` and `templates/claude-review.yml`)
 - `~/.codex/skills/{commit,pr-review}` and `~/.omp/agent/skills/{commit,pr-review}` as symlinks to the matching `~/.claude/skills/*` (omp's user-level native skill root; it does not read `~/.claude/skills` unless the `claude` provider is enabled)
 - `.chezmoiremove` deletes the retired `pr`, `review`, `spec-setup`, `setup-pr-review-workflow`, `skill-improvement` skills and the `spec-*` Claude commands from existing machines
