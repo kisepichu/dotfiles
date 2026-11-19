@@ -45,6 +45,12 @@ if is_macos then
 	-- Keep the macOS IME for plain / Shift-only typing, but stop it from
 	-- swallowing Ctrl+Shift combos like Ctrl+Shift+Space (QuickSelect).
 	config.macos_forward_to_ime_modifier_mask = "SHIFT"
+	-- Use macOS native full screen for ToggleFullScreen (Option+Enter). WezTerm's
+	-- own full screen sizes its notch band from NSScreen.mainScreen on every focus
+	-- change without re-laying out, so with an external display the window there
+	-- picked up the built-in notch after Cmd+Tab: a blank band on top and the last
+	-- row pushed off screen. Native full screen leaves the notch to macOS.
+	config.native_macos_fullscreen_mode = true
 end
 
 if is_windows then

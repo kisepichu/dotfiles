@@ -82,3 +82,35 @@ F13 に変換され、macOS の Ctrl+Shift+Space インターセプトを完全�
 
 `macos_forward_to_ime_modifier_mask = "SHIFT"` は他の Ctrl+Shift 系キーが
 IME に食われないよう残してある (QuickSelect 単体には不要になったが汎用対策)。
+
+## 全画面 (macOS)
+
+`Option+Enter` (WezTerm 既定の `ToggleFullScreen`) は macOS ネイティブ全画面
+(`native_macos_fullscreen_mode = true`) にしている。
+
+WezTerm 独自の全画面 (既定) は、ノッチを避ける上端の帯の高さを
+`NSScreen.mainScreen` (キー入力を受けているウィンドウがある画面) の
+`safeAreaInsets` から取る。しかもフォーカスが変わるたびに取り直し、行数は計算し
+直さない (`window/src/os/macos/window.rs` の `get_os_parameters` と
+`wezterm-gui/src/termwindow/mod.rs` の `focus_changed`)。そのため外部ディスプレイで
+全画面にし、内蔵ディスプレイ上のアプリへ `Cmd+Tab` して戻ると、外部ディスプレイ側
+にも内蔵のノッチ分 (20240203 版で 34px、約 1 行) の帯が入り、最下行が画面外に
+はみ出していた。`Cmd+Tab` 先が外部ディスプレイ上のアプリなら起きず、`` Cmd+` `` で
+WezTerm のウィンドウを一巡すると直る。
+
+ネイティブ全画面はこの処理を通らず、ノッチは macOS が避ける。代わりに次の挙動に
+なる:
+
+- 全画面ウィンドウごとに Space ができ、出入りにアニメーションが入る。
+- `` Cmd+` `` は今いる Space のウィンドウしか巡回しないので、同じディスプレイの別
+  Space にある全画面ウィンドウには届かない (別ディスプレイで表示中の Space なら届く)。
+  Space 切替の `Ctrl+←/→` も tmux 用に無効化している (上記) ので、接続先ごとに
+  ウィンドウを分けず、1 つのウィンドウのタブ (`Cmd+T` / `Cmd+1..9` /
+  `Cmd+Shift+[` `]`) で分ける。
+- `Cmd+Tab` で戻った直後にカーソルが中抜きになるという報告がある
+  ([wezterm#5315](https://github.com/wezterm/wezterm/issues/5315))。
+
+nightly の `macos_fullscreen_extend_behind_notch = true` でも帯は消せるが採らない。
+nightly 版 (`wezterm@nightly` cask。`wezterm` cask と conflict する) が要るうえ、
+内蔵ディスプレイの全画面で最上行の中央 (tmux の中央寄せウィンドウ一覧) がノッチに
+隠れる。
