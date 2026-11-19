@@ -115,6 +115,7 @@ Core tools:
 - `~/.config/git/ignore`
 - `~/.config/yazi/yazi.toml`
 - `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir; see nixos-config-private `docs/runbooks/leafeon-matrix-bridges.md`)
+- `~/.config/mxt/config.toml` (Beeper account, public read receipts, `wslview` opener on WSL; mise installs mxt except on NixOS)
 
 Run scripts:
 

@@ -13,6 +13,10 @@ codex = "latest"
 deno = "latest"
 fzf = "latest"
 "github:beeper/bridge-manager" = "latest"
+{{- if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "nixos")) }}
+# NixOS installs mxt from the system configuration instead.
+"github:kisepichu/mxt" = "latest"
+{{- end }}
 "github:slackapi/slack-cli" = "latest"
 "github:ulyssa/iamb" = "latest"
 go = "latest"

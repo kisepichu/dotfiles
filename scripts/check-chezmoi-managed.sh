@@ -35,6 +35,7 @@ require_managed=(
   ".config/git/ignore"
   ".config/iamb/config.toml"
   ".config/mise/config.toml"
+  ".config/mxt/config.toml"
   ".config/starship.toml"
   ".config/yazi/yazi.toml"
   ".config/nvim/.neoconf.json"
