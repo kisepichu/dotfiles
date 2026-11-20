@@ -47,10 +47,15 @@ if __is_wsl
     if command -q wslvar; and command -q wslpath
         # wslvar runs powershell.exe, which inherits and drains stdin; without </dev/null it eats the
         # sftp/scp protocol bytes in non-interactive ssh sessions and the transfer hangs.
-        set -l windows_home (wslpath (wslvar USERPROFILE </dev/null 2>/dev/null) 2>/dev/null)
-        if test -n "$windows_home"; and test -d "$windows_home"
-            set -gx WHOME "$windows_home"
-            set -gx DOWNLOAD "$windows_home/Downloads"
+        set -l windows_profile (wslvar USERPROFILE </dev/null 2>/dev/null)
+        # When interop fails (powershell.exe can time out) wslvar prints an empty line, and
+        # `wslpath ""` returns ".", which would pass the -d test below as WHOME=".".
+        if test -n "$windows_profile"
+            set -l windows_home (wslpath "$windows_profile" 2>/dev/null)
+            if test -n "$windows_home"; and test -d "$windows_home"
+                set -gx WHOME "$windows_home"
+                set -gx DOWNLOAD "$windows_home/Downloads"
+            end
         end
     end
 
