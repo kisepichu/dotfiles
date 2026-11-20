@@ -104,6 +104,16 @@ config.keys = {
 if is_windows then
 	-- Carried over from the previous hand-maintained Windows config.
 	table.insert(config.keys, { key = "f", mods = "SHIFT|META", action = act.ToggleFullScreen })
+	-- Tab keys on Alt, the key in Cmd's spot on a PC keyboard, matching macOS's
+	-- Cmd+T / Cmd+W / Cmd+1..9 (9 is the last tab). Alt is also Meta here, so
+	-- fish's Alt+T (transpose-words) and Alt+W (whatis) no longer reach the
+	-- shell. Ctrl+Shift+T / W / 1..9 stay bound as WezTerm's defaults.
+	table.insert(config.keys, { key = "t", mods = "ALT", action = act.SpawnTab("CurrentPaneDomain") })
+	table.insert(config.keys, { key = "w", mods = "ALT", action = act.CloseCurrentTab({ confirm = true }) })
+	for i = 1, 8 do
+		table.insert(config.keys, { key = tostring(i), mods = "ALT", action = act.ActivateTab(i - 1) })
+	end
+	table.insert(config.keys, { key = "9", mods = "ALT", action = act.ActivateTab(-1) })
 end
 
 return config
