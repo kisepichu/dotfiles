@@ -45,7 +45,9 @@ if __is_wsl
     set -gx WREPOS /mnt/c/repos
 
     if command -q wslvar; and command -q wslpath
-        set -l windows_home (wslpath (wslvar USERPROFILE 2>/dev/null) 2>/dev/null)
+        # wslvar runs powershell.exe, which inherits and drains stdin; without </dev/null it eats the
+        # sftp/scp protocol bytes in non-interactive ssh sessions and the transfer hangs.
+        set -l windows_home (wslpath (wslvar USERPROFILE </dev/null 2>/dev/null) 2>/dev/null)
         if test -n "$windows_home"; and test -d "$windows_home"
             set -gx WHOME "$windows_home"
             set -gx DOWNLOAD "$windows_home/Downloads"
