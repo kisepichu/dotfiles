@@ -216,6 +216,16 @@ cursor-agent login
 
 On macOS, `~/.tmux.conf` sets `PI_FORCE_IMAGE_PROTOCOL=sixel` for everything started inside tmux. omp's default there (Kitty images through tmux passthrough) puts images at the top-left of the screen and leaves pieces behind ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396)); tmux draws SIXEL itself. New panes pick it up after `tmux source-file ~/.tmux.conf`. Remove the setting once omp chooses SIXEL inside tmux by itself.
 
+tmux-resurrect brings panes back after a reboot but not the omp sessions in them. `omp-panes` covers that:
+
+```bash
+omp-panes save          # before rebooting
+omp-panes restore -n    # after tmux restored the panes: print what would be typed
+omp-panes restore       # type `cd <dir> && omp <launch flags> --resume <session file>` into each pane
+```
+
+`save` records, per pane (`session:window.pane`, which resurrect restores as-is), the session file the running omp owns, its working directory, and its launch flags (`--profile`, `--model`, ...). Resume/continue/goal flags and positional prompts are dropped, so a restore never re-sends a prompt. `restore` only types into panes sitting at a shell prompt and skips the rest, so running it twice is safe. The record is `$XDG_STATE_HOME/omp-panes.json` (default `~/.local/state`). It needs `python3` 3.9+; on macOS it also uses `lsof`, on Linux it reads `/proc`.
+
 ## yazi
 
 [yazi](https://yazi-rs.github.io/) is the terminal file manager on every platform. It is in the `mise` tool list and resolves to the `aqua:sxyazi/yazi` prebuilt release, which also ships `ya`.
