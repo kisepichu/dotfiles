@@ -8,9 +8,36 @@ user_id = "@kisenone:beeper.com"
 [ui]
 # The default, written out because it is a choice: other users see what this account has read.
 read_receipts = "public"
+
+[ui.room_list]
+# Bridged channel names start with the Discord server name, which 30 columns cut short.
+width = 40
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 
 [files]
 # WSL has no desktop for xdg-open (mxt's Linux default), so hand files and links to Windows (wslu).
 opener = ["wslview"]
 {{- end }}
+
+[keymap.normal]
+# Ctrl may still be held after <C-w>, as nvim allows (<C-w><C-h> is <C-w>h there).
+"<C-w><C-h>" = "focus.room_list"
+"<C-w><C-l>" = "focus.timeline"
+# The composer sits below the timeline: move between them like nvim's windows.
+"<C-w>j" = { action = "composer.focus", mode = "keep" }
+"<C-w><C-j>" = { action = "composer.focus", mode = "keep" }
+"<C-w>k" = "focus.timeline"
+"<C-w><C-k>" = "focus.timeline"
+# Next and previous room with any unread badge.
+"]u" = { action = "room.open", filter = "unread", pick = "next" }
+"[u" = { action = "room.open", filter = "unread", pick = "prev" }
+
+[keymap.picker]
+"<Down>" = "picker.next"
+"<Up>" = "picker.prev"
+"<Tab>" = "picker.next"
+"<S-Tab>" = "picker.prev"
+
+[keymap.composer.completion]
+"<Down>" = "completion.next"
+"<Up>" = "completion.prev"
