@@ -238,9 +238,16 @@ workspace on selection. Test that first and use the fallback if they do not.
   Check `.chezmoi.os` before `.chezmoi.osRelease.id`, because `osRelease` only
   exists on Linux. As with tmux, NixOS provides the binaries and dotfiles owns
   the interactive behavior.
-- Each implementation adds a user-facing note under `docs/` (in Japanese, like
-  `docs/wezterm.md`) and updates `scripts/check-chezmoi-managed.sh` if it adds
-  managed or ignored paths.
+- Each implementation adds its own user-facing note, in Japanese like
+  `docs/wezterm.md`: `docs/window-manager-macos.md`,
+  `docs/window-manager-windows.md` or `docs/window-manager-nixos.md`. Separate
+  files keep parallel PRs from conflicting.
+- `scripts/check-chezmoi-managed.sh` compares against `chezmoi managed` and
+  `chezmoi ignored` on the OS it runs on. List OS-specific sources in
+  `require_source`, as `dot_config/karabiner/karabiner.json` is. Add a path to
+  `require_managed` or `require_ignored` only if that holds on every OS;
+  otherwise the hook passes on the machine that added it and fails on the
+  others.
 
 ### Rollout
 
@@ -249,10 +256,26 @@ workspace on selection. Test that first and use the fallback if they do not.
    `feat/wm-windows-glazewm`, `feat/wm-nixos-niri`) and write
    `docs/superpowers/plans/YYYY-MM-DD-wm-<os>.md` with that machine's facts:
    browser and game identifiers, keyboard layout and OS version. Then
-   implement, verify and open a PR. If a trial changes a decision, update this
-   spec in the same PR.
-3. Order: macOS first, because it has the largest gap today (no
-   `Option+digit`), then Windows, then the laptop when it arrives.
+   implement, run the [Verification](#verification) scenarios on that machine
+   and open a PR.
+3. macOS and Windows proceed in parallel. The laptop starts when it arrives:
+   its PR cannot merge before then, and enabling niri is a separate PR in the
+   private NixOS repository.
+4. Windows checks the `Win` key first: Verification scenarios 8 and 9, and
+   whether `Win+Space` is free, using a minimal GlazeWM config with a few
+   `lwin` bindings. These are the assumptions most likely to change `Mod` or
+   the picker key for every machine.
+5. Shared decisions (`Mod`, the keymap, app slots, the picker key) change only
+   through a small spec-only PR merged before the implementation PR, so the
+   other machines pick the change up early. Corrections that affect one OS
+   stay in that OS's PR.
+6. `.chezmoiignore`, `scripts/check-chezmoi-managed.sh` and this spec are
+   shared. Whichever PR merges second rebases on `main`, resolves the
+   conflicts and reruns `prek run --all-files` on its machine.
+7. The hook suite only checks the OS it runs on, so a change can pass on one
+   machine and break another. After another machine's PR merges, pull `main`
+   and run `prek run --all-files` and `chezmoi diff` on each machine. A broken
+   `.chezmoiignore` template stops `chezmoi apply` everywhere.
 
 ## Verification
 
