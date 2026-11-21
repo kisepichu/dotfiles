@@ -46,6 +46,7 @@ require_managed=(
   ".omp/agent/skills/commit"
   ".omp/agent/skills/pr-review"
   ".local/bin/cloudflared-access-ssh-proxy"
+  ".local/bin/omp-panes"
   ".tmux.conf"
   ".tmux/new-session"
 )
