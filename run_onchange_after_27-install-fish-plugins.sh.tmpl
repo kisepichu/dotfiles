@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Re-run whenever the plugin list in dot_config/fish/fish_plugins changes.
+# Re-run whenever the plugin list in dot_config/fish/fish_plugins changes, or
+# once fish appears: a run without fish exits 0 and chezmoi records it as done.
 # fish_plugins hash: {{ include "dot_config/fish/fish_plugins" | sha256sum }}
+# fish: {{ lookPath "fish" }}
 set -euo pipefail
 
 if ! command -v fish >/dev/null 2>&1; then
