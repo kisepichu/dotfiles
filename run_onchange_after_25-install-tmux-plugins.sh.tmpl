@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Re-run whenever the plugin list in dot_tmux.conf changes.
+# Re-run whenever the plugin list in dot_tmux.conf changes, or once tmux
+# appears: a run without tmux exits 0 and chezmoi records it as done.
 # tmux.conf hash: {{ include "dot_tmux.conf" | sha256sum }}
+# tmux: {{ lookPath "tmux" }}
 set -euo pipefail
 
 tpm_install="$HOME/.tmux/plugins/tpm/bin/install_plugins"

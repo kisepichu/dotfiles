@@ -10,6 +10,9 @@
 /tmp/
 {{- if ne .chezmoi.os "darwin" }}
 /.config/karabiner/
-/.config/wezterm/
 /.gitconfig
+{{- end }}
+{{- /* WezTerm runs natively on macOS and NixOS; WSL copies it to Windows instead. */}}
+{{- if not (or (eq .chezmoi.os "darwin") (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "nixos"))) }}
+/.config/wezterm/
 {{- end }}

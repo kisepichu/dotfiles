@@ -6,8 +6,10 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 
 ## 配置
 
-- **macOS**: chezmoi が `~/.config/wezterm/wezterm.lua` に展開する
-  (`.chezmoiignore` で darwin 以外では無視)。
+- **macOS / NixOS**: chezmoi が `~/.config/wezterm/wezterm.lua` に展開する
+  (`.chezmoiignore` でそれ以外の OS では無視)。WezTerm 本体と設定が指定する
+  `ComicShannsMono Nerd Font` は、macOS では `Brewfile`、NixOS では OS の設定
+  (private の nixos-config repo の `modules/desktop.nix`) が入れる。
 - **Windows (WSL のメイン環境)**: WSL の WezTerm は Windows ホスト側で動くため
   chezmoi の home 外にある。WSL で `chezmoi apply` すると
   `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` が
@@ -34,10 +36,10 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 - `Ctrl+Arrow`: WezTerm 側では **あえてバインドしない**。デフォルトの CSI シーケン
   スをそのまま端末へ送り、tmux (prefix `C-f` のあと `C-Arrow`) で pane swap させる
   ため。
-- タブ操作 (Windows): macOS の `Cmd+T` / `Cmd+W` / `Cmd+1..9` に合わせて、PC キーボード
+- タブ操作 (Windows / NixOS): macOS の `Cmd+T` / `Cmd+W` / `Cmd+1..9` に合わせて、PC キーボード
   で Cmd の位置にある **`Alt`** に新規タブ / タブを閉じる / タブ切替を割り当てている
   (`Alt+9` は最後のタブ)。WezTerm 既定の `Ctrl+Shift+T` / `W` / `1..9` もそのまま使え
-  る。Windows では Alt が Meta も兼ねるので、fish の `Alt+T` (transpose-words) と
+  る。Alt が Meta も兼ねるので、fish の `Alt+T` (transpose-words) と
   `Alt+W` (カーソル位置のコマンドの説明) はシェルに届かない (bash なら `Alt+T` と
   `Alt+1..9` の digit-argument)。
 

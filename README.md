@@ -4,7 +4,9 @@ Public chezmoi source for Windows, WSL Ubuntu, macOS, and NixOS dotfiles and age
 
 ## Fresh NixOS
 
-NixOS provides `git`, `curl`, and `mise` as system packages and enables `programs.nix-ld` so mise's prebuilt Node binary can run. Clone this repository over HTTPS, then run the NixOS-only bootstrap from the checkout:
+On NixOS the system configuration installs everything this repository only configures: `git`, `curl`, `mise`, `fish` (as the login shell), `tmux`, `gcc`, and on desktops WezTerm, `wl-clipboard` (Neovim's clipboard), fonts, and the input method. It also enables `programs.nix-ld` so mise's prebuilt binaries can run. Host configurations live in the private `nixos-config-private` repository; desktops share `modules/desktop.nix`, and `docs/runbooks/desktop-setup.md` there walks a fresh laptop from the installer to this bootstrap.
+
+Run the NixOS-only bootstrap from the checkout:
 
 ```bash
 mkdir -p ~/repos
@@ -13,9 +15,11 @@ cd ~/repos/dotfiles
 ./scripts/bootstrap-nixos.sh
 ```
 
-The bootstrap applies this chezmoi source non-interactively, which installs the declared mise tools (including Codex) and the omp and Claude Code CLIs under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials.
+The bootstrap applies this chezmoi source non-interactively, which installs the declared mise tools (including Codex), the tmux and fish plugins, and the omp and Claude Code CLIs under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials. At the end it warns about commands the NixOS configuration does not provide yet (add them, rebuild, and rerun the bootstrap).
 
-Create a dedicated GitHub key on the NixOS machine after the bootstrap:
+On KDE Plasma, every `chezmoi apply` also sets these user settings with `run_after_36-configure-kde.sh.tmpl`: fcitx5 as the input method (only when none is selected), ComicShannsMono Nerd Font as the fixed-width font, no suspend on idle (AC and battery; lid close keeps its default), no screen lock on idle (the screen still dims and turns off; resume from sleep still locks), and natural (reversed) two-finger scrolling on touchpads. The touchpad step goes through KWin, so it needs `chezmoi apply` to run inside the Plasma session.
+
+On a desktop, `gh auth login` during the runbook creates and uploads the GitHub SSH key. On a server, create a dedicated GitHub key after the bootstrap:
 
 ```bash
 mkdir -p ~/.ssh
@@ -44,6 +48,7 @@ Complete the agent authentication manually on that machine:
 ```bash
 codex login
 claude login
+cursor-agent login
 # omp: start `omp`, then run /login
 ```
 

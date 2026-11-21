@@ -1,14 +1,14 @@
 -- Shared WezTerm configuration.
 --
 -- Deployment:
---   * macOS: chezmoi places this at ~/.config/wezterm/wezterm.lua.
+--   * macOS and NixOS: chezmoi places this at ~/.config/wezterm/wezterm.lua.
 --   * Windows: WSL's WezTerm runs on the Windows host, outside chezmoi's home.
 --     run_onchange_after_35-install-windows-wezterm-config.sh copies this file
 --     to %USERPROFILE%\.wezterm.lua when `chezmoi apply` runs in WSL and this
 --     file changed. See docs/wezterm.md for details.
 --
 -- The config branches on wezterm.target_triple so a single source works on
--- both macOS and Windows.
+-- macOS, Windows, and Linux.
 
 local wezterm = require("wezterm")
 local act = wezterm.action
@@ -104,6 +104,9 @@ config.keys = {
 if is_windows then
 	-- Carried over from the previous hand-maintained Windows config.
 	table.insert(config.keys, { key = "f", mods = "SHIFT|META", action = act.ToggleFullScreen })
+end
+
+if not is_macos then
 	-- Tab keys on Alt, the key in Cmd's spot on a PC keyboard, matching macOS's
 	-- Cmd+T / Cmd+W / Cmd+1..9 (9 is the last tab). Alt is also Meta here, so
 	-- fish's Alt+T (transpose-words) and Alt+W (whatis) no longer reach the

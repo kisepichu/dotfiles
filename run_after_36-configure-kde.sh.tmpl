@@ -1,0 +1,67 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+# KDE Plasma user settings. KDE rewrites its rc files itself, so set single
+# keys with kwriteconfig6 instead of managing whole files. Runs on every apply
+# (each step is idempotent) so the touchpad step, which needs a running KWin,
+# catches up the next time `chezmoi apply` runs inside the Plasma session.
+set -euo pipefail
+
+if ! command -v kwriteconfig6 >/dev/null 2>&1; then
+  exit 0
+fi
+
+# Fixed-width font for Qt/KDE apps (Konsole, Kate). WezTerm sets its own.
+# Installed by the NixOS configuration (nerd-fonts.comic-shanns-mono).
+kwriteconfig6 --file kdeglobals --group General --key fixedFont \
+  "ComicShannsMono Nerd Font,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+
+# Never suspend on idle, on AC or battery. 0 is PowerDevil's "Do nothing";
+# the low-battery profile and lid close keep their defaults.
+for profile in AC Battery; do
+  kwriteconfig6 --file powerdevilrc --group "$profile" --group SuspendAndShutdown \
+    --key AutoSuspendAction 0
+done
+if command -v qdbus >/dev/null 2>&1; then
+  qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement \
+    org.kde.Solid.PowerManagement.reparseConfiguration >/dev/null 2>&1 || true
+fi
+
+# Do not lock the screen on idle; the screen still dims and turns off, and a
+# key brings it back without a password. Locking on resume from sleep (lid
+# close) stays on, so a laptop carried away still needs the password.
+kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false
+if command -v qdbus >/dev/null 2>&1; then
+  qdbus org.freedesktop.ScreenSaver /ScreenSaver org.kde.screensaver.configure >/dev/null 2>&1 || true
+fi
+
+# Plasma on Wayland starts an input method only once it is selected under
+# System Settings > Keyboard > Virtual Keyboard, which stores it in kwinrc.
+# Leave a choice made there alone.
+fcitx5_desktop=/run/current-system/sw/share/applications/org.fcitx.Fcitx5.desktop
+if [ -f "$fcitx5_desktop" ] &&
+  [ -z "$(kreadconfig6 --file kwinrc --group Wayland --key InputMethod)" ]; then
+  kwriteconfig6 --file kwinrc --group Wayland --key InputMethod "$fcitx5_desktop"
+  echo "info: selected fcitx5 as the KDE input method; log out and back in to start it" >&2
+fi
+
+# Touchpad: natural (reversed) two-finger scrolling. kcminputrc keys each
+# device by vendor, product and name, so set it through KWin, which applies it
+# and saves it under the right key.
+if ! command -v qdbus >/dev/null 2>&1 ||
+  ! devices="$(qdbus org.kde.KWin 2>/dev/null | grep '^/org/kde/KWin/InputDevice/')"; then
+  echo "info: KWin is not reachable; rerun 'chezmoi apply' in the Plasma session to set touchpad scrolling" >&2
+  exit 0
+fi
+for device in $devices; do
+  get() {
+    qdbus org.kde.KWin "$device" org.freedesktop.DBus.Properties.Get org.kde.KWin.InputDevice "$1"
+  }
+  if [ "$(get touchpad)" = true ] && [ "$(get naturalScroll)" != true ]; then
+    qdbus org.kde.KWin "$device" org.freedesktop.DBus.Properties.Set \
+      org.kde.KWin.InputDevice naturalScroll true
+  fi
+done
+{{- else -}}
+#!/usr/bin/env bash
+exit 0
+{{- end }}
