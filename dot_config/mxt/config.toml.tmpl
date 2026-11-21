@@ -20,24 +20,5 @@ opener = ["wslview"]
 {{- end }}
 
 [keymap.normal]
-# Ctrl may still be held after <C-w>, as nvim allows (<C-w><C-h> is <C-w>h there).
-"<C-w><C-h>" = "focus.room_list"
-"<C-w><C-l>" = "focus.timeline"
-# The composer sits below the timeline: move between them like nvim's windows.
-"<C-w>j" = { action = "composer.focus", mode = "keep" }
-"<C-w><C-j>" = { action = "composer.focus", mode = "keep" }
-"<C-w>k" = "focus.timeline"
-"<C-w><C-k>" = "focus.timeline"
-# Next and previous room with any unread badge.
-"]u" = { action = "room.open", filter = "unread", pick = "next" }
-"[u" = { action = "room.open", filter = "unread", pick = "prev" }
-
-[keymap.picker]
-"<Down>" = "picker.next"
-"<Up>" = "picker.prev"
-"<Tab>" = "picker.next"
-"<S-Tab>" = "picker.prev"
-
-[keymap.composer.completion]
-"<Down>" = "completion.next"
-"<Up>" = "completion.prev"
+# The keymap list (:map) has no default key.
+"<leader>sk" = "help.keymap"
