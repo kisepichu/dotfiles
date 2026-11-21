@@ -26,6 +26,14 @@ if command -v qdbus >/dev/null 2>&1; then
     org.kde.Solid.PowerManagement.reparseConfiguration >/dev/null 2>&1 || true
 fi
 
+# Do not lock the screen on idle; the screen still dims and turns off, and a
+# key brings it back without a password. Locking on resume from sleep (lid
+# close) stays on, so a laptop carried away still needs the password.
+kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false
+if command -v qdbus >/dev/null 2>&1; then
+  qdbus org.freedesktop.ScreenSaver /ScreenSaver org.kde.screensaver.configure >/dev/null 2>&1 || true
+fi
+
 # Plasma on Wayland starts an input method only once it is selected under
 # System Settings > Keyboard > Virtual Keyboard, which stores it in kwinrc.
 # Leave a choice made there alone.

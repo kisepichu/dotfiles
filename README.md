@@ -17,7 +17,7 @@ cd ~/repos/dotfiles
 
 The bootstrap applies this chezmoi source non-interactively, which installs the declared mise tools (including Codex), the tmux and fish plugins, and the omp and Claude Code CLIs under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials. At the end it warns about commands the NixOS configuration does not provide yet (add them, rebuild, and rerun the bootstrap).
 
-On KDE Plasma, every `chezmoi apply` also sets these user settings with `run_after_36-configure-kde.sh.tmpl`: fcitx5 as the input method (only when none is selected), ComicShannsMono Nerd Font as the fixed-width font, no suspend on idle (AC and battery; lid close keeps its default), and natural (reversed) two-finger scrolling on touchpads. The touchpad step goes through KWin, so it needs `chezmoi apply` to run inside the Plasma session.
+On KDE Plasma, every `chezmoi apply` also sets these user settings with `run_after_36-configure-kde.sh.tmpl`: fcitx5 as the input method (only when none is selected), ComicShannsMono Nerd Font as the fixed-width font, no suspend on idle (AC and battery; lid close keeps its default), no screen lock on idle (the screen still dims and turns off; resume from sleep still locks), and natural (reversed) two-finger scrolling on touchpads. The touchpad step goes through KWin, so it needs `chezmoi apply` to run inside the Plasma session.
 
 On a desktop, `gh auth login` during the runbook creates and uploads the GitHub SSH key. On a server, create a dedicated GitHub key after the bootstrap:
 
