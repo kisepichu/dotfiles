@@ -67,6 +67,7 @@ require_source=(
   "run_after_28-link-docker-cli-plugins.sh.tmpl"
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_35-install-windows-wezterm-config.sh.tmpl"
+  "run_after_36-configure-kde.sh.tmpl"
   "run_onchange_after_40-mise-install.sh.tmpl"
   "run_after_50-install-agent-clis.sh"
 )

@@ -59,14 +59,4 @@ if [ -n "$login_shell" ] && [ "${login_shell##*/}" != fish ]; then
   echo "hint: login shell is $login_shell; set 'programs.fish.enable = true;' and 'users.users.<name>.shell = pkgs.fish;' in the NixOS configuration" >&2
 fi
 
-# KDE Plasma on Wayland starts an input method only once it is selected under
-# System Settings > Keyboard > Virtual Keyboard, which stores it in kwinrc.
-fcitx5_desktop=/run/current-system/sw/share/applications/org.fcitx.Fcitx5.desktop
-if [ "${XDG_SESSION_TYPE:-}" = wayland ] && [ "${XDG_CURRENT_DESKTOP:-}" = KDE ] &&
-  [ -f "$fcitx5_desktop" ] && command -v kwriteconfig6 >/dev/null 2>&1 &&
-  [ -z "$(kreadconfig6 --file kwinrc --group Wayland --key InputMethod)" ]; then
-  kwriteconfig6 --file kwinrc --group Wayland --key InputMethod "$fcitx5_desktop"
-  echo "info: selected fcitx5 as the KDE input method; log out and back in to start it" >&2
-fi
-
 echo "Next: open a new fish shell, then log in once per machine: codex login, claude login, cursor-agent login, omp (/login)."
