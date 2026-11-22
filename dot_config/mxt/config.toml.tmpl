@@ -36,6 +36,11 @@ opener = ["wslview"]
 "]u" = { action = "room.open", filter = "notify" }
 "[u" = { action = "room.open", filter = "notify", pick = "prev" }
 
+[keymap.timeline]
+# ❤️ is a like on the X bridge; pressing it again removes the reaction (unlike). In the timeline
+# table, not normal, so the composer's normal mode keeps its keys; threads fall back to it.
+"<leader>l" = { action = "message.react", emoji = "heart" }
+
 [keymap.composer.insert]
 # Back in normal mode after sending.
 "<CR>" = ["composer.send", "composer.normal"]
