@@ -40,6 +40,11 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
   る。Windows では Alt が Meta も兼ねるので、fish の `Alt+T` (transpose-words) と
   `Alt+W` (カーソル位置のコマンドの説明) はシェルに届かない (bash なら `Alt+T` と
   `Alt+1..9` の digit-argument)。
+- `Cmd+J` / `Cmd+K` (macOS): **`Alt+J` / `Alt+K`** として端末に送る。左 Option は
+  AeroSpace のフォーカス移動に取られているので、Neovim (LazyVim 既定) の行の上下移動
+  `<A-j>` / `<A-k>` を、Windows で `Alt` を押すのと同じ位置 (Space の左隣) の `Cmd` で
+  押せるようにしている。WezTerm 既定の `Cmd+K` (スクロールバック消去) は使えなくなる
+  (tmux の履歴には元から影響しない)。
 
 ### macOS で Ctrl+Arrow が tmux に届かない場合
 

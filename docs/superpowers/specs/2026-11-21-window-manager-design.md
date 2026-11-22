@@ -91,8 +91,11 @@ Consequences:
   (`send_composed_key_when_left_alt_is_pressed = false`). Option chords bound
   by AeroSpace no longer reach tmux, Neovim or fish. The repository binds no
   Meta+h/j/k/l or Meta+digit keys. fish loses its default `Alt+H`, `Alt+L`
-  and `Alt+F`, and LazyVim loses its default `Alt+J` and `Alt+K` line moves.
-  Karabiner emits Option only with arrows and Backspace, which stay unbound.
+  and `Alt+F`. LazyVim's `Alt+J` and `Alt+K` line moves come back on
+  `Command+J` and `Command+K`, which WezTerm sends as `Alt+J` and `Alt+K`:
+  Command sits where Alt does on a PC keyboard, so the finger motion matches
+  Windows. Karabiner emits Option only with arrows and Backspace, which stay
+  unbound.
 - Windows and macOS: tmux's default `C-f M-1..5` layout keys become
   unreachable, because WezTerm takes `Alt+digit` on Windows and AeroSpace takes
   `Option+digit` on macOS. Use `C-f Space` (next-layout) or bind explicit
