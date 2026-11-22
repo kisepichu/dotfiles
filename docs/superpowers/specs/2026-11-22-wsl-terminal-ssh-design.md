@@ -59,7 +59,7 @@ Findings (2026-11-22):
 
 ```mermaid
 flowchart LR
-  W["WezTerm (Windows)<br/>built-in SSH client"] -->|"ProxyCommand<br/>cmd /c wsl.exe -d &lt;distro&gt; -e nc 127.0.0.1 22"| N["nc (WSL)"]
+  W["WezTerm (Windows)<br/>built-in SSH client"] -->|"ProxyCommand<br/>cmd /c wsl.exe -d &lt;distro&gt; -e nc -N 127.0.0.1 22"| N["nc (WSL)"]
   N --> S["sshd :22 (WSL)"]
   S --> F["fish / tmux"]
 ```
@@ -79,45 +79,59 @@ The WSL domains stay registered either way, so the launcher can still open one.
 
 ### `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl`
 
-Runs in WSL only, with the guards of script 35 (Linux, `microsoft` in
-`/proc/version`, wslu installed); otherwise it warns and exits 0. Steps:
+The template renders only on WSL (`.chezmoi.kernel.osrelease` contains
+`microsoft`, as in the mxt config), so a test can render it for WSL on any
+machine. When `wslvar`, `wslpath`, `nc`, `ssh-keygen` or `ssh-keyscan` is
+missing, it warns and exits 0. Steps:
 
-1. Check sshd: when nothing accepts on `127.0.0.1:22`, warn and exit 0 without
-   writing any Windows file. The template embeds the result of
+1. Check sshd with `ssh-keyscan 127.0.0.1`: when it prints nothing, warn and
+   exit 0 without writing anything. The template embeds the result of
    `lookPath "sshd"`, so installing openssh-server later changes the rendered
    script and chezmoi runs it again.
 2. Resolve the Windows home with `wslvar USERPROFILE` and `wslpath`, the distro
    from `wslpath -w /` (`\\wsl.localhost\<distro>\`; SSH sessions have no
    `WSL_DISTRO_NAME`, and `chezmoi apply` will run in one after the switch),
    and the user with `id -un`.
-3. Create `%USERPROFILE%\.ssh\wezterm_wsl_ed25519` with Linux `ssh-keygen` and
-   no passphrase when it is missing. The key grants nothing new: the same
-   Windows user already gets a shell through `wsl.exe` without credentials.
-4. Add its public key to `~/.ssh/authorized_keys` with
+3. Read `%USERPROFILE%\.ssh\config`. When it defines `Host wsl` outside the
+   markers below (CRLF lines included), or its markers do not pair up, warn
+   and exit 0 without writing anything.
+4. Create `%USERPROFILE%\.ssh\wezterm_wsl_ed25519` with Linux `ssh-keygen` and
+   no passphrase when the key or its `.pub` is missing (`ssh-keygen -y` refuses
+   a key on `/mnt/c`, whose mode reads 0777, so a lost `.pub` means a new
+   pair). The key grants nothing new: the same Windows user already gets a
+   shell through `wsl.exe` without credentials.
+5. Add its public key to `~/.ssh/authorized_keys` with
    `from="127.0.0.1,::1"`, once, matched by the key itself, so the key does
    not work over the LAN.
-5. Write `%USERPROFILE%\.ssh\known_hosts_wezterm_wsl` from
-   `/etc/ssh/ssh_host_*_key.pub` as `127.0.0.1` entries, so the first
-   connection asks nothing. The file is rewritten on every run.
-6. Write this block into `%USERPROFILE%\.ssh\config`, creating the file when it
+6. Write what `ssh-keyscan` printed to
+   `%USERPROFILE%\.ssh\known_hosts_wezterm_wsl`, so the first connection asks
+   nothing.
+7. Write this block into `%USERPROFILE%\.ssh\config`, creating the file when it
    is missing. The script fills in the two values in angle brackets.
 
    ```
    # >>> dotfiles: wezterm-wsl >>>
+   # Written by dotfiles (run_onchange_after_37-setup-windows-wezterm-ssh.sh).
+   # WezTerm opens WSL through this host so its output skips ConPTY.
    Host wsl
      HostName 127.0.0.1
      User <WSL user>
      IdentityFile ~/.ssh/wezterm_wsl_ed25519
      IdentitiesOnly yes
      UserKnownHostsFile ~/.ssh/known_hosts_wezterm_wsl
-     ProxyCommand wsl.exe -d <distro> -e nc 127.0.0.1 22
+     ProxyCommand wsl.exe -d <distro> -e nc -N 127.0.0.1 22
+   # Options below apply to every host again.
+   Host *
    # <<< dotfiles: wezterm-wsl <<<
    ```
 
    A marked block already in the file is replaced where it is. A new block
    goes at the top: ssh takes the first value it finds for each option, so a
-   `Host *` later in the file cannot override `User`. When `Host wsl` appears
-   outside the markers, the script leaves the file alone and warns.
+   `Host *` later in the file cannot override `User`. The closing `Host *`
+   keeps options that sat at the top of the file applying to every host.
+   `nc -N` closes the connection when WezTerm closes the pipe, so `wsl.exe`
+   and `nc` do not linger. Files are rewritten only when their content
+   changes.
 
 ### `run_once_before_10-install-apt-packages.sh.tmpl`
 
@@ -147,8 +161,8 @@ to `sshd_config` on that machine.
 | Situation | Behavior |
 |---|---|
 | Not set up (no `Host wsl`) | `wezterm.lua` keeps the WSL domain, as today |
-| sshd not running when the script runs | Warns and writes nothing on Windows |
-| `Host wsl` outside the markers | Leaves the ssh config alone and warns |
+| sshd not running when the script runs | Warns and writes nothing |
+| `Host wsl` outside the markers, or markers that do not pair up | Warns and writes nothing |
 | sshd stops later | The WezTerm window shows the connection error; Windows Terminal or `wsl.exe` still opens WSL (documented, no new key binding) |
 | WSL reinstalled | chezmoi's state lives in WSL, so the script runs from scratch and reuses the Windows key |
 | All WezTerm windows closed | `wsl.exe` exits, so WSL stops under the same conditions as today |
@@ -157,11 +171,15 @@ to `sshd_config` on that machine.
 
 Automated:
 
-- `scripts/test-windows-wezterm-ssh.sh` runs the rendered script against
-  temporary Windows and WSL homes. It checks a missing ssh config, a marked
-  block that is replaced in place, `Host wsl` outside the markers left alone,
-  one `authorized_keys` line after two runs, and a second run that changes
-  nothing.
+- `scripts/test-windows-wezterm-ssh.sh` renders the template for macOS,
+  non-WSL Linux and WSL, and runs the WSL one against temporary Windows and WSL
+  homes with `wslvar`, `wslpath`, `nc` and `ssh-keyscan` stubbed. It checks
+  that nothing is written while sshd does not answer, a new ssh config, an
+  existing one that keeps its lines after the block, a marked block replaced
+  in place, configs with their own `Host wsl` (CRLF) or an unpaired marker
+  left alone, one `authorized_keys` line after an existing line without a
+  newline, and a second run that changes nothing. A prek hook runs it when
+  the template or the test changes.
 - From WSL, Windows `ssh.exe wsl true` through the written config. It uses the
   same `ProxyCommand`, key and known_hosts, through OpenSSH rather than
   WezTerm's client.
@@ -176,6 +194,7 @@ Manual, on Windows:
 3. `wslview <URL>` opens the browser, `wslvar USERPROFILE` prints the path, and
    a tmux yank (OSC 52) reaches the Windows clipboard.
 4. After `wsl --shutdown`, starting WezTerm starts WSL and connects.
+5. After closing a WezTerm tab, its `nc -N 127.0.0.1 22` process is gone.
 
 ## Alternatives considered
 
