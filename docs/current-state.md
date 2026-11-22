@@ -116,7 +116,7 @@ Core tools:
 - `~/.config/starship.toml`
 - `~/.config/git/ignore`
 - `~/.config/yazi/yazi.toml`
-- `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir, iTerm2 image previews so ssh hosts do not pick Kitty, which WezTerm draws as boxes; see nixos-config-private `docs/runbooks/leafeon-matrix-bridges.md`)
+- `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir, iTerm2 image previews so ssh hosts do not pick Kitty, which WezTerm draws as boxes; see infra-private `docs/runbooks/leafeon-matrix-bridges.md`)
 - `~/.config/mxt/config.toml` (Beeper account, public read receipts, `wslview` opener on WSL; mise installs mxt except on NixOS)
 
 Run scripts:
