@@ -42,7 +42,7 @@ Recent landed work (since 2026-07-26):
 - tmux test scripts run the server with a throwaway HOME so tpm / resurrect / continuum never touch real session data
 - omp inside tmux on macOS draws images as SIXEL (`PI_FORCE_IMAGE_PROTOCOL` in `~/.tmux.conf`) until omp fixes misplaced Kitty images under tmux ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396))
 - `develop` retired after the last release (#57): feature branches merge into `main` directly
-- The Windows WezTerm opens WSL with its built-in SSH client (`SSH:wsl`, ProxyCommand through `wsl.exe`) instead of the WSL domain, whose bundled pre-1.22 ConPTY drops image escape sequences; `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` writes the key, known_hosts and the `Host wsl` block (#65)
+- The Windows WezTerm opens WSL with its built-in SSH client (`SSH:wsl` over `127.0.0.1:22`) instead of the WSL domain, whose bundled pre-1.22 ConPTY drops image escape sequences; `wezterm.lua` starts WSL at GUI startup, and `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` writes the key, known_hosts, the `Host wsl` block and `instanceIdleTimeout=-1` in `.wslconfig` so WSL keeps running without a `wsl.exe` session (#65)
 
 ## Important State
 
@@ -129,7 +129,7 @@ Run scripts:
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
 - `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` (WSL, copies the WezTerm config to the Windows host)
 - `run_onchange_after_36-install-windows-glazewm-config.sh.tmpl` (WSL, copies the GlazeWM config and window picker to the Windows host, reloads GlazeWM, and reports missing host setup)
-- `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` (WSL, sets up the SSH path the Windows WezTerm opens WSL with: key, `authorized_keys` line, known_hosts, `Host wsl` in `%USERPROFILE%\.ssh\config`)
+- `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` (WSL, sets up the SSH path the Windows WezTerm opens WSL with: key, `authorized_keys` line, known_hosts, `Host wsl` in `%USERPROFILE%\.ssh\config`, `instanceIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`)
 - `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`

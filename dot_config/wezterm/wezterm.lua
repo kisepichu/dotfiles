@@ -63,12 +63,28 @@ if is_windows then
 	end
 	-- Once run_onchange_after_37-setup-windows-wezterm-ssh.sh has written
 	-- `Host wsl` to %USERPROFILE%\.ssh\config, open WSL with WezTerm's own SSH
-	-- client instead: the WSL domain runs wsl.exe under the bundled ConPTY,
-	-- which predates 1.22 and drops image escape sequences (docs/wezterm.md).
+	-- client over localhost instead: the WSL domain runs wsl.exe under the
+	-- bundled ConPTY, which predates 1.22 and drops image escape sequences
+	-- (docs/wezterm.md).
 	config.ssh_domains = wezterm.default_ssh_domains()
 	for _, domain in ipairs(config.ssh_domains) do
-		if domain.name == "SSH:wsl" then
+		if domain.name == "SSH:wsl" and #wsl_domains > 0 then
 			config.default_domain = domain.name
+			-- Nothing on that path starts WSL, so start the default distro and
+			-- wait until 127.0.0.1:22 answers on the Windows side (sshd, then
+			-- localhostForwarding). The handler creates no panes, so WezTerm
+			-- spawns the default program afterwards.
+			local distro = wsl_domains[1].distribution
+			wezterm.on("gui-startup", function()
+				wezterm.run_child_process({ "wsl.exe", "-d", distro, "-e", "true" })
+				wezterm.run_child_process({
+					"powershell.exe",
+					"-NoProfile",
+					"-NonInteractive",
+					"-Command",
+					"$deadline = (Get-Date).AddSeconds(15); while ((Get-Date) -lt $deadline) { $c = New-Object Net.Sockets.TcpClient; try { $c.Connect('127.0.0.1', 22); exit 0 } catch { Start-Sleep -Milliseconds 200 } finally { $c.Dispose() } }; exit 1",
+				})
+			end)
 		end
 	end
 end

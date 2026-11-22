@@ -3,8 +3,9 @@
 # WSL: let the Windows WezTerm open WSL over SSH. Its WSL domain runs wsl.exe
 # under ConPTY, which drops image escape sequences (docs/wezterm.md). This
 # authorizes a key for WezTerm here and writes, on the Windows side, the key,
-# a known_hosts file and a `Host wsl` block in %USERPROFILE%\.ssh\config;
-# wezterm.lua makes `SSH:wsl` the default domain once that host exists.
+# a known_hosts file, a `Host wsl` block in %USERPROFILE%\.ssh\config and
+# instanceIdleTimeout=-1 in %USERPROFILE%\.wslconfig; wezterm.lua makes
+# `SSH:wsl` the default domain once that host exists.
 # sshd: {{ lookPath "sshd" }} (installing openssh-server runs this again)
 set -euo pipefail
 
@@ -12,14 +13,14 @@ begin_marker='# >>> dotfiles: wezterm-wsl >>>'
 end_marker='# <<< dotfiles: wezterm-wsl <<<'
 rerun_hint='then run `chezmoi state delete-bucket --bucket=entryState` and `chezmoi apply` to run this again'
 
-for tool in wslvar wslpath nc ssh-keygen ssh-keyscan; do
+for tool in wslvar wslpath ssh-keygen ssh-keyscan; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "warning: $tool not found; skipping the WezTerm SSH setup" >&2
     exit 0
   fi
 done
 
-# ssh-keyscan also checks that sshd answers where the ProxyCommand connects.
+# ssh-keyscan also checks that sshd answers where WezTerm connects.
 # It asks for each key type at once, so sort for the same file on every run.
 host_keys=$( (ssh-keyscan -T 5 127.0.0.1 2>/dev/null || true) | sort)
 if [ -z "$host_keys" ]; then
@@ -33,15 +34,10 @@ if [ -z "$windows_profile" ]; then
   echo "warning: could not resolve %USERPROFILE%; skipping the WezTerm SSH setup" >&2
   exit 0
 fi
-windows_ssh="$(wslpath "$windows_profile")/.ssh"
+windows_home=$(wslpath "$windows_profile")
+windows_ssh="$windows_home/.ssh"
 config="$windows_ssh/config"
-
-# `wslpath -w /` is \\wsl.localhost\<distro>\. SSH sessions have no
-# WSL_DISTRO_NAME, and chezmoi apply runs in one after the switch.
-distro=$(wslpath -w /)
-distro=${distro#\\\\}
-distro=${distro#*\\}
-distro=${distro%%\\*}
+wslconfig="$windows_home/.wslconfig"
 user=$(id -un)
 
 # Leave a config alone that defines `Host wsl` itself or has a broken block:
@@ -72,6 +68,28 @@ if [ "$bad" = 1 ] || [ "$begins" != "$ends" ] || [ "$begins" -gt 1 ]; then
   exit 0
 fi
 
+# WSL stops the distro, sshd and tmux included, once no wsl.exe session is
+# left; SSH sessions do not count. Prints whether [general] exists and its
+# instanceIdleTimeout, both matched without regard to case.
+idle_scan="0"
+if [ -f "$wslconfig" ]; then
+  idle_scan=$(awk '
+    { line = $0; sub(/\r$/, "", line) }
+    line ~ /^[ \t]*\[/ { section = tolower(line); gsub(/[][ \t]/, "", section); if (section == "general") general = 1; next }
+    section == "general" && tolower(line) ~ /^[ \t]*instanceidletimeout[ \t]*=/ {
+      value = line
+      sub(/^[^=]*=[ \t]*/, "", value)
+      sub(/[ \t]*$/, "", value)
+    }
+    END { print general + 0, value }
+  ' "$wslconfig")
+fi
+read -r has_general idle <<<"$idle_scan"
+if [ -n "${idle:-}" ] && [ "$idle" != -1 ]; then
+  echo "warning: $wslconfig sets instanceIdleTimeout=$idle, so WSL would stop under WezTerm's SSH sessions; skipping the WezTerm SSH setup. Set it to -1, $rerun_hint" >&2
+  exit 0
+fi
+
 mkdir -p "$windows_ssh"
 
 # Writes stdin to $1 only when the content differs.
@@ -96,8 +114,8 @@ if [ ! -f "$key" ] || [ ! -f "$key.pub" ]; then
 fi
 read -r key_type key_blob _ <"$key.pub" || true
 
-# from= keeps the key from working over the LAN; the ProxyCommand connects
-# from 127.0.0.1.
+# from= keeps the key from working over the LAN; WezTerm connects from
+# 127.0.0.1.
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh"
 authorized_keys="$HOME/.ssh/authorized_keys"
@@ -112,10 +130,38 @@ fi
 
 printf '%s\n' "$host_keys" | write_if_changed "$windows_ssh/known_hosts_wezterm_wsl"
 
+if [ "${idle:-}" != -1 ]; then
+  if [ "$has_general" = 1 ]; then
+    awk '
+      { print }
+      !done {
+        line = $0
+        sub(/\r$/, "", line)
+        section = tolower(line)
+        gsub(/[][ \t]/, "", section)
+        if (line ~ /^[ \t]*\[/ && section == "general") { print "instanceIdleTimeout=-1"; done = 1 }
+      }
+    ' "$wslconfig" | write_if_changed "$wslconfig"
+  else
+    {
+      if [ -s "$wslconfig" ]; then
+        cat "$wslconfig"
+        if [ -n "$(tail -c 1 "$wslconfig")" ]; then
+          printf '\n'
+        fi
+        printf '\n'
+      fi
+      printf '[general]\ninstanceIdleTimeout=-1\n'
+    } | write_if_changed "$wslconfig"
+  fi
+  echo "info: WSL applies instanceIdleTimeout=-1 when it next starts; run 'wsl --shutdown' from Windows once (it ends every WSL session)"
+fi
+
 # At the top: ssh takes the first value it finds for each option, so a later
 # `Host *` cannot override User. The closing `Host *` keeps options that were
-# at the top of the file applying to every host. nc -N closes the connection
-# when WezTerm closes the pipe, so wsl.exe does not linger.
+# at the top of the file applying to every host. No ProxyCommand: WezTerm on
+# Windows gives it one socket as stdin and stdout, which stalls wsl.exe
+# (docs/wezterm.md), so WezTerm connects through localhostForwarding.
 block="$begin_marker
 # Written by dotfiles (run_onchange_after_37-setup-windows-wezterm-ssh.sh).
 # WezTerm opens WSL through this host so its output skips ConPTY.
@@ -125,7 +171,6 @@ Host wsl
   IdentityFile ~/.ssh/wezterm_wsl_ed25519
   IdentitiesOnly yes
   UserKnownHostsFile ~/.ssh/known_hosts_wezterm_wsl
-  ProxyCommand wsl.exe -d $distro -e nc -N 127.0.0.1 22
 # Options below apply to every host again.
 Host *
 $end_marker"
