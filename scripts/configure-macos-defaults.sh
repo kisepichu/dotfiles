@@ -35,6 +35,30 @@ for hotkey in 79 81; do
   defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$hotkey" "{ enabled = 0; }"
 done
 
+# macOS 15+ binds Window > Move & Resize items to fn+Control(+Shift)+arrows,
+# which apps otherwise get as Ctrl(+Shift)+PageUp/PageDown/Home/End: tab
+# switching and moving in WezTerm and browsers, document start and end.
+# AeroSpace owns window layout, so those items only fight it. An App Shortcuts
+# entry replaces an item's default key; park the halves on Cmd+Option+Control
+# +arrow and the arrangements on Cmd+Option+Control+Shift+arrow. Entries match
+# menu titles in the app's language: English for WezTerm, Japanese for apps
+# localized to the system language.
+park_tiling_item() {
+  local key=$1
+  shift
+  for title in "$@"; do
+    defaults write NSGlobalDomain NSUserKeyEquivalents -dict-add "$title" "\"$key\""
+  done
+}
+park_tiling_item '@~^\UF700' "Top" "上"
+park_tiling_item '@~^\UF701' "Bottom" "下"
+park_tiling_item '@~^\UF702' "Left" "左"
+park_tiling_item '@~^\UF703' "Right" "右"
+park_tiling_item '@~^$\UF700' "Top & Bottom" "上と下"
+park_tiling_item '@~^$\UF701' "Bottom & Top" "下と上"
+park_tiling_item '@~^$\UF702' "Left & Right" "左と右"
+park_tiling_item '@~^$\UF703' "Right & Left" "右と左"
+
 if defaults read com.apple.AppleMultitouchTrackpad >/dev/null 2>&1; then
   defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
