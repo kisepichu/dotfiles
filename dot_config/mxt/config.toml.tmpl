@@ -12,9 +12,14 @@ read_receipts = "public"
 [ui.room_list]
 # Bridged channel names start with the Discord server name, which 30 columns cut short.
 width = 40
-# Rooms with mentions, then other unread rooms, then the ones read most recently. Needs mxt >= 0.1.4;
-# 0.1.3 ignores the value with a warning and sorts by latest activity.
-sort = "mentions, unread, read"
+# Rooms with mentions, then rooms that notify, then rooms with only a dim count (mentions-only
+# channels), then the ones read most recently; each unread group newest message first. `notify`
+# needs mxt >= 0.1.5; older versions skip it with a warning.
+sort = "mentions, notify, unread, read"
+
+[ui.timeline]
+# Image previews in the timeline (mxt >= 0.1.5; 0.1.4 ignores the table with a warning).
+images = "on"
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 
 [files]
@@ -25,3 +30,10 @@ opener = ["wslview"]
 [keymap.normal]
 # The keymap list (:map) has no default key.
 "<leader>sk" = "help.keymap"
+# Jump only between rooms that notify, skipping channels whose only news is a dim count.
+"]u" = { action = "room.open", filter = "notify" }
+"[u" = { action = "room.open", filter = "notify", pick = "prev" }
+
+[keymap.composer.insert]
+# Back in normal mode after sending.
+"<CR>" = ["composer.send", "composer.normal"]
