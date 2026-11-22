@@ -41,6 +41,10 @@ repos:
         entry: secretlint
         language: node
         types_or: [text]
+        # Files only. At commit-msg, secretlint skips .git/COMMIT_EDITMSG in a
+        # normal checkout (it ignores **/.git/**) and crashes in a linked
+        # worktree, where the message path starts with ../ outside the cwd.
+        stages: [pre-commit]
         additional_dependencies:
           - secretlint@11.4.1
           - "@secretlint/secretlint-rule-preset-recommend@11.4.1"

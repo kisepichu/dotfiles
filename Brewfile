@@ -2,6 +2,8 @@
 # by scripts/bootstrap-macos.sh and run_onchange_before_12-install-homebrew-packages.sh.tmpl.
 # Project-specific toolchains stay in each project's own setup docs.
 
+tap "nikitabobko/tap"
+
 brew "actionlint"
 brew "ca-certificates"
 brew "cloudflared"
@@ -27,6 +29,7 @@ brew "unzip"
 brew "xz"
 brew "ykman"
 
+cask "nikitabobko/tap/aerospace"
 cask "anki"
 cask "font-comic-shanns-mono-nerd-font"
 cask "google-chrome"
