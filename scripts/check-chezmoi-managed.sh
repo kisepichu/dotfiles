@@ -54,6 +54,7 @@ require_managed=(
 require_source=(
   "Brewfile"
   "dot_config/karabiner/karabiner.json"
+  "dot_config/aerospace/aerospace.toml"
   "dot_gitconfig"
   "mise.toml"
   "scripts/bootstrap-nixos.sh"

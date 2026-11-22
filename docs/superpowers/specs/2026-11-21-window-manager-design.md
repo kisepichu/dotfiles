@@ -87,7 +87,8 @@ Consequences:
 - macOS: WezTerm sends left Option as Meta
   (`send_composed_key_when_left_alt_is_pressed = false`). Option chords bound
   by AeroSpace no longer reach tmux, Neovim or fish. The repository binds no
-  Meta+h/j/k/l or Meta+digit keys; fish loses its default `Alt+H` and `Alt+L`.
+  Meta+h/j/k/l or Meta+digit keys. fish loses its default `Alt+H`, `Alt+L`
+  and `Alt+F`, and LazyVim loses its default `Alt+J` and `Alt+K` line moves.
   Karabiner emits Option only with arrows and Backspace, which stay unbound.
 - Windows and macOS: tmux's default `C-f M-1..5` layout keys become
   unreachable, because WezTerm takes `Alt+digit` on Windows and AeroSpace takes
@@ -155,8 +156,9 @@ that each implementation plan records.
   `Mod+1` would focus an empty workspace, and the game would not be hidden on
   other workspaces. Use `ignore` only if a game misbehaves while managed. The
   game is then reached with `Alt+Tab`, not `Mod+1`.
-- AeroSpace: `[[on-window-detected]]` with `if.app-id` and
-  `run = 'move-node-to-workspace N'`.
+- AeroSpace: an `on-window-detected` entry with
+  `if = 'test %{app-bundle-id} = <id>'` and `run = 'move-node-to-workspace N'`
+  (the `if.app-id` form is deprecated since 0.21.0).
 - niri: declare a named workspace for every slot, 1–9, and pin apps with
   `open-on-workspace` window rules. Bind `Mod+N` to `focus-workspace "<name>"`
   and `Mod+Shift+N` to `move-column-to-workspace "<name>"`. A quoted argument
