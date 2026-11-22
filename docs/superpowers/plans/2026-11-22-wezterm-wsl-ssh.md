@@ -683,3 +683,7 @@ git push -u origin feat/wezterm-wsl-ssh
 gh pr create --base main --title "feat(wezterm): open WSL over SSH on Windows so image previews skip the ConPTY that drops them" --body-file /tmp/wezterm-wsl-ssh-pr.md
 rm -f /tmp/wezterm-wsl-ssh-pr.md
 ```
+
+## Findings During Execution
+
+- Task 3 Step 2 rewrote `known_hosts_wezterm_wsl` on the second run: `ssh-keyscan` asks for each key type at once and prints them in the order they answer, which changed between runs (six runs gave three orders). The run script now sorts the output, and the test's `ssh-keyscan` stub prints two keys in alternating order, so an unsorted write fails `known_hosts must hold the sorted ssh-keyscan lines`. The code blocks in Task 1 predate this fix; the files in the repository have it.

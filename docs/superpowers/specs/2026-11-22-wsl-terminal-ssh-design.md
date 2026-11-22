@@ -103,9 +103,10 @@ missing, it warns and exits 0. Steps:
 5. Add its public key to `~/.ssh/authorized_keys` with
    `from="127.0.0.1,::1"`, once, matched by the key itself, so the key does
    not work over the LAN.
-6. Write what `ssh-keyscan` printed to
+6. Write what `ssh-keyscan` printed, sorted, to
    `%USERPROFILE%\.ssh\known_hosts_wezterm_wsl`, so the first connection asks
-   nothing.
+   nothing. `ssh-keyscan` asks for each key type at once and prints them in
+   the order they answer, which changes between runs.
 7. Write this block into `%USERPROFILE%\.ssh\config`, creating the file when it
    is missing. The script fills in the two values in angle brackets.
 

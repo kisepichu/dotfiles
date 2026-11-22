@@ -40,7 +40,8 @@ config="$windows_ssh/config"
 wsl_home="$test_tmp/home"
 authorized_keys="$wsl_home/.ssh/authorized_keys"
 user=$(id -un)
-host_key='127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITESTHOSTKEY'
+ed25519_key='127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITESTHOSTKEY'
+rsa_key='127.0.0.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABTESTHOSTKEY'
 
 mkdir -p "$test_tmp/bin"
 cat >"$test_tmp/bin/wslvar" <<'EOF'
@@ -60,7 +61,14 @@ EOF
 cat >"$test_tmp/bin/ssh-keyscan" <<EOF
 #!/usr/bin/env bash
 [ -n "\${KEYSCAN_FAIL:-}" ] && exit 1
-printf '%s\n' '$host_key'
+# ssh-keyscan asks for each key type at once, so the order changes between runs.
+if [ -e "$test_tmp/keyscan-flip" ]; then
+  rm "$test_tmp/keyscan-flip"
+  printf '%s\n' '$ed25519_key' '$rsa_key'
+else
+  touch "$test_tmp/keyscan-flip"
+  printf '%s\n' '$rsa_key' '$ed25519_key'
+fi
 EOF
 printf '#!/usr/bin/env bash\n' >"$test_tmp/bin/nc"
 chmod +x "$test_tmp/bin/"*
@@ -95,7 +103,7 @@ run_setup
 grep -Fxq "  User $user" "$config" || fail 'the block must log in as the WSL user'
 grep -Fxq '  ProxyCommand wsl.exe -d TestDistro -e nc -N 127.0.0.1 22' "$config" || fail 'the ProxyCommand must run nc -N in the distro that wslpath -w / names'
 [ -f "$windows_ssh/wezterm_wsl_ed25519" ] && [ -f "$windows_ssh/wezterm_wsl_ed25519.pub" ] || fail 'the key pair must exist'
-[ "$(cat "$windows_ssh/known_hosts_wezterm_wsl")" = "$host_key" ] || fail 'known_hosts must hold what ssh-keyscan printed'
+[ "$(cat "$windows_ssh/known_hosts_wezterm_wsl")" = "$(printf '%s\n' "$ed25519_key" "$rsa_key")" ] || fail 'known_hosts must hold the sorted ssh-keyscan lines'
 key_blob=$(cut -d ' ' -f 2 "$windows_ssh/wezterm_wsl_ed25519.pub")
 [ "$(head -n 1 "$authorized_keys")" = 'ssh-ed25519 AAAAEXISTINGKEY someone' ] || fail 'the existing authorized_keys line must stay intact'
 [ "$(grep -c "$key_blob" "$authorized_keys")" = 1 ] || fail 'authorized_keys must hold the key once'

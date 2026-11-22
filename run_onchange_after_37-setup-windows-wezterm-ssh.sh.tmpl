@@ -20,7 +20,8 @@ for tool in wslvar wslpath nc ssh-keygen ssh-keyscan; do
 done
 
 # ssh-keyscan also checks that sshd answers where the ProxyCommand connects.
-host_keys=$(ssh-keyscan -T 5 127.0.0.1 2>/dev/null || true)
+# It asks for each key type at once, so sort for the same file on every run.
+host_keys=$( (ssh-keyscan -T 5 127.0.0.1 2>/dev/null || true) | sort)
 if [ -z "$host_keys" ]; then
   echo "warning: sshd does not answer on 127.0.0.1:22; skipping the WezTerm SSH setup. Start it with 'sudo systemctl enable --now ssh', $rerun_hint" >&2
   exit 0
