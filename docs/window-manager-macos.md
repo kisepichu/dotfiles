@@ -81,6 +81,26 @@ aerospace macos-native-fullscreen off --window-id "$(aerospace list-windows --mo
 WezTerm だけの workspace ではウィンドウがすでに画面いっぱいになる。並べている最中に
 広げたいときは `⌥f` (AeroSpace の全画面) を使い、ペインだけ広げたいときは tmux の `C-f z` を使う。
 
+## macOS のウィンドウ整列キー
+
+macOS 15 以降はウインドウ → 移動とサイズ変更 の項目を `fn+Ctrl(+Shift)+矢印` に割り当てている。
+これはアプリから見ると `Ctrl(+Shift)+PageUp/PageDown/Home/End` で、WezTerm やブラウザのタブ
+切り替え・入れ替え、文書の先頭・末尾への移動とぶつかる。たとえば `Ctrl+Shift+fn+↑` は「上と下」
+になり、WezTerm と Edge が一瞬上下に並んで AeroSpace に戻されるだけでタブは動かない。WezTerm が
+ネイティブ全画面だった頃は、全画面のウィンドウに整列が効かないのでキーがそのまま届いていた。
+
+`scripts/configure-macos-defaults.sh` は、キーボード → キーボードショートカット → アプリの
+ショートカット (`NSUserKeyEquivalents`) で次の項目を押さないキーへ移し、元のキーをアプリに返す。
+
+| 項目 | 移し先 |
+|---|---|
+| 上 / 下 / 左 / 右 | `⌘⌥⌃+矢印` |
+| 上と下 / 下と上 / 左と右 / 右と左 | `⌘⌥⌃⇧+矢印` |
+
+メニュー名はアプリの言語で照合されるので、英語 (WezTerm) と日本語 (Edge など) の両方を登録する。
+反映には各アプリの再起動が要る。「画面全体に表示」(`fn+Ctrl+F`) と「中央に配置」(`fn+Ctrl+C`)
+はぶつかるキーが無いのでそのまま。
+
 ## 困ったとき
 
 - ウィンドウが見当たらない: 他の workspace のウィンドウは画面の右下か左下の隅に 1px だけ
