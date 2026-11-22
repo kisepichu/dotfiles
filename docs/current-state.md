@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-11-14
+Last updated: 2026-11-22
 
 ## Summary
 
@@ -18,6 +18,7 @@ Implemented and committed:
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
 - Managed WezTerm config: chezmoi target on macOS (`darwin` only via `.chezmoiignore`), copied to `%USERPROFILE%\.wezterm.lua` from WSL
+- Managed GlazeWM config and `Win+Space` AutoHotkey window picker for the Windows host, copied to `%USERPROFILE%\.glzr\glazewm\` from WSL (`docs/window-manager-windows.md`)
 - WSL Ubuntu / macOS / NixOS bootstrap scripts
 - Repo-root `mise.toml` so bootstrap activates `chezmoi` without mise's inactive-tool warning
 - Optional WSL Ubuntu Docker Engine install script
@@ -126,6 +127,7 @@ Run scripts:
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
 - `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` (WSL, copies the WezTerm config to the Windows host)
+- `run_onchange_after_36-install-windows-glazewm-config.sh.tmpl` (WSL, copies the GlazeWM config and window picker to the Windows host, reloads GlazeWM, and reports missing host setup)
 - `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`
