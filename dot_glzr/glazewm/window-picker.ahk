@@ -7,7 +7,7 @@
 ; keybinding. It lists every managed window, including those on hidden
 ; workspaces that PowerToys Command Palette's "Switch windows" leaves out
 ; (GlazeWM cloaks them), and focuses the chosen one, showing its workspace
-; first when that workspace is hidden.
+; first when that workspace is hidden and restoring it when it is minimized.
 ; Type to filter, Up/Down to move, Enter to focus. Esc, or anything else
 ; taking focus, closes it. It is a tool window, so GlazeWM does not tile it.
 
@@ -90,14 +90,9 @@ Choose() {
     target := shown[row]
     choosing := true
     picker.Hide()
-    ; `focus --container-id` moves GlazeWM's focus but does not redraw a
-    ; hidden workspace, so the window would stay cloaked. Show its workspace
-    ; first. Only for hidden ones: with toggle_workspace_on_refocus,
-    ; `focus --workspace` on the shown workspace would leave it instead.
     try {
-        if !target["displayed"]
-            RunGlazeWM("command focus --workspace " target["workspace"])
-        RunGlazeWM("command focus --container-id " target["id"])
+        for command in PickerFocusCommands(target)
+            RunGlazeWM(command)
     }
     ExitApp()
 }

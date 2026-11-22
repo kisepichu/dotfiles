@@ -130,7 +130,7 @@ PickerJsonString(text, &pos) {
 
 ; Flattens `glazewm query workspaces` output into one Map per window with id,
 ; workspace, displayed (whether that workspace is shown on a display),
-; process and title, in GlazeWM's tree order.
+; minimized, process and title, in GlazeWM's tree order.
 PickerCollectWindows(response) {
     windows := []
     for workspace in response["data"]["workspaces"]
@@ -145,11 +145,28 @@ PickerCollectChildren(children, workspace, windows) {
                 "id", child["id"],
                 "workspace", workspace["name"],
                 "displayed", workspace["isDisplayed"],
+                "minimized", child.Has("state") && IsObject(child["state"]) && child["state"]["type"] == "minimized",
                 "process", child["processName"],
                 "title", child["title"]))
         else if child.Has("children")
             PickerCollectChildren(child["children"], workspace, windows)
     }
+}
+
+; The GlazeWM CLI arguments that bring `window` (from PickerCollectWindows)
+; into view and focus it, in order. `focus --container-id` only moves GlazeWM's
+; focus: it neither redraws a hidden workspace, which would leave the window
+; cloaked, nor restores a minimized window. So show the workspace and restore
+; the window first. Only a hidden workspace gets `focus --workspace`: with
+; toggle_workspace_on_refocus, on the shown one it would leave it instead.
+PickerFocusCommands(window) {
+    commands := []
+    if !window["displayed"]
+        commands.Push("command focus --workspace " window["workspace"])
+    if window["minimized"]
+        commands.Push("command --id " window["id"] " toggle-minimized")
+    commands.Push("command focus --container-id " window["id"])
+    return commands
 }
 
 ; Keeps the windows whose "workspace process title" text contains every
