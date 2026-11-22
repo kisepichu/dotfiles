@@ -8,9 +8,9 @@ Windows ホストでは [GlazeWM](https://github.com/glzr-io/glazewm) で
 
 設定は `dot_glzr/glazewm/` にある。chezmoi は Windows ネイティブ以外ではこの
 ディレクトリを無視する (`.chezmoiignore`)。WSL で `chezmoi apply` すると、
-`run_onchange_after_36-install-windows-glazewm-config.sh.tmpl` が次の 4 ファイルを
+`run_onchange_after_36-install-windows-glazewm-config.sh.tmpl` が次の 5 ファイルを
 `%USERPROFILE%\.glzr\glazewm\` にコピーし、動いている GlazeWM に設定を再読み込み
-させる。4 ファイルのどれかが変わったときだけ再実行される。
+させる。5 ファイルのどれかが変わったときだけ再実行される。
 
 - `config.yaml`: GlazeWM の設定
 - `window-picker.ahk`: `Win+Space` のウィンドウピッカー (AutoHotkey v2)
@@ -19,6 +19,9 @@ Windows ホストでは [GlazeWM](https://github.com/glzr-io/glazewm) で
 - `win-key-mask.ahk`: `Win` を使った操作のあとに Start メニューが開くのを防ぐ
   (下記「Win キーと Start メニュー」)。GlazeWM の `startup_commands` で起動し、
   GlazeWM が終了すると自分も終了する
+- `display-off.ps1`: 画面を消し、実機のキーかマウスが触られるまで消したままにする
+  (下記「ワークスペースとディスプレイ」)。スクリプトはデスクトップに
+  ショートカット `display off` を作り、このファイルを指すようにする
 
 Windows 側のコピーを直接編集しても、次のコピーで上書きされる。変更は repo 側で
 行う。ワークスペースとディスプレイの割り当ては再読み込みだけでは組み直されない
@@ -111,6 +114,12 @@ GlazeWM はそのディスプレイのワークスペースを残ったディス
 戻ると固定先のワークスペースを元のディスプレイへ戻す。固定 (`bind_to_monitor`)
 が無いと戻らない。また、空いているワークスペースの定義が無いと
 `No workspace config available to activate workspace` になる。
+
+GlazeWM はフォーカスを移すたびに合成のマウス入力 (`SendInput`) を送る。どれかの
+窓が開くか閉じるだけでフォーカスは移るので、画面を消している間でもこの入力で
+画面がつく。`display-off.ps1` は Raw Input で実機からの入力 (`hDevice` が NULL で
+ない入力) を見分け、それが来るまでは画面がつくたびに 0.25 秒後に消し直す。
+10 秒間に 5 回ついたときは、実機の入力を見分けられていないとみなして終了する。
 
 ## アプリの固定 (slot)
 
