@@ -61,6 +61,16 @@ if is_windows then
 	if #wsl_domains > 0 then
 		config.default_domain = wsl_domains[1].name
 	end
+	-- Once run_onchange_after_37-setup-windows-wezterm-ssh.sh has written
+	-- `Host wsl` to %USERPROFILE%\.ssh\config, open WSL with WezTerm's own SSH
+	-- client instead: the WSL domain runs wsl.exe under the bundled ConPTY,
+	-- which predates 1.22 and drops image escape sequences (docs/wezterm.md).
+	config.ssh_domains = wezterm.default_ssh_domains()
+	for _, domain in ipairs(config.ssh_domains) do
+		if domain.name == "SSH:wsl" then
+			config.default_domain = domain.name
+		end
+	end
 end
 
 -- QuickSelect ----------------------------------------------------------------

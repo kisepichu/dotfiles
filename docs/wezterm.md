@@ -16,7 +16,48 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
   トの図は `~/.config/wezterm` 優先と書いているが実装は逆)。初回に既存の手書き設定が
   あれば `.wezterm.lua.pre-dotfiles` に退避する。Windows 側で直接編集しても次のコピー
   で上書きされるので、変更は repo 側で行う。
-  `default_domain` は `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
+  `default_domain` は下の「WSL への接続 (Windows)」の `SSH:wsl`。まだ用意していない
+  マシンでは `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
+
+## WSL への接続 (Windows)
+
+Windows の WezTerm は、WSL に **WezTerm 内蔵の SSH クライアント** で入る
+(`SSH:wsl` ドメイン)。WSL ドメインは `wsl.exe` を ConPTY の下で動かすが、この
+WezTerm (20230712) が同梱している ConPTY は 1.22 より古く、Sixel や Kitty の画像の
+エスケープシーケンスを捨てる。そのため mxt や iamb の画像プレビューが崩れていた
+(#65)。ConPTY 1.22 を同梱しているのは WezTerm の nightly だけ。
+
+経路は WezTerm → ProxyCommand `wsl.exe -d <distro> -e nc -N 127.0.0.1 22` → WSL の
+sshd。`wsl.exe` とはパイプでつながるので ConPTY を通らない。`wsl.exe` が WSL を起動
+し、接続している間は WSL を落とさない。`nc -N` はタブを閉じると接続を閉じる。
+WezTerm の中で Windows の `ssh.exe` を動かすと ConPTY を通るので使わない。
+
+WSL で `chezmoi apply` すると
+`run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` が次を用意する (2 回目以降
+は何も変えない)。
+
+- Windows 側: 鍵 `%USERPROFILE%\.ssh\wezterm_wsl_ed25519`、`known_hosts_wezterm_wsl`、
+  `%USERPROFILE%\.ssh\config` 先頭の `# >>> dotfiles: wezterm-wsl >>>` から
+  `# <<< dotfiles: wezterm-wsl <<<` までの `Host wsl`。鍵にパスフレーズは無い。同じ
+  Windows ユーザーは `wsl.exe` で鍵無しにシェルを開けるので、入れる人は増えない
+- WSL 側: `~/.ssh/authorized_keys` にその公開鍵を `from="127.0.0.1,::1"` 付きで 1 行
+
+`wezterm.lua` は `%USERPROFILE%\.ssh\config` に `Host wsl` があれば `SSH:wsl` を既定
+にし、無ければ WSL ドメインを使う。新しいウィンドウとタブから効く。
+
+前提は、WSL で systemd が有効で、sshd が 127.0.0.1:22 で動いていること
+(`openssh-server` は apt のスクリプトが入れる)。動いていなければスクリプトは警告して
+何も書かない。sshd を起動したら `chezmoi state delete-bucket --bucket=entryState` の
+あと `chezmoi apply` でもう一度走らせる。`%USERPROFILE%\.ssh\config` が目印の外で
+`Host wsl` を定義しているときも、何も書かずに警告する (その `Host wsl` が `SSH:wsl`
+として使われる)。
+
+SSH で入ったセッションには `WSL_DISTRO_NAME` と `WSL_INTEROP` が無いが、systemd の
+下なので `wslview` や `wslvar` などの Windows 連携は動く。mxt は `SSH_CONNECTION` を
+見て SSH 扱いになり、WezTerm 向けに iTerm2 方式を選ぶ。
+
+sshd が止まって入れないときは、Windows Terminal か PowerShell の `wsl.exe` で WSL に
+入って直す。
 
 ## キーバインド
 
