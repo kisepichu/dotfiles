@@ -1,0 +1,180 @@
+# GlazeWM config for the Windows host.
+#
+# Source: dot_glzr/glazewm/config.yaml in the dotfiles repository. From WSL,
+# `chezmoi apply` runs run_onchange_after_36-install-windows-glazewm-config.sh,
+# which copies this file and the window picker to %USERPROFILE%\.glzr\glazewm\
+# and reloads GlazeWM. Edit the repository copy, not the installed one.
+#
+# Keymap and app slots: docs/superpowers/specs/2026-11-21-window-manager-design.md.
+# Windows notes (setup, displays, adding a game): docs/window-manager-windows.md.
+#
+# shell-exec: GlazeWM 3.10.1 rejects a program path in double quotes (it looks
+# for a third quote), so program paths stay unquoted; GlazeWM finds the file by
+# growing the path one word at a time. Arguments may be quoted.
+
+general:
+  # Fill slots 2 and 3 at login. Restarting GlazeWM opens another window of each.
+  # win-key-mask.ahk keeps Start closed after quick Win chords (glazewm#1215).
+  startup_commands:
+    - 'shell-exec %ProgramFiles%\BraveSoftware\Brave-Browser\Application\brave.exe'
+    - 'shell-exec %ProgramFiles%\WezTerm\wezterm-gui.exe'
+    - 'shell-exec %ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe "%USERPROFILE%\.glzr\glazewm\win-key-mask.ahk"'
+  # Mod+N on the workspace already shown returns to the previous one.
+  toggle_workspace_on_refocus: true
+
+gaps:
+  scale_with_dpi: true
+  inner_gap: '2px'
+  outer_gap:
+    top: '2px'
+    right: '2px'
+    bottom: '2px'
+    left: '2px'
+
+window_effects:
+  focused_window:
+    border:
+      enabled: true
+      color: '#89b4fa'
+  other_windows:
+    border:
+      enabled: false
+      color: '#a1a1a1'
+
+# GlazeWM numbers displays from the left: the portrait display is 0 and the
+# main one is 1. Slots 1-9 stay on the main display and workspace 0 on the
+# portrait one. A binding to a missing display is ignored, so with one display
+# every workspace opens there.
+workspaces:
+  - name: '1'
+    bind_to_monitor: 1
+  - name: '2'
+    bind_to_monitor: 1
+  - name: '3'
+    bind_to_monitor: 1
+  - name: '4'
+    bind_to_monitor: 1
+  - name: '5'
+    bind_to_monitor: 1
+  - name: '6'
+    bind_to_monitor: 1
+  - name: '7'
+    bind_to_monitor: 1
+  - name: '8'
+    bind_to_monitor: 1
+  - name: '9'
+    bind_to_monitor: 1
+  - name: '0'
+    bind_to_monitor: 0
+
+# Rules run once per window, when GlazeWM starts managing it or its title
+# changes; Mod+Shift+N moves the window freely afterwards.
+window_rules:
+  # Slot 1: games, managed but untiled. Never `ignore` them: that takes the
+  # window out of the workspace tree, so Mod+1 would show an empty workspace.
+  # To add a game, add a line with its executable name without `.exe`.
+  - commands: ['move --workspace 1', 'set-fullscreen']
+    match:
+      - window_process: { equals: 'VRChat' }
+      - window_process: { equals: 'Overwatch' }
+      - window_process: { equals: 'StreetFighter6' }
+
+  # Slot 2: the browser. Brave PWAs (for example Discord) run as brave.exe too.
+  - commands: ['move --workspace 2']
+    match:
+      - window_process: { equals: 'brave' }
+
+  # Slot 3: WezTerm. `window_decorations = "RESIZE"` leaves out WS_THICKFRAME,
+  # so GlazeWM would float it as non-resizable; tile it instead.
+  - commands: ['set-tiling', 'move --workspace 3']
+    match:
+      - window_process: { equals: 'wezterm-gui' }
+
+  # From GlazeWM's sample config, for apps on this machine: browser
+  # picture-in-picture, Command Palette, Peek, and Lively wallpaper.
+  - commands: ['ignore']
+    match:
+      - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
+        window_class: { regex: 'Chrome_WidgetWin_1' }
+      - window_title: { equals: 'Command Palette' }
+        window_class: { equals: 'WinUIDesktopWin32WindowClass' }
+      - window_process: { equals: 'PowerToys' }
+        window_title: { regex: '.*? - Peek' }
+      - window_process: { equals: 'Lively' }
+        window_class: { regex: 'HwndWrapper' }
+
+keybindings:
+  # Mod+N: go to workspace N; pressing it again returns.
+  - commands: ['focus --workspace 1']
+    bindings: ['lwin+1']
+  - commands: ['focus --workspace 2']
+    bindings: ['lwin+2']
+  - commands: ['focus --workspace 3']
+    bindings: ['lwin+3']
+  - commands: ['focus --workspace 4']
+    bindings: ['lwin+4']
+  - commands: ['focus --workspace 5']
+    bindings: ['lwin+5']
+  - commands: ['focus --workspace 6']
+    bindings: ['lwin+6']
+  - commands: ['focus --workspace 7']
+    bindings: ['lwin+7']
+  - commands: ['focus --workspace 8']
+    bindings: ['lwin+8']
+  - commands: ['focus --workspace 9']
+    bindings: ['lwin+9']
+  - commands: ['focus --workspace 0']
+    bindings: ['lwin+0']
+
+  # Mod+Shift+N: send the window to workspace N and follow it.
+  - commands: ['move --workspace 1', 'focus --workspace 1']
+    bindings: ['lwin+shift+1']
+  - commands: ['move --workspace 2', 'focus --workspace 2']
+    bindings: ['lwin+shift+2']
+  - commands: ['move --workspace 3', 'focus --workspace 3']
+    bindings: ['lwin+shift+3']
+  - commands: ['move --workspace 4', 'focus --workspace 4']
+    bindings: ['lwin+shift+4']
+  - commands: ['move --workspace 5', 'focus --workspace 5']
+    bindings: ['lwin+shift+5']
+  - commands: ['move --workspace 6', 'focus --workspace 6']
+    bindings: ['lwin+shift+6']
+  - commands: ['move --workspace 7', 'focus --workspace 7']
+    bindings: ['lwin+shift+7']
+  - commands: ['move --workspace 8', 'focus --workspace 8']
+    bindings: ['lwin+shift+8']
+  - commands: ['move --workspace 9', 'focus --workspace 9']
+    bindings: ['lwin+shift+9']
+  - commands: ['move --workspace 0', 'focus --workspace 0']
+    bindings: ['lwin+shift+0']
+
+  # Mod+h/j/k/l: focus; Mod+Shift+h/j/k/l: move.
+  - commands: ['focus --direction left']
+    bindings: ['lwin+h']
+  - commands: ['focus --direction down']
+    bindings: ['lwin+j']
+  - commands: ['focus --direction up']
+    bindings: ['lwin+k']
+  - commands: ['focus --direction right']
+    bindings: ['lwin+l']
+  - commands: ['move --direction left']
+    bindings: ['lwin+shift+h']
+  - commands: ['move --direction down']
+    bindings: ['lwin+shift+j']
+  - commands: ['move --direction up']
+    bindings: ['lwin+shift+k']
+  - commands: ['move --direction right']
+    bindings: ['lwin+shift+l']
+
+  - commands: ['toggle-fullscreen']
+    bindings: ['lwin+f']
+  - commands: ['toggle-floating']
+    bindings: ['lwin+shift+space']
+  - commands: ['resize --width -5%']
+    bindings: ['lwin+oem_minus']
+  - commands: ['resize --width +5%']
+    bindings: ['lwin+oem_plus']
+
+  # Mod+Space: window picker (dot_glzr/glazewm/window-picker.ahk).
+  - commands: ['shell-exec %ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe "%USERPROFILE%\.glzr\glazewm\window-picker.ahk"']
+    bindings: ['lwin+space']

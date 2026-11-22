@@ -70,3 +70,9 @@ repos:
         language: system
         files: ^(dot_tmux\.conf|scripts/test-tmux-copy-mode\.sh)$
         pass_filenames: false
+      - id: glazewm-window-picker
+        name: GlazeWM window picker helpers (Windows host AutoHotkey)
+        entry: scripts/test-glazewm-window-picker.sh
+        language: system
+        files: ^(dot_glzr/glazewm/window-picker-lib\.ahk|scripts/test-glazewm-window-picker\.(sh|ahk))$
+        pass_filenames: false
