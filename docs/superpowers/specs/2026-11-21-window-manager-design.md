@@ -216,9 +216,9 @@ On Windows and macOS the window manager hides windows on other workspaces:
 GlazeWM cloaks them, and AeroSpace moves them to a screen corner. On Windows,
 PowerToys Command Palette's "Switch windows" does not list cloaked windows
 unless another virtual desktop cloaked them (`OpenWindows.cs`), so Windows
-lists `glazewm query workspaces` itself. It is unverified whether macOS
-launchers list windows AeroSpace moved to a corner and switch workspace on
-selection. Test that first and use the fallback if they do not.
+lists `glazewm query workspaces` itself. On macOS, Raycast "Switch Windows"
+lists windows AeroSpace moved to a corner, and selecting one switches to its
+workspace (checked with AeroSpace 0.21.3 on macOS 26.7).
 
 ### Terminal at reduced width
 
