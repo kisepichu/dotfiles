@@ -116,4 +116,13 @@ if is_windows then
 	table.insert(config.keys, { key = "9", mods = "ALT", action = act.ActivateTab(-1) })
 end
 
+if is_macos then
+	-- Cmd sits where Alt does on a PC keyboard (left of Space), and AeroSpace
+	-- takes Option+j/k for window focus. Send Cmd+j/k as Alt+j/k so Neovim's
+	-- line moves (LazyVim <A-j>/<A-k>) keep the finger motion of Alt+j/k on
+	-- Windows. Cmd+K loses WezTerm's ClearScrollback; tmux keeps its history.
+	table.insert(config.keys, { key = "j", mods = "SUPER", action = act.SendKey({ key = "j", mods = "ALT" }) })
+	table.insert(config.keys, { key = "k", mods = "SUPER", action = act.SendKey({ key = "k", mods = "ALT" }) })
+end
+
 return config

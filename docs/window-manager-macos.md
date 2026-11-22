@@ -58,7 +58,8 @@ AeroSpace が掴んだ Option の組み合わせはアプリに届かない。
 
 - fish: `alt-h` (man ページ)、`alt-l` (トークンの一覧)、`alt-f` (単語移動。`Ctrl+→` は Karabiner
   経由で `Option+→` になるので単語移動自体は残る)。
-- Neovim (LazyVim 既定): `<A-j>` / `<A-k>` (行の上下移動)。visual で選んで `:m` で代用する。
+- Neovim (LazyVim 既定): `<A-j>` / `<A-k>` (行の上下移動)。WezTerm が `⌘j` / `⌘k` を
+  `Alt+j` / `Alt+k` として送るので、そちらで押す (Windows の `Alt+j` と同じ位置。`docs/wezterm.md`)。
 - tmux: `C-f M-1..5` のレイアウト切り替え。`C-f Space` (next-layout) を使う。
 - GUI アプリで Option を押して打つ記号: `–` (`⌥-`)、`≠` (`⌥=`)、`ƒ` (`⌥f`)、`¡™£¢∞§¶•ª`
   (`⌥1..9`) など。
