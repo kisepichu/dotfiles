@@ -2,14 +2,16 @@
 #!/usr/bin/env bash
 # WSL: GlazeWM runs on the Windows host and reads
 # %USERPROFILE%\.glzr\glazewm\config.yaml, outside chezmoi's home, so copy the
-# config, the Mod+Space window picker and the Win key mask there and reload
-# GlazeWM. Symlinks into WSL are not usable from Windows. Re-runs whenever one
-# of them changes.
+# config, the Mod+Space window picker, the Win key mask and the display-off
+# script there, reload GlazeWM and point the Desktop shortcut "display off" at
+# the script. Symlinks into WSL are not usable from Windows. Re-runs whenever
+# one of them changes.
 # Also reports missing one-time host setup; see docs/window-manager-windows.md.
 # config.yaml hash: {{ include "dot_glzr/glazewm/config.yaml" | sha256sum }}
 # window-picker.ahk hash: {{ include "dot_glzr/glazewm/window-picker.ahk" | sha256sum }}
 # window-picker-lib.ahk hash: {{ include "dot_glzr/glazewm/window-picker-lib.ahk" | sha256sum }}
 # win-key-mask.ahk hash: {{ include "dot_glzr/glazewm/win-key-mask.ahk" | sha256sum }}
+# display-off.ps1 hash: {{ include "dot_glzr/glazewm/display-off.ps1" | sha256sum }}
 set -euo pipefail
 
 if ! grep -qi microsoft /proc/version 2>/dev/null; then
@@ -43,10 +45,36 @@ if [ -f "$target_dir/config.yaml" ] && [ ! -e "$target_dir/config.yaml.pre-dotfi
   cp "$target_dir/config.yaml" "$target_dir/config.yaml.pre-dotfiles"
   echo "info: backed up existing $target_dir/config.yaml to config.yaml.pre-dotfiles"
 fi
-for file in config.yaml window-picker.ahk window-picker-lib.ahk win-key-mask.ahk; do
+for file in config.yaml window-picker.ahk window-picker-lib.ahk win-key-mask.ahk display-off.ps1; do
   cp "$source_dir/$file" "$target_dir/$file"
 done
 echo "info: installed GlazeWM config to $target_dir"
+
+# Windows resolves the Desktop folder, which may be redirected or localised.
+# The shortcut is saved only when it points elsewhere.
+shortcut_ps=$(
+  cat <<'EOF'
+$link = Join-Path ([Environment]::GetFolderPath('Desktop')) 'display off.lnk'
+$powershell = Join-Path $PSHOME 'powershell.exe'
+$script = Join-Path $env:USERPROFILE '.glzr\glazewm\display-off.ps1'
+$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
+$shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($link)
+if ($shortcut.TargetPath -ne $powershell -or $shortcut.Arguments -ne $arguments) {
+    $shortcut.TargetPath = $powershell
+    $shortcut.Arguments = $arguments
+    $shortcut.Save()
+    'saved'
+}
+EOF
+)
+if shortcut=$(powershell.exe -NoProfile -NonInteractive -EncodedCommand \
+  "$(printf '%s' "$shortcut_ps" | iconv -f UTF-8 -t UTF-16LE | base64 -w0)" </dev/null 2>/dev/null); then
+  case $shortcut in
+    *saved*) echo "info: pointed the Desktop shortcut \"display off\" at display-off.ps1" ;;
+  esac
+else
+  echo "warning: could not write the Desktop shortcut \"display off\"" >&2
+fi
 
 glazewm="$program_files/glzr.io/GlazeWM/cli/glazewm.exe"
 if [ ! -f "$glazewm" ]; then
