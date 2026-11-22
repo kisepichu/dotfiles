@@ -12,6 +12,9 @@ read_receipts = "public"
 [ui.room_list]
 # Bridged channel names start with the Discord server name, which 30 columns cut short.
 width = 40
+# Rooms with mentions, then other unread rooms, then the ones read most recently. Needs mxt >= 0.1.4;
+# 0.1.3 ignores the value with a warning and sorts by latest activity.
+sort = "mentions, unread, read"
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 
 [files]
