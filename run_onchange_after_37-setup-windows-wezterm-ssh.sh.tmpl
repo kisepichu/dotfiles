@@ -1,0 +1,193 @@
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+#!/usr/bin/env bash
+# WSL: let the Windows WezTerm open WSL over SSH. Its WSL domain runs wsl.exe
+# under ConPTY, which drops image escape sequences (docs/wezterm.md). This
+# authorizes a key for WezTerm here and writes, on the Windows side, the key,
+# a known_hosts file, a `Host wsl` block in %USERPROFILE%\.ssh\config and
+# instanceIdleTimeout=-1 in %USERPROFILE%\.wslconfig; wezterm.lua makes
+# `SSH:wsl` the default domain once that host exists.
+# sshd: {{ lookPath "sshd" }} (installing openssh-server runs this again)
+set -euo pipefail
+
+begin_marker='# >>> dotfiles: wezterm-wsl >>>'
+end_marker='# <<< dotfiles: wezterm-wsl <<<'
+rerun_hint='then run `chezmoi state delete-bucket --bucket=entryState` and `chezmoi apply` to run this again'
+
+for tool in wslvar wslpath ssh-keygen ssh-keyscan; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "warning: $tool not found; skipping the WezTerm SSH setup" >&2
+    exit 0
+  fi
+done
+
+# ssh-keyscan also checks that sshd answers where WezTerm connects.
+# It asks for each key type at once, so sort for the same file on every run.
+host_keys=$( (ssh-keyscan -T 5 127.0.0.1 2>/dev/null || true) | sort)
+if [ -z "$host_keys" ]; then
+  echo "warning: sshd does not answer on 127.0.0.1:22; skipping the WezTerm SSH setup. Start it with 'sudo systemctl enable --now ssh', $rerun_hint" >&2
+  exit 0
+fi
+
+# wslvar runs powershell.exe, which drains stdin unless it is redirected.
+windows_profile=$(wslvar USERPROFILE </dev/null 2>/dev/null || true)
+if [ -z "$windows_profile" ]; then
+  echo "warning: could not resolve %USERPROFILE%; skipping the WezTerm SSH setup" >&2
+  exit 0
+fi
+windows_home=$(wslpath "$windows_profile")
+windows_ssh="$windows_home/.ssh"
+config="$windows_ssh/config"
+wslconfig="$windows_home/.wslconfig"
+user=$(id -un)
+
+# Leave a config alone that defines `Host wsl` itself or has a broken block:
+# counts of begin and end markers, whether `Host wsl` appears outside them, and
+# whether an end marker comes first.
+scan="0 0 0 0"
+if [ -f "$config" ]; then
+  scan=$(BEGIN_MARKER="$begin_marker" END_MARKER="$end_marker" awk '
+    { line = $0; sub(/\r$/, "", line) }
+    line == ENVIRON["BEGIN_MARKER"] { begins++; inside = 1; next }
+    line == ENVIRON["END_MARKER"] { ends++; if (!inside) bad = 1; inside = 0; next }
+    !inside {
+      lower = tolower(line)
+      sub(/^[ \t]+/, "", lower)
+      n = split(lower, word, /[ \t=]+/)
+      if (word[1] == "host") for (i = 2; i <= n; i++) if (word[i] == "wsl") own = 1
+    }
+    END { print begins + 0, ends + 0, own + 0, bad + 0 }
+  ' "$config")
+fi
+read -r begins ends own bad <<<"$scan"
+if [ "$own" = 1 ]; then
+  echo "warning: $config defines Host wsl outside the dotfiles block; leaving it alone (WezTerm opens that host as SSH:wsl)" >&2
+  exit 0
+fi
+if [ "$bad" = 1 ] || [ "$begins" != "$ends" ] || [ "$begins" -gt 1 ]; then
+  echo "warning: $config has unmatched '$begin_marker' / '$end_marker' lines; fix them, $rerun_hint" >&2
+  exit 0
+fi
+
+# WSL stops the distro, sshd and tmux included, once no wsl.exe session is
+# left; SSH sessions do not count. Prints whether [general] exists and its
+# instanceIdleTimeout, both matched without regard to case.
+idle_scan="0"
+if [ -f "$wslconfig" ]; then
+  idle_scan=$(awk '
+    { line = $0; sub(/\r$/, "", line) }
+    line ~ /^[ \t]*\[/ { section = tolower(line); gsub(/[][ \t]/, "", section); if (section == "general") general = 1; next }
+    section == "general" && tolower(line) ~ /^[ \t]*instanceidletimeout[ \t]*=/ {
+      value = line
+      sub(/^[^=]*=[ \t]*/, "", value)
+      sub(/[ \t]*$/, "", value)
+    }
+    END { print general + 0, value }
+  ' "$wslconfig")
+fi
+read -r has_general idle <<<"$idle_scan"
+if [ -n "${idle:-}" ] && [ "$idle" != -1 ]; then
+  echo "warning: $wslconfig sets instanceIdleTimeout=$idle, so WSL would stop under WezTerm's SSH sessions; skipping the WezTerm SSH setup. Set it to -1, $rerun_hint" >&2
+  exit 0
+fi
+
+mkdir -p "$windows_ssh"
+
+# Writes stdin to $1 only when the content differs.
+write_if_changed() {
+  cat >"$1.new"
+  if [ -f "$1" ] && cmp -s "$1.new" "$1"; then
+    rm -f "$1.new"
+  else
+    mv "$1.new" "$1"
+    echo "info: wrote $1"
+  fi
+}
+
+# No passphrase: the same Windows user already gets a shell here through
+# wsl.exe without one. `ssh-keygen -y` cannot rebuild a lost .pub from a key
+# on /mnt/c (it refuses the 0777 mode DrvFs reports), so make a new pair.
+key="$windows_ssh/wezterm_wsl_ed25519"
+if [ ! -f "$key" ] || [ ! -f "$key.pub" ]; then
+  rm -f "$key" "$key.pub"
+  ssh-keygen -q -t ed25519 -N '' -C wezterm-wsl -f "$key"
+  echo "info: created $key"
+fi
+read -r key_type key_blob _ <"$key.pub" || true
+
+# from= keeps the key from working over the LAN; WezTerm connects from
+# 127.0.0.1.
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+authorized_keys="$HOME/.ssh/authorized_keys"
+if [ ! -f "$authorized_keys" ] || ! grep -qF "$key_blob" "$authorized_keys"; then
+  if [ -s "$authorized_keys" ] && [ -n "$(tail -c 1 "$authorized_keys")" ]; then
+    echo >>"$authorized_keys"
+  fi
+  printf 'from="127.0.0.1,::1" %s %s wezterm-wsl\n' "$key_type" "$key_blob" >>"$authorized_keys"
+  chmod 600 "$authorized_keys"
+  echo "info: authorized $key.pub in $authorized_keys"
+fi
+
+printf '%s\n' "$host_keys" | write_if_changed "$windows_ssh/known_hosts_wezterm_wsl"
+
+if [ "${idle:-}" != -1 ]; then
+  if [ "$has_general" = 1 ]; then
+    awk '
+      { print }
+      !done {
+        line = $0
+        sub(/\r$/, "", line)
+        section = tolower(line)
+        gsub(/[][ \t]/, "", section)
+        if (line ~ /^[ \t]*\[/ && section == "general") { print "instanceIdleTimeout=-1"; done = 1 }
+      }
+    ' "$wslconfig" | write_if_changed "$wslconfig"
+  else
+    {
+      if [ -s "$wslconfig" ]; then
+        cat "$wslconfig"
+        if [ -n "$(tail -c 1 "$wslconfig")" ]; then
+          printf '\n'
+        fi
+        printf '\n'
+      fi
+      printf '[general]\ninstanceIdleTimeout=-1\n'
+    } | write_if_changed "$wslconfig"
+  fi
+  echo "info: WSL applies instanceIdleTimeout=-1 when it next starts; run 'wsl --shutdown' from Windows once (it ends every WSL session)"
+fi
+
+# At the top: ssh takes the first value it finds for each option, so a later
+# `Host *` cannot override User. The closing `Host *` keeps options that were
+# at the top of the file applying to every host. No ProxyCommand: WezTerm on
+# Windows gives it one socket as stdin and stdout, which stalls wsl.exe
+# (docs/wezterm.md), so WezTerm connects through localhostForwarding.
+block="$begin_marker
+# Written by dotfiles (run_onchange_after_37-setup-windows-wezterm-ssh.sh).
+# WezTerm opens WSL through this host so its output skips ConPTY.
+Host wsl
+  HostName 127.0.0.1
+  User $user
+  IdentityFile ~/.ssh/wezterm_wsl_ed25519
+  IdentitiesOnly yes
+  UserKnownHostsFile ~/.ssh/known_hosts_wezterm_wsl
+# Options below apply to every host again.
+Host *
+$end_marker"
+if [ "$begins" = 1 ]; then
+  BLOCK="$block" BEGIN_MARKER="$begin_marker" END_MARKER="$end_marker" awk '
+    { line = $0; sub(/\r$/, "", line) }
+    line == ENVIRON["BEGIN_MARKER"] { print ENVIRON["BLOCK"]; skip = 1; next }
+    line == ENVIRON["END_MARKER"] { skip = 0; next }
+    !skip { print }
+  ' "$config" | write_if_changed "$config"
+else
+  {
+    printf '%s\n' "$block"
+    if [ -s "$config" ]; then
+      printf '\n'
+      cat "$config"
+    fi
+  } | write_if_changed "$config"
+fi
+{{ end -}}

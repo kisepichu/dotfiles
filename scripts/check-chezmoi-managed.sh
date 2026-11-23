@@ -74,6 +74,7 @@ require_source=(
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_35-install-windows-wezterm-config.sh.tmpl"
   "run_onchange_after_36-install-windows-glazewm-config.sh.tmpl"
+  "run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl"
   "run_onchange_after_40-mise-install.sh.tmpl"
   "run_after_50-install-agent-clis.sh"
 )

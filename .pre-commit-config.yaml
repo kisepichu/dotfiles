@@ -76,3 +76,9 @@ repos:
         language: system
         files: ^(dot_glzr/glazewm/window-picker-lib\.ahk|scripts/test-glazewm-window-picker\.(sh|ahk))$
         pass_filenames: false
+      - id: windows-wezterm-ssh
+        name: WezTerm SSH setup for WSL (ssh config block, key, known_hosts)
+        entry: scripts/test-windows-wezterm-ssh.sh
+        language: system
+        files: ^(run_onchange_after_37-setup-windows-wezterm-ssh\.sh\.tmpl|scripts/test-windows-wezterm-ssh\.sh)$
+        pass_filenames: false

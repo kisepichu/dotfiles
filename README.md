@@ -243,7 +243,7 @@ tmux source-file ~/.tmux.conf
 tmux attach
 ```
 
-Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, yazi documents image previews only through `wezterm ssh` into WSL.
+Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, image previews need a path without ConPTY, which is why the Windows WezTerm opens WSL over SSH (`docs/wezterm.md`).
 
 ## Neovim PHP And Diffview
 
