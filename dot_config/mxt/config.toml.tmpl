@@ -20,8 +20,6 @@ sort = "mentions, notify, unread, read"
 [ui.timeline]
 # Image previews in the timeline (mxt >= 0.1.5; 0.1.4 ignores the table with a warning).
 images = "on"
-# Twice the default 8 rows.
-image_rows = 16
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 
 [files]
