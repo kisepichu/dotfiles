@@ -38,6 +38,14 @@ config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
 config.adjust_window_size_when_changing_font_size = false
 config.audible_bell = "Disabled"
 
+-- WezTerm duplicates the image attachments of a cell each time a Kitty image
+-- is placed over a cell that already holds one with a placement id, so memory
+-- and the quads per paint grow without bound until the GUI hangs or panics
+-- ("Failed to allocate N quads"; wezterm/wezterm#7953, fix #8035 unmerged).
+-- omp under tmux sends such placements, all landing at tmux's outer cursor.
+-- iTerm2 images (yazi, mxt, iamb) are unaffected.
+config.enable_kitty_graphics = false
+
 -- Platform tweaks ------------------------------------------------------------
 if is_macos then
 	-- Treat the left Option key as a real Alt/Meta so tmux/nvim Meta bindings work.

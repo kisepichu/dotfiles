@@ -81,6 +81,31 @@ WezTerm を開いたまま `wsl --shutdown` すると、新しいタブはつな
 起動し直すと `gui-startup` が WSL を起こす。sshd が止まって入れないときは、Windows
 Terminal か PowerShell の `wsl.exe` で WSL に入って直す。
 
+## Kitty 画像を切る理由
+
+`enable_kitty_graphics = false` で、全 OS で Kitty の画像を受け付けない。
+
+WezTerm は、placement id 付きの Kitty 画像が載っているセルに別の Kitty 画像を置くと、
+そのセルの画像を毎回複製する (`assign_image_to_cells` が画像ごとセルを複製し、
+`Line::set_cell` が placement id 付きの画像を足し戻す)。置くたびにほぼ倍になるので、
+メモリと 1 回の描画の quad 数が増え続け、`wezterm-gui` が応答しなくなるか、
+`Failed to allocate N quads ... Not enough memory to create the buffer` のあと
+`draw.rs` の `unwrap()` で panic して落ちる
+([wezterm#7953](https://github.com/wezterm/wezterm/issues/7953)。修正の
+[#8035](https://github.com/wezterm/wezterm/pull/8035) は未マージ)。
+
+この環境で Kitty の画像を送るのは tmux の中の omp で、tmux は passthrough を
+自分の外側のカーソル (多くは左上) に出す
+([oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396))。そのため
+どの pane の画像も同じセルに重なる。tmux に付いている WezTerm (mac から SSH で
+付けたものも) はすべて同じシーケンスを受け取る。Windows では `SSH:wsl` に切り替えた
+2026-11-22 から起きるようになった (それまでは ConPTY が画像のシーケンスを捨てて
+いた)。同じ日に入れた GlazeWM は関係しない (端末への出力だけで再現する)。
+
+症状が出たウィンドウの WezTerm のログ (`%USERPROFILE%\.local\share\wezterm\wezterm-gui.exe-log-<pid>.txt`)
+には `kitty_img:` のエラーが並ぶ。Kitty を切っても、yazi・mxt・iamb の画像は
+iTerm2 方式なので影響しない。omp の画像は tmux の外の WezTerm でも出なくなる。
+
 ## キーバインド
 
 - QuickSelect (画面内の URL / ハッシュ / パス / UUID などを素早く選択・コピー):
