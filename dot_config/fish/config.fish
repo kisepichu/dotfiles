@@ -14,6 +14,13 @@ function __path_prepend
     end
 end
 
+# macOS gives ssh sessions no locale; only the terminal app or an ssh client
+# with `SendEnv LANG` (Ubuntu's and macOS's, not NixOS's) sets one. Without it
+# the C locale shows Japanese as escapes.
+if __is_macos; and not set -q LANG; and not set -q LC_ALL
+    set -gx LANG en_US.UTF-8
+end
+
 set -gx REPOS "$HOME/repos"
 set -gx TRASH "$HOME/_trash"
 set -gx SAVE "$HOME/_save"

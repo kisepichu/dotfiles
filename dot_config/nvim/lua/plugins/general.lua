@@ -22,6 +22,20 @@ local mini_ai = {
   end,
 }
 
+-- SKK-JISYO.L (EUC-JP) from the OS: apt's skkdic (dev containers), skkDictionaries.l
+-- linked into the system profile on NixOS (environment.pathsToLink "/share/skk").
+local function skk_global_dictionaries()
+  for _, path in ipairs({
+    "/usr/share/skk/SKK-JISYO.L",
+    "/run/current-system/sw/share/skk/SKK-JISYO.L",
+  }) do
+    if vim.fn.filereadable(path) == 1 then
+      return { { path, "euc-jp" } }
+    end
+  end
+  return {}
+end
+
 if vim.g.started_by_firenvim then
   return {
     mini_ai,
@@ -53,15 +67,8 @@ if vim.g.started_by_firenvim then
       "vim-skk/skkeleton",
       dependencies = { "vim-denops/denops.vim", "Shougo/ddc.vim" },
       config = function()
-        local global_dictionaries = {}
-        if vim.fn.filereadable("/usr/share/skk/SKK-JISYO.L") == 1 then
-          global_dictionaries = {
-            { "/usr/share/skk/SKK-JISYO.L", "euc-jp" },
-          }
-        end
-
         vim.fn["skkeleton#config"]({
-          globalDictionaries = global_dictionaries,
+          globalDictionaries = skk_global_dictionaries(),
           userDictionary = vim.fn.stdpath("data") .. "/.skkeleton/user.dict",
           eggLikeNewline = true,
           registerConvertResult = true,
@@ -157,15 +164,8 @@ return {
     "vim-skk/skkeleton",
     dependencies = { "vim-denops/denops.vim", "Shougo/ddc.vim" },
     config = function()
-      local global_dictionaries = {}
-      if vim.fn.filereadable("/usr/share/skk/SKK-JISYO.L") == 1 then
-        global_dictionaries = {
-          { "/usr/share/skk/SKK-JISYO.L", "euc-jp" },
-        }
-      end
-
       vim.fn["skkeleton#config"]({
-        globalDictionaries = global_dictionaries,
+        globalDictionaries = skk_global_dictionaries(),
         userDictionary = vim.fn.stdpath("data") .. "/.skkeleton/user.dict",
         eggLikeNewline = true,
         registerConvertResult = true,
