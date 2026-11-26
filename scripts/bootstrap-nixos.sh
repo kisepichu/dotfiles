@@ -37,11 +37,12 @@ echo "NixOS bootstrap completed."
 
 # NixOS installs these system-wide; this repository only configures them. A
 # missing one means the host's NixOS configuration does not list it yet (for
-# desktop hosts: modules/desktop.nix in the private nixos-config repository).
+# desktop hosts: modules/desktop.nix in the private infra-private repository).
 os_commands=(curl fish gcc git tmux)
 if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
-  # wl-copy backs Neovim's clipboard (LazyVim sets clipboard=unnamedplus).
-  os_commands+=(wezterm wl-copy)
+  # wl-copy backs Neovim's clipboard (LazyVim sets clipboard=unnamedplus);
+  # cloudflared backs ~/.local/bin/cloudflared-access-ssh-proxy.
+  os_commands+=(cloudflared wezterm wl-copy)
 fi
 missing_os_commands=()
 for os_command in "${os_commands[@]}"; do

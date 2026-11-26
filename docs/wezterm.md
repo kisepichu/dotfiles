@@ -9,7 +9,7 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
 - **macOS / NixOS**: chezmoi が `~/.config/wezterm/wezterm.lua` に展開する
   (`.chezmoiignore` でそれ以外の OS では無視)。WezTerm 本体と設定が指定する
   `ComicShannsMono Nerd Font` は、macOS では `Brewfile`、NixOS では OS の設定
-  (private の nixos-config repo の `modules/desktop.nix`) が入れる。
+  (private の infra-private repo の `modules/desktop.nix`) が入れる。
 - **Windows (WSL のメイン環境)**: WSL の WezTerm は Windows ホスト側で動くため
   chezmoi の home 外にある。WSL で `chezmoi apply` すると
   `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` が

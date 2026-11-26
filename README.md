@@ -4,7 +4,7 @@ Public chezmoi source for Windows, WSL Ubuntu, macOS, and NixOS dotfiles and age
 
 ## Fresh NixOS
 
-On NixOS the system configuration installs everything this repository only configures: `git`, `curl`, `mise`, `fish` (as the login shell), `tmux`, `gcc`, and on desktops WezTerm, `wl-clipboard` (Neovim's clipboard), fonts, and the input method. It also enables `programs.nix-ld` so mise's prebuilt binaries can run. Host configurations live in the private `nixos-config-private` repository; desktops share `modules/desktop.nix`, and `docs/runbooks/desktop-setup.md` there walks a fresh laptop from the installer to this bootstrap.
+On NixOS the system configuration installs everything this repository only configures: `git`, `curl`, `mise`, `fish` (as the login shell), `tmux`, `gcc`, and on desktops WezTerm, `wl-clipboard` (Neovim's clipboard), `cloudflared` (for `cloudflared-access-ssh-proxy`), fonts, and the input method. It also enables `programs.nix-ld` so mise's prebuilt binaries can run. Host configurations live in the private `infra-private` repository; desktops share `modules/desktop.nix`, and `docs/runbooks/desktop-setup.md` there walks a fresh laptop from the installer to this bootstrap.
 
 Run the NixOS-only bootstrap from the checkout:
 
