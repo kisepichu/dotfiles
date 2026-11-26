@@ -18,7 +18,68 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
   トの図は `~/.config/wezterm` 優先と書いているが実装は逆)。初回に既存の手書き設定が
   あれば `.wezterm.lua.pre-dotfiles` に退避する。Windows 側で直接編集しても次のコピー
   で上書きされるので、変更は repo 側で行う。
-  `default_domain` は `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
+  `default_domain` は下の「WSL への接続 (Windows)」の `SSH:wsl`。まだ用意していない
+  マシンでは `wsl -l -v` 先頭 (既定ディストロ) の WSL ドメインに自動で合わせる。
+
+## WSL への接続 (Windows)
+
+Windows の WezTerm は、WSL に **WezTerm 内蔵の SSH クライアント** で入る
+(`SSH:wsl` ドメイン)。WSL ドメインは `wsl.exe` を ConPTY の下で動かすが、この
+WezTerm (20230712) が同梱している ConPTY は 1.22 より古く、Sixel や Kitty の画像の
+エスケープシーケンスを捨てる。そのため mxt や iamb の画像プレビューが崩れていた
+(#65)。ConPTY 1.22 を同梱しているのは WezTerm の nightly だけ。
+
+経路は WezTerm → TCP `127.0.0.1:22` (WSL の `localhostForwarding`) → WSL の sshd で、
+ConPTY を通らない。WezTerm の中で Windows の `ssh.exe` を動かすと ConPTY を通るので
+使わない。
+
+`wsl.exe` を ProxyCommand にする経路は使えない。Windows の WezTerm は ProxyCommand の
+stdin と stdout に同じソケットを 1 つ渡し、そのソケットは同期 I/O 用
+(non-overlapped) なので、Windows は読み書きを 1 つずつしか処理しない。`wsl.exe` が
+stdin を読もうと待つ間は stdout への書き込みも止まり、鍵交換の途中で止まって
+`Timeout connecting to 127.0.0.1` になる (`main` も同じ。
+[wezterm#7959](https://github.com/wezterm/wezterm/issues/7959))。
+
+TCP の経路には WSL を起こすものが無いので、`wezterm.lua` の `gui-startup` で
+WezTerm の起動時に `wsl.exe -d <既定ディストロ> -e true` を走らせ、Windows 側の
+`127.0.0.1:22` が応答するまで最大 15 秒待ってから最初のウィンドウを開く。WSL は
+`wsl.exe` のセッションが無くなると 15 秒後に distro ごと止める (SSH のセッションは
+数えない) ので、`%USERPROFILE%\.wslconfig` に `[general] instanceIdleTimeout=-1` を
+入れる。WSL は自分では止まらなくなる (全 distro)。代わりに、Windows の端末を全部
+閉じても mac からの SSH は切れない。WSL はこの設定を起動時に読むので、書いたあと
+一度 Windows から `wsl --shutdown` する (WSL のセッションがすべて終わる)。
+
+WSL で `chezmoi apply` すると
+`run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` が次を用意する (2 回目以降
+は何も変えない)。
+
+- Windows 側: 鍵 `%USERPROFILE%\.ssh\wezterm_wsl_ed25519`、`known_hosts_wezterm_wsl`、
+  `%USERPROFILE%\.ssh\config` 先頭の `# >>> dotfiles: wezterm-wsl >>>` から
+  `# <<< dotfiles: wezterm-wsl <<<` までの `Host wsl`、`%USERPROFILE%\.wslconfig` の
+  `instanceIdleTimeout=-1`。鍵にパスフレーズは無い。同じ Windows ユーザーは `wsl.exe`
+  で鍵無しにシェルを開けるので、入れる人は増えない
+- WSL 側: `~/.ssh/authorized_keys` にその公開鍵を `from="127.0.0.1,::1"` 付きで 1 行
+
+`wezterm.lua` は `%USERPROFILE%\.ssh\config` に `Host wsl` があれば `SSH:wsl` を既定
+にし、無ければ WSL ドメインを使う。新しいウィンドウとタブから効く。
+
+前提は、WSL で systemd が有効で、sshd が 127.0.0.1:22 で動いていること
+(`openssh-server` は apt のスクリプトが入れる)。動いていなければスクリプトは警告して
+何も書かない。sshd を起動したら `chezmoi state delete-bucket --bucket=entryState` の
+あと `chezmoi apply` でもう一度走らせる。次のときも何も書かずに警告する。
+
+- `%USERPROFILE%\.ssh\config` が目印の外で `Host wsl` を定義している (その `Host wsl`
+  が `SSH:wsl` として使われる)
+- `%USERPROFILE%\.wslconfig` が `instanceIdleTimeout` を `-1` 以外にしている (SSH だけ
+  では WSL が止まり tmux も消えるので、WSL ドメインのままにする)
+
+SSH で入ったセッションには `WSL_DISTRO_NAME` と `WSL_INTEROP` が無いが、systemd の
+下なので `wslview` や `wslvar` などの Windows 連携は動く。mxt は `SSH_CONNECTION` を
+見て SSH 扱いになり、WezTerm 向けに iTerm2 方式を選ぶ。
+
+WezTerm を開いたまま `wsl --shutdown` すると、新しいタブはつながらない。WezTerm を
+起動し直すと `gui-startup` が WSL を起こす。sshd が止まって入れないときは、Windows
+Terminal か PowerShell の `wsl.exe` で WSL に入って直す。
 
 ## キーバインド
 
@@ -42,6 +103,11 @@ WezTerm の設定は `dot_config/wezterm/wezterm.lua` で一元管理する。OS
   る。Alt が Meta も兼ねるので、fish の `Alt+T` (transpose-words) と
   `Alt+W` (カーソル位置のコマンドの説明) はシェルに届かない (bash なら `Alt+T` と
   `Alt+1..9` の digit-argument)。
+- `Cmd+J` / `Cmd+K` (macOS): **`Alt+J` / `Alt+K`** として端末に送る。左 Option は
+  AeroSpace のフォーカス移動に取られているので、Neovim (LazyVim 既定) の行の上下移動
+  `<A-j>` / `<A-k>` を、Windows で `Alt` を押すのと同じ位置 (Space の左隣) の `Cmd` で
+  押せるようにしている。WezTerm 既定の `Cmd+K` (スクロールバック消去) は使えなくなる
+  (tmux の履歴には元から影響しない)。
 
 ### macOS で Ctrl+Arrow が tmux に届かない場合
 

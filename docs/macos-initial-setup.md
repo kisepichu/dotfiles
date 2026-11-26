@@ -58,8 +58,9 @@ The parts that should stay Mac-like:
    - Input Monitoring
    - Driver Extension
 3. Confirm the selected profile is `Windows-friendly`.
-4. Create `~/.gitconfig.local` for machine- or work-specific git settings (`includeIf` identities, credential helpers). The managed `~/.gitconfig` includes it last.
-5. Log out and back in if key repeat, shell, or permission changes do not apply immediately.
+4. Open AeroSpace once (`open -a AeroSpace`), allow Accessibility, and move Raycast's hotkey off `Option+Space`; see `docs/window-manager-macos.md`.
+5. Create `~/.gitconfig.local` for machine- or work-specific git settings (`includeIf` identities, credential helpers). The managed `~/.gitconfig` includes it last.
+6. Log out and back in if key repeat, shell, or permission changes do not apply immediately.
 
 ## Validation
 

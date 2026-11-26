@@ -46,6 +46,7 @@ require_managed=(
   ".omp/agent/skills/commit"
   ".omp/agent/skills/pr-review"
   ".local/bin/cloudflared-access-ssh-proxy"
+  ".local/bin/omp-panes"
   ".tmux.conf"
   ".tmux/new-session"
 )
@@ -53,6 +54,11 @@ require_managed=(
 require_source=(
   "Brewfile"
   "dot_config/karabiner/karabiner.json"
+  "dot_config/aerospace/aerospace.toml"
+  "dot_glzr/glazewm/config.yaml"
+  "dot_glzr/glazewm/window-picker.ahk"
+  "dot_glzr/glazewm/window-picker-lib.ahk"
+  "dot_glzr/glazewm/win-key-mask.ahk"
   "dot_gitconfig"
   "mise.toml"
   "scripts/bootstrap-nixos.sh"
@@ -67,7 +73,9 @@ require_source=(
   "run_after_28-link-docker-cli-plugins.sh.tmpl"
   "run_onchange_after_30-fix-cloudflared-ssh-proxy.sh"
   "run_onchange_after_35-install-windows-wezterm-config.sh.tmpl"
-  "run_after_36-configure-kde.sh.tmpl"
+  "run_onchange_after_36-install-windows-glazewm-config.sh.tmpl"
+  "run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl"
+  "run_after_38-configure-kde.sh.tmpl"
   "run_onchange_after_40-mise-install.sh.tmpl"
   "run_after_50-install-agent-clis.sh"
 )
@@ -76,6 +84,7 @@ require_ignored=(
   "AGENTS.md"
   "Brewfile"
   "docs"
+  ".glzr"
   "mise.toml"
   "tasks"
   "scripts"

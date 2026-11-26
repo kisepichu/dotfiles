@@ -37,7 +37,10 @@ moves, and the terminal normally fills the screen.
 - Launching an app when its workspace is empty. The taskbar does this;
   workspaces do not. Autostart covers the pinned apps.
 - Keeping `Win+L` as the lock shortcut on Windows.
-- Multi-monitor rules. Revisit once the single-display setup works.
+- Multi-monitor rules. Revisit once the single-display setup works. The
+  Windows host has a second, portrait display: its slots 1–9 stay on the main
+  display and the portrait display gets workspace 0 (`Mod+0`), on Windows only
+  (`docs/window-manager-windows.md`).
 
 ## Design
 
@@ -87,8 +90,12 @@ Consequences:
 - macOS: WezTerm sends left Option as Meta
   (`send_composed_key_when_left_alt_is_pressed = false`). Option chords bound
   by AeroSpace no longer reach tmux, Neovim or fish. The repository binds no
-  Meta+h/j/k/l or Meta+digit keys; fish loses its default `Alt+H` and `Alt+L`.
-  Karabiner emits Option only with arrows and Backspace, which stay unbound.
+  Meta+h/j/k/l or Meta+digit keys. fish loses its default `Alt+H`, `Alt+L`
+  and `Alt+F`. LazyVim's `Alt+J` and `Alt+K` line moves come back on
+  `Command+J` and `Command+K`, which WezTerm sends as `Alt+J` and `Alt+K`:
+  Command sits where Alt does on a PC keyboard, so the finger motion matches
+  Windows. Karabiner emits Option only with arrows and Backspace, which stay
+  unbound.
 - Windows and macOS: tmux's default `C-f M-1..5` layout keys become
   unreachable, because WezTerm takes `Alt+digit` on Windows and AeroSpace takes
   `Option+digit` on macOS. Use `C-f Space` (next-layout) or bind explicit
@@ -108,10 +115,14 @@ Consequences:
   through v3.8.1). The workaround reported there is an AutoHotkey script that
   sends a mask key when `LWin` goes down, for example
   `~LWin::Send "{Blind}{vkE8}"`. That also stops a bare `Win` press from opening
-  Start. Check this first on Windows. If it reproduces, the Windows setup adds
-  AutoHotkey and that script.
-- Windows: `Win+Space` switches input languages. If that is in use, bind the
-  picker to another key.
+  Start. On Windows 11 25H2 with GlazeWM 3.10.1 the first check passed, but
+  in later use quick `Win+N` and `Win+Space` taps opened Start, and Start took
+  focus from the window picker. The Windows setup therefore runs that mask
+  (`dot_glzr/glazewm/win-key-mask.ahk`), started by GlazeWM.
+- Windows: `Win+Space` switches input languages. GlazeWM's `lwin+space`
+  binding takes it over (checked: the input language no longer changes), so
+  input switching moves to `Win+Ctrl+Space`. GlazeWM passes that through,
+  because a binding does not match while extra modifiers are held.
 - niri: its defaults use `Mod+Shift+H/J/K/L` for monitor focus and
   `Mod+Ctrl+H/J/K/L` for moving columns. Rebind both to match the keymap.
 
@@ -155,8 +166,9 @@ that each implementation plan records.
   `Mod+1` would focus an empty workspace, and the game would not be hidden on
   other workspaces. Use `ignore` only if a game misbehaves while managed. The
   game is then reached with `Alt+Tab`, not `Mod+1`.
-- AeroSpace: `[[on-window-detected]]` with `if.app-id` and
-  `run = 'move-node-to-workspace N'`.
+- AeroSpace: an `on-window-detected` entry with
+  `if = 'test %{app-bundle-id} = <id>'` and `run = 'move-node-to-workspace N'`
+  (the `if.app-id` form is deprecated since 0.21.0).
 - niri: declare a named workspace for every slot, 1–9, and pin apps with
   `open-on-workspace` window rules. Bind `Mod+N` to `focus-workspace "<name>"`
   and `Mod+Shift+N` to `move-column-to-workspace "<name>"`. A quoted argument
@@ -199,14 +211,17 @@ browser's own tab search for them.
 
 | OS | Picker | Fallback |
 |---|---|---|
-| Windows | PowerToys Command Palette "Switch windows", or Raycast "Switch Windows" | `glazewm query windows`, pick one, `glazewm command focus --container-id <id>` |
+| Windows | AutoHotkey list of `glazewm query workspaces`; Enter runs `glazewm command focus --workspace N` when the window's workspace is hidden, then `focus --container-id <id>` (`dot_glzr/glazewm/window-picker.ahk`) | — |
 | macOS | Raycast "Switch Windows" | `aerospace list-windows --all` piped to `choose`, then `aerospace focus --window-id <id>` |
 | NixOS | `niri msg --json windows` piped to `fuzzel --dmenu`, then `niri msg action focus-window --id <id>` | Overview (`Mod+O`) |
 
 On Windows and macOS the window manager hides windows on other workspaces:
-GlazeWM cloaks them, and AeroSpace moves them to a screen corner. It is
-unverified whether the launcher pickers list those windows and switch
-workspace on selection. Test that first and use the fallback if they do not.
+GlazeWM cloaks them, and AeroSpace moves them to a screen corner. On Windows,
+PowerToys Command Palette's "Switch windows" does not list cloaked windows
+unless another virtual desktop cloaked them (`OpenWindows.cs`), so Windows
+lists `glazewm query workspaces` itself. On macOS, Raycast "Switch Windows"
+lists windows AeroSpace moved to a corner, and selecting one switches to its
+workspace (checked with AeroSpace 0.21.3 on macOS 26.7).
 
 ### Terminal at reduced width
 
@@ -222,7 +237,8 @@ workspace on selection. Test that first and use the fallback if they do not.
 - macOS: `dot_config/aerospace/aerospace.toml` (AeroSpace reads
   `~/.config/aerospace/aerospace.toml`). Add `/.config/aerospace/` to the
   darwin-only block in `.chezmoiignore`.
-- Windows: keep the GlazeWM config in the source tree, ignored by chezmoi, and
+- Windows: keep the GlazeWM config and the window picker in
+  `dot_glzr/glazewm/`, ignored by chezmoi unless the OS is `windows`, and
   copy it from WSL to `%USERPROFILE%\.glzr\glazewm\config.yaml` with a
   `run_onchange_after_*` script modeled on
   `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl`. Processes

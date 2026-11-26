@@ -1,5 +1,5 @@
 # mxt (Matrix TUI client) signed in to Beeper. The Discord bridge it talks to runs on leafeon
-# (nixos-config-private: docs/runbooks/leafeon-matrix-bridges.md). A new machine still has to log in
+# (infra-private: docs/runbooks/leafeon-matrix-bridges.md). A new machine still has to log in
 # with `mxt` and then run `:recover`; the bridge ignores devices that are not cross-signed.
 # Only settings that differ from mxt's defaults are here, plus read_receipts.
 [account]
@@ -12,6 +12,14 @@ read_receipts = "public"
 [ui.room_list]
 # Bridged channel names start with the Discord server name, which 30 columns cut short.
 width = 40
+# Rooms with mentions, then rooms that notify, then rooms with only a dim count (mentions-only
+# channels), then the ones read most recently; each unread group newest message first. `notify`
+# needs mxt >= 0.1.5; older versions skip it with a warning.
+sort = "mentions, notify, unread, read"
+
+[ui.timeline]
+# Image previews in the timeline (mxt >= 0.1.5; 0.1.4 ignores the table with a warning).
+images = "on"
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
 
 [files]
@@ -20,24 +28,17 @@ opener = ["wslview"]
 {{- end }}
 
 [keymap.normal]
-# Ctrl may still be held after <C-w>, as nvim allows (<C-w><C-h> is <C-w>h there).
-"<C-w><C-h>" = "focus.room_list"
-"<C-w><C-l>" = "focus.timeline"
-# The composer sits below the timeline: move between them like nvim's windows.
-"<C-w>j" = { action = "composer.focus", mode = "keep" }
-"<C-w><C-j>" = { action = "composer.focus", mode = "keep" }
-"<C-w>k" = "focus.timeline"
-"<C-w><C-k>" = "focus.timeline"
-# Next and previous room with any unread badge.
-"]u" = { action = "room.open", filter = "unread", pick = "next" }
-"[u" = { action = "room.open", filter = "unread", pick = "prev" }
+# The keymap list (:map) has no default key.
+"<leader>sk" = "help.keymap"
+# Jump only between rooms that notify, skipping channels whose only news is a dim count.
+"]u" = { action = "room.open", filter = "notify" }
+"[u" = { action = "room.open", filter = "notify", pick = "prev" }
 
-[keymap.picker]
-"<Down>" = "picker.next"
-"<Up>" = "picker.prev"
-"<Tab>" = "picker.next"
-"<S-Tab>" = "picker.prev"
+[keymap.timeline]
+# ❤️ is a like on the X bridge; pressing it again removes the reaction (unlike). In the timeline
+# table, not normal, so the composer's normal mode keeps its keys; threads fall back to it.
+"<leader>l" = { action = "message.react", emoji = "heart" }
 
-[keymap.composer.completion]
-"<Down>" = "completion.next"
-"<Up>" = "completion.prev"
+[keymap.composer.insert]
+# Back in normal mode after sending.
+"<CR>" = ["composer.send", "composer.normal"]

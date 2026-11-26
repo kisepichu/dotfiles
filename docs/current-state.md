@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-11-14
+Last updated: 2026-11-22
 
 ## Summary
 
@@ -17,7 +17,8 @@ Implemented and committed:
 - Managed LazyVim-based `nvim` config
 - Managed `mise` config
 - Managed `starship` prompt config and `zoxide` activation
-- Managed WezTerm config: chezmoi target on macOS (`darwin` only via `.chezmoiignore`), copied to `%USERPROFILE%\.wezterm.lua` from WSL
+- Managed WezTerm config: chezmoi target on macOS (`darwin` only via `.chezmoiignore`), copied to `%USERPROFILE%\.wezterm.lua` from WSL; on Windows it opens WSL over SSH (`docs/wezterm.md`)
+- Managed GlazeWM config and `Win+Space` AutoHotkey window picker for the Windows host, copied to `%USERPROFILE%\.glzr\glazewm\` from WSL (`docs/window-manager-windows.md`)
 - WSL Ubuntu / macOS / NixOS bootstrap scripts
 - Repo-root `mise.toml` so bootstrap activates `chezmoi` without mise's inactive-tool warning
 - Optional WSL Ubuntu Docker Engine install script
@@ -41,6 +42,7 @@ Recent landed work (since 2026-07-26):
 - tmux test scripts run the server with a throwaway HOME so tpm / resurrect / continuum never touch real session data
 - omp inside tmux on macOS draws images as SIXEL (`PI_FORCE_IMAGE_PROTOCOL` in `~/.tmux.conf`) until omp fixes misplaced Kitty images under tmux ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396))
 - `develop` retired after the last release (#57): feature branches merge into `main` directly
+- The Windows WezTerm opens WSL with its built-in SSH client (`SSH:wsl` over `127.0.0.1:22`) instead of the WSL domain, whose bundled pre-1.22 ConPTY drops image escape sequences; `wezterm.lua` starts WSL at GUI startup, and `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` writes the key, known_hosts, the `Host wsl` block and `instanceIdleTimeout=-1` in `.wslconfig` so WSL keeps running without a `wsl.exe` session (#65)
 
 ## Important State
 
@@ -89,6 +91,7 @@ Agent workflow:
 - `~/.claude/skills/pr-review/` (Copilot or Claude reviewer; the Claude review CI setup lives in `references/claude-review-setup.md` and `templates/claude-review.yml`)
 - `~/.codex/skills/{commit,pr-review}` and `~/.omp/agent/skills/{commit,pr-review}` as symlinks to the matching `~/.claude/skills/*` (omp's user-level native skill root; it does not read `~/.claude/skills` unless the `claude` provider is enabled)
 - `.chezmoiremove` deletes the retired `pr`, `review`, `spec-setup`, `setup-pr-review-workflow`, `skill-improvement` skills and the `spec-*` Claude commands from existing machines
+- `~/.local/bin/omp-panes` records the omp session open in each tmux pane (`omp-panes save`) and reopens it in the same pane after tmux-resurrect restores the panes (`omp-panes restore`); macOS and Linux
 - `~/.config/chezmoi/chezmoi.toml` with `~/repos/dotfiles` as the default source
 
 Core tools:
@@ -114,7 +117,7 @@ Core tools:
 - `~/.config/starship.toml`
 - `~/.config/git/ignore`
 - `~/.config/yazi/yazi.toml`
-- `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir, iTerm2 image previews so ssh hosts do not pick Kitty, which WezTerm draws as boxes; see nixos-config-private `docs/runbooks/leafeon-matrix-bridges.md`)
+- `~/.config/iamb/config.toml` (Beeper profile, macros, downloads dir, iTerm2 image previews so ssh hosts do not pick Kitty, which WezTerm draws as boxes; see infra-private `docs/runbooks/leafeon-matrix-bridges.md`)
 - `~/.config/mxt/config.toml` (Beeper account, public read receipts, `wslview` opener on WSL; mise installs mxt except on NixOS)
 
 Run scripts:
@@ -125,6 +128,8 @@ Run scripts:
 - `run_once_before_20-install-tmux-plugin-manager.sh`
 - `run_onchange_after_27-install-fish-plugins.sh.tmpl`
 - `run_onchange_after_35-install-windows-wezterm-config.sh.tmpl` (WSL, copies the WezTerm config to the Windows host)
+- `run_onchange_after_36-install-windows-glazewm-config.sh.tmpl` (WSL, copies the GlazeWM config and window picker to the Windows host, reloads GlazeWM, and reports missing host setup)
+- `run_onchange_after_37-setup-windows-wezterm-ssh.sh.tmpl` (WSL, sets up the SSH path the Windows WezTerm opens WSL with: key, `authorized_keys` line, known_hosts, `Host wsl` in `%USERPROFILE%\.ssh\config`, `instanceIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`)
 - `run_after_28-link-docker-cli-plugins.sh.tmpl` (macOS)
 - `run_onchange_after_40-mise-install.sh.tmpl`
 - `run_after_50-install-agent-clis.sh`

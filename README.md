@@ -17,7 +17,7 @@ cd ~/repos/dotfiles
 
 The bootstrap applies this chezmoi source non-interactively, which installs the declared mise tools (including Codex), the tmux and fish plugins, and the omp and Claude Code CLIs under `~/.local/bin`. Re-running it restores chezmoi-managed files to the repository state, so commit intentional local edits first. It does not perform any login or create credentials. At the end it warns about commands the NixOS configuration does not provide yet (add them, rebuild, and rerun the bootstrap).
 
-On KDE Plasma, every `chezmoi apply` also sets these user settings with `run_after_36-configure-kde.sh.tmpl`: fcitx5 as the input method (only when none is selected), ComicShannsMono Nerd Font as the fixed-width font, no suspend on idle (AC and battery; lid close keeps its default), no screen lock on idle (the screen still dims and turns off; resume from sleep still locks), and natural (reversed) two-finger scrolling on touchpads. The touchpad step goes through KWin, so it needs `chezmoi apply` to run inside the Plasma session.
+On KDE Plasma, every `chezmoi apply` also sets these user settings with `run_after_38-configure-kde.sh.tmpl`: fcitx5 as the input method (only when none is selected), ComicShannsMono Nerd Font as the fixed-width font, no suspend on idle (AC and battery; lid close keeps its default), no screen lock on idle (the screen still dims and turns off; resume from sleep still locks), and natural (reversed) two-finger scrolling on touchpads. The touchpad step goes through KWin, so it needs `chezmoi apply` to run inside the Plasma session.
 
 On a desktop, `gh auth login` during the runbook creates and uploads the GitHub SSH key. On a server, create a dedicated GitHub key after the bootstrap:
 
@@ -221,6 +221,16 @@ cursor-agent login
 
 On macOS, `~/.tmux.conf` sets `PI_FORCE_IMAGE_PROTOCOL=sixel` for everything started inside tmux. omp's default there (Kitty images through tmux passthrough) puts images at the top-left of the screen and leaves pieces behind ([can1357/oh-my-pi#19396](https://github.com/can1357/oh-my-pi/issues/19396)); tmux draws SIXEL itself. New panes pick it up after `tmux source-file ~/.tmux.conf`. Remove the setting once omp chooses SIXEL inside tmux by itself.
 
+tmux-resurrect brings panes back after a reboot but not the omp sessions in them. `omp-panes` covers that:
+
+```bash
+omp-panes save          # before rebooting
+omp-panes restore -n    # after tmux restored the panes: print what would be typed
+omp-panes restore       # type `cd <dir> && omp <launch flags> --resume <session file>` into each pane
+```
+
+`save` records, per pane (`session:window.pane`, which resurrect restores as-is), the session file the running omp owns, its working directory, and its launch flags (`--profile`, `--model`, ...). Resume/continue/goal flags and positional prompts are dropped, so a restore never re-sends a prompt. `restore` only types into panes sitting at a shell prompt and skips the rest, so running it twice is safe. The record is `$XDG_STATE_HOME/omp-panes.json` (default `~/.local/state`). It needs `python3` 3.9+; on macOS it also uses `lsof`, on Linux it reads `/proc`.
+
 ## yazi
 
 [yazi](https://yazi-rs.github.io/) is the terminal file manager on every platform. It is in the `mise` tool list and resolves to the `aqua:sxyazi/yazi` prebuilt release, which also ships `ya`.
@@ -238,7 +248,7 @@ tmux source-file ~/.tmux.conf
 tmux attach
 ```
 
-Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, yazi documents image previews only through `wezterm ssh` into WSL.
+Neovim's terminal has no graphics protocol, so yazi.nvim shows no images. On WSL, image previews need a path without ConPTY, which is why the Windows WezTerm opens WSL over SSH (`docs/wezterm.md`).
 
 ## Neovim PHP And Diffview
 
