@@ -34,6 +34,10 @@ if command -v qdbus >/dev/null 2>&1; then
   qdbus org.freedesktop.ScreenSaver /ScreenSaver org.kde.screensaver.configure >/dev/null 2>&1 || true
 fi
 
+# Hide notification popups after 2 s instead of Plasma's 5 s. Notifications
+# the app marks persistent or critical still stay until dismissed.
+kwriteconfig6 --notify --file plasmanotifyrc --group Notifications --key PopupTimeout 2000
+
 # Plasma on Wayland starts an input method only once it is selected under
 # System Settings > Keyboard > Virtual Keyboard, which stores it in kwinrc.
 # Leave a choice made there alone.
