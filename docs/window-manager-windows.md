@@ -92,9 +92,21 @@ Windows は、`Win` を押してから離すまでにほかのキーが届かな
 できなくなった。
 
 そのため `win-key-mask.ahk` が、`Win` を押した瞬間に未割り当てのキー (`vkE8`) を
-送る (`~LWin::Send("{Blind}{vkE8}")`)。Windows からは毎回「`Win` を使う組み合わせ
+送る (`~LWin::SendEvent("{Blind}{vkE8}")`)。Windows からは毎回「`Win` を使う組み合わせ
 だった」と見えるので、Start は開かない。副作用として `Win` を単独で押しても Start
 は開かない。Start は `Ctrl+Esc` かタスクバーの Start ボタンで開く。
+
+`Send` ではなく `SendEvent` を使う。AutoHotkey v2 の `Send` は SendInput モードで、
+送る間だけキーボードフックを外し、送ったあとに付け直す。外す依頼にフックの
+スレッドが 500 ms 以内に応じないと、AutoHotkey はまだ付いているとみなして
+付け直しを飛ばし、遅れて届いた外す依頼でフックが消える。VRChat などで Windows
+全体が重いときにこれが起き、スクリプトを再起動するまで `Win` 単独で Start が
+開いた (KeyHistory で `Keybd hook: no`)。`SendEvent` はフックを外さない。
+
+`chezmoi apply` は GlazeWM の設定を再読み込みするだけで、動いている
+`win-key-mask.ahk` は古いまま残る。変えたあとは GlazeWM を再起動するか、
+`glazewm command shell-exec` で新しいものを起動する (`#SingleInstance Force` で
+古いものと入れ替わる)。
 
 ピッカーは、ほかの窓 (Start を含む) にフォーカスが移ると 0.25 秒以内に閉じる。
 
